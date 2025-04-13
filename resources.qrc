@@ -1,0 +1,44 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/">
+        <file>Images/onboarding1.png</file>
+        <file>Images/onboarding2.png</file>
+        <file>Images/onboarding3.png</file>
+        <file>Images/fitness1.png</file>
+        <file>Images/fitness2.png</file>
+        <file>Images/fitness3.png</file>
+        <file>Images/chevron-left.png</file>
+        <file>Images/chevron-right.png</file>
+        <file>Images/dumbbell.png</file>
+        <file>Images/dumbbell.ico</file>
+        <file>Images/moon.png</file>
+        <file>Images/sun.png</file>
+        <file>Images/mail.png</file>
+        <file>Images/lock.png</file>
+        <file>Images/person.png</file>
+        <file>Images/person_bw.png</file>
+        <file>Images/userB.png</file>
+        <file>Images/userW.png</file>
+        <file>Images/close eyes.png</file>
+        <file>Images/open eyes.png</file>
+        <file>Images/team-spirit.png</file>
+        <file>Images/menu.png</file>
+        <file>Images/settings.png</file>
+        <file>Images/profile.png</file>
+        <file>Images/team.png</file>
+        <file>Images/google.png</file>
+        <file>Images/apple.png</file>
+        <file>Images/facebook.png</file>
+        <file>Images/error.png</file>
+        <file>Images/success.png</file>
+        <file>Images/check.png</file>
+        <file>Images/github.png</file>
+        <file>Images/chevron-down.png</file>
+        <file>Images/en.png</file>
+        <file>Images/fr.png</file>
+        <file>Images/de.png</file>
+        <file>translations/fitflexpro_en.qm</file>
+        <file>translations/fitflexpro_fr.qm</file>
+        <file>translations/fitflexpro_de.qm</file>
+    </qresource>
+</RCC> 
