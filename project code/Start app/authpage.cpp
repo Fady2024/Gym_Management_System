@@ -617,9 +617,9 @@ void AuthPage::setupLoginForm()
         return button;
     };
 
-    const auto googleButton = createSocialButton("Images/google.png");
-    const auto appleButton = createSocialButton("Images/apple.png");
-    const auto facebookButton = createSocialButton("Images/facebook.png");
+    const auto googleButton = createSocialButton(":/Images/google.png");
+    const auto appleButton = createSocialButton(":/Images/apple.png");
+    const auto facebookButton = createSocialButton(":/Images/facebook.png");
 
     socialLayout->addWidget(googleButton);
     socialLayout->addWidget(appleButton);

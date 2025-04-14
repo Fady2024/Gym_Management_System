@@ -6,9 +6,18 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+# Set Qt installation path
+set(Qt6_DIR "C:/Qt/6.10.0/msvc2022_64/lib/cmake/Qt6")
+
 # Add resource files
 set(RESOURCE_FILES
     resources.qrc
+)
+
+# Add data files
+set(DATA_FILES
+    "project code/Data/users.json"
+    "project code/Data/remembered.json"
 )
 
 # Find required Qt6 components
@@ -89,6 +98,15 @@ set(PROJECT_SOURCES
 
 # Create executable
 add_executable(DS_Project ${PROJECT_SOURCES})
+
+# Copy data files to build directory
+foreach(DATA_FILE ${DATA_FILES})
+    add_custom_command(TARGET DS_Project POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/${DATA_FILE}"
+        "$<TARGET_FILE_DIR:DS_Project>/${DATA_FILE}"
+    )
+endforeach()
 
 # Include directories
 target_include_directories(DS_Project PRIVATE

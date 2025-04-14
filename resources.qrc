@@ -40,5 +40,7 @@
         <file>translations/fitflexpro_en.qm</file>
         <file>translations/fitflexpro_fr.qm</file>
         <file>translations/fitflexpro_de.qm</file>
+        <file>project code/Data/remembered.json</file>
+        <file>project code/Data/users.json</file>
     </qresource>
 </RCC> 

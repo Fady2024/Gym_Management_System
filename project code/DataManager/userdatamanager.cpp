@@ -9,35 +9,50 @@
 #include <QDir>
 #include <QCryptographicHash>
 #include <QDebug>
+#include <QStandardPaths>
 
 UserDataManager::UserDataManager(QObject* parent) : QObject(parent) {
-    usersFilePath = "project code/Data/users.json";
-    rememberedCredentialsPath = "project code/Data/remembered.json";
+    QString appDataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QDir().mkpath(appDataPath);
+    
+    usersFilePath = appDataPath + "/users.json";
+    rememberedCredentialsPath = appDataPath + "/remembered.json";
+    
     initializeFromFile();
     loadRememberedCredentials();
 }
 
 UserDataManager::~UserDataManager() {
-    const QString errorMessage;
-    
-    if (!saveToFile()) {
-        qDebug() << "Error saving users data at exit:" << errorMessage;
-    }
-    
-    if (!saveRememberedCredentialsToFile()) {
-        qDebug() << "Error saving remembered credentials at exit:" << errorMessage;
-    }
+    saveToFile();
+    saveRememberedCredentialsToFile();
 }
 
 bool UserDataManager::initializeFromFile() {
     QString errorMessage;
-    QJsonArray usersArray = readUsersFromFile(errorMessage);
+    QJsonArray usersArray;
     
-    if (!errorMessage.isEmpty()) {
-        qDebug() << "Error loading users:" << errorMessage;
-        return false;
+    QFile localFile(usersFilePath);
+    if (localFile.exists()) {
+        if (!localFile.open(QIODevice::ReadOnly)) {
+            qDebug() << "Failed to open local users file:" << localFile.errorString();
+            return false;
+        }
+        QJsonDocument doc = QJsonDocument::fromJson(localFile.readAll());
+        localFile.close();
+        if (doc.isArray()) {
+            usersArray = doc.array();
+        }
+    } else {
+        QFile resourceFile(":/project code/Data/users.json");
+        if (resourceFile.open(QIODevice::ReadOnly)) {
+            QJsonDocument doc = QJsonDocument::fromJson(resourceFile.readAll());
+            resourceFile.close();
+            if (doc.isArray()) {
+                usersArray = doc.array();
+            }
+        }
     }
-
+    
     users.clear();
     for (const QJsonValue& value : usersArray) {
         if (value.isObject()) {
@@ -53,73 +68,73 @@ bool UserDataManager::saveToFile() {
     for (const User& user : users) {
         usersArray.append(userToJson(user));
     }
-
-    QString errorMessage;
-    const bool success = writeUsersToFile(usersArray, errorMessage);
     
-    if (!success) {
-        qDebug() << "Error saving users:" << errorMessage;
-    }
-    
-    return success;
-}
-
-bool UserDataManager::loadRememberedCredentials() {
-    QFile file(rememberedCredentialsPath);
-    if (!file.exists()) {
+    QFile file(usersFilePath);
+    if (!file.open(QIODevice::WriteOnly)) {
+        qDebug() << "Failed to open users file for writing:" << file.errorString();
         return false;
     }
-
-    if (!file.open(QIODevice::ReadOnly)) {
-        qDebug() << "Failed to open remembered credentials file:" << file.errorString();
-        return false;
-    }
-
-    const QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    
+    QJsonDocument doc(usersArray);
+    file.write(doc.toJson());
     file.close();
-
-    if (!doc.isObject()) {
-        return false;
-    }
-
-    QJsonObject obj = doc.object();
-    hasRememberedCredentials = obj["hasCredentials"].toBool();
-    if (hasRememberedCredentials) {
-        rememberedEmail = obj["email"].toString();
-        rememberedPassword = obj["password"].toString();
-    }
-
     return true;
 }
 
-bool UserDataManager::saveRememberedCredentialsToFile() const
-{
-    // Create directories if they don't exist
-    QDir dataDir("project code/Data");
-    if (!dataDir.exists()) {
-        if (!dataDir.mkpath(".")) {
-            qDebug() << "Failed to create directory:" << dataDir.path();
+bool UserDataManager::loadRememberedCredentials() {
+    QFile localFile(rememberedCredentialsPath);
+    if (localFile.exists()) {
+        if (!localFile.open(QIODevice::ReadOnly)) {
+            qDebug() << "Failed to open local remembered credentials file:" << localFile.errorString();
             return false;
         }
+        QJsonDocument doc = QJsonDocument::fromJson(localFile.readAll());
+        localFile.close();
+        if (doc.isObject()) {
+            QJsonObject obj = doc.object();
+            hasRememberedCredentials = obj["hasCredentials"].toBool();
+            if (hasRememberedCredentials) {
+                rememberedEmail = obj["email"].toString();
+                rememberedPassword = obj["password"].toString();
+            }
+            return true;
+        }
+    } else {
+        QFile resourceFile(":/project code/Data/remembered.json");
+        if (resourceFile.open(QIODevice::ReadOnly)) {
+            QJsonDocument doc = QJsonDocument::fromJson(resourceFile.readAll());
+            resourceFile.close();
+            if (doc.isObject()) {
+                QJsonObject obj = doc.object();
+                hasRememberedCredentials = obj["hasCredentials"].toBool();
+                if (hasRememberedCredentials) {
+                    rememberedEmail = obj["email"].toString();
+                    rememberedPassword = obj["password"].toString();
+                }
+                return true;
+            }
+        }
     }
+    return false;
+}
 
+bool UserDataManager::saveRememberedCredentialsToFile() const {
     QFile file(rememberedCredentialsPath);
     if (!file.open(QIODevice::WriteOnly)) {
-        qDebug() << "Failed to open remembered credentials file:" << file.errorString();
+        qDebug() << "Failed to open remembered credentials file for writing:" << file.errorString();
         return false;
     }
-
+    
     QJsonObject obj;
     obj["hasCredentials"] = hasRememberedCredentials;
     if (hasRememberedCredentials) {
         obj["email"] = rememberedEmail;
         obj["password"] = rememberedPassword;
     }
-
-    const QJsonDocument doc(obj);
+    
+    QJsonDocument doc(obj);
     file.write(doc.toJson());
     file.close();
-
     return true;
 }
 
