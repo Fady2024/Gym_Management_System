@@ -25,6 +25,7 @@ signals:
 protected:
     void resizeEvent(QResizeEvent* event) override;
     bool event(QEvent* e) override;
+    void paintEvent(QPaintEvent* event) override;
 
 private:
     void setupUI();

@@ -73,6 +73,8 @@ set(MODEL_SOURCES
 )
 
 set(UTIL_SOURCES
+        "project code/Util/AppInitializer.h"
+        "project code/Util/AppInitializer.cpp"
         "project code/Util/ThemeManager.cpp"
         "project code/Util/ThemeManager.h"
         "project code/Util/TopPanel.cpp"

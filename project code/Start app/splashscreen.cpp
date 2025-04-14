@@ -8,12 +8,15 @@
 #include <QPainter>
 #include <QGraphicsDropShadowEffect>
 #include <QGraphicsOpacityEffect>
+#include <QStyleOption>
 
 SplashScreen::SplashScreen(QWidget* parent)
     : QWidget(parent)
     , container(new QWidget(this))
     , logoLabel(new QLabel(container))
     , titleLabel(new QLabel(container))
+    , subtitleLabel(new QLabel(container))
+    , loadingDots(new QWidget(this))
     , opacityEffect(new QGraphicsOpacityEffect(this))
     , fadeAnimation(new QPropertyAnimation(opacityEffect, "opacity", this))
     , mainAnimation(new QSequentialAnimationGroup(this))
@@ -82,18 +85,16 @@ void SplashScreen::setupUI()
     titleLabel->setText("FitFlex<span style='color: #8B5CF6;'>Pro</span>");
     titleLabel->setAlignment(Qt::AlignCenter);
     titleLabel->setTextFormat(Qt::RichText);
-
-    // Add drop shadow effect to title
-    auto* shadowEffect = new QGraphicsDropShadowEffect(titleLabel);
-    shadowEffect->setColor(QColor(0, 0, 0, 80));
-    shadowEffect->setBlurRadius(15);
-    shadowEffect->setOffset(0, 2);
-    titleLabel->setGraphicsEffect(shadowEffect);
-
+    
+    // Create subtitle (empty for now)
+    subtitleLabel->setObjectName("subtitleLabel");
+    subtitleLabel->setAlignment(Qt::AlignCenter);
+    
     // Add widgets to container with proper spacing
     containerLayout->addStretch(1);
     containerLayout->addWidget(logoLabel, 0, Qt::AlignCenter);
     containerLayout->addWidget(titleLabel, 0, Qt::AlignCenter);
+    containerLayout->addWidget(subtitleLabel, 0, Qt::AlignCenter);
     containerLayout->addStretch(1);
 
     // Add container to main layout
@@ -128,18 +129,40 @@ void SplashScreen::updateTheme(bool isDark)
 {
     // Set completely transparent background
     setStyleSheet("QWidget { background: transparent; }");
-    container->setStyleSheet("QWidget#container { background: transparent; }");
+    
+    // Modern container styling
+    QString containerStyle = QString(
+        "QWidget#container {"
+        "   background-color: %1;"
+        "   border-radius: 20px;"
+        "}"
+    ).arg(isDark ? "rgba(30, 30, 30, 0.9)" : "rgba(250, 250, 250, 0.9)");
+    
+    container->setStyleSheet(containerStyle);
 
-    // Update title style with improved typography and shadow
-    titleLabel->setStyleSheet(QString(
+    // Update title style with improved typography
+    QString titleStyle = QString(
         "QLabel#titleLabel {"
         "   font-size: 48px;"
         "   font-weight: bold;"
         "   letter-spacing: -0.5px;"
-        "   color: white;"
+        "   color: %1;"
         "   background: transparent;"
         "}"
-    ));
+    ).arg(isDark ? "white" : "black");
+    
+    titleLabel->setStyleSheet(titleStyle);
+    
+    // Update subtitle style
+    QString subtitleStyle = QString(
+        "QLabel#subtitleLabel {"
+        "   font-size: 18px;"
+        "   color: %1;"
+        "   background: transparent;"
+        "}"
+    ).arg(isDark ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)");
+    
+    subtitleLabel->setStyleSheet(subtitleStyle);
 }
 
 void SplashScreen::resizeEvent(QResizeEvent* event)
@@ -156,6 +179,9 @@ void SplashScreen::retranslateUI()
     if (titleLabel) {
         titleLabel->setText("FitFlex<span style='color: #8B5CF6;'>Pro</span>");
     }
+    if (subtitleLabel) {
+        subtitleLabel->setText(tr("Fitness Management System"));
+    }
 }
 
 bool SplashScreen::event(QEvent* e)
@@ -165,4 +191,11 @@ bool SplashScreen::event(QEvent* e)
         return true;
     }
     return QWidget::event(e);
+}
+
+void SplashScreen::paintEvent(QPaintEvent* event)
+{
+    Q_UNUSED(event);
+    
+    // No custom painting - let Qt handle everything
 } 

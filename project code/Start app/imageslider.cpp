@@ -140,7 +140,18 @@ void ImageSlider::addSlide(const QString& imagePath, const QString& title, const
     slides.push_back({imagePath, title, description});
     
     if (slides.size() == 1) {
+        // Load image from resource system
         currentImage = QPixmap(imagePath);
+        if (currentImage.isNull()) {
+            qWarning() << "Failed to load image:" << imagePath;
+            // If the path doesn't start with :/, try adding it
+            if (!imagePath.startsWith(":/")) {
+                currentImage = QPixmap(":/" + imagePath);
+                if (currentImage.isNull()) {
+                    qWarning() << "Failed to load image from resource:" << ":/" + imagePath;
+                }
+            }
+        }
         if (!currentImage.isNull()) {
             originalSize = currentImage.size();
         }
@@ -153,7 +164,18 @@ void ImageSlider::goToSlide(int index)
     if (index == currentIndex || index < 0 || index >= static_cast<int>(slides.size()))
         return;
     
+    // Load image from resource system
     nextImage = QPixmap(slides[index].imagePath);
+    if (nextImage.isNull()) {
+        qWarning() << "Failed to load image:" << slides[index].imagePath;
+        // Try loading with resource path
+        nextImage = QPixmap(":/" + slides[index].imagePath);
+        if (nextImage.isNull()) {
+            qWarning() << "Failed to load image from resource:" << ":/" + slides[index].imagePath;
+            return;
+        }
+    }
+    
     m_slideOffset = 0.0;
     slideAnimation->start();
     

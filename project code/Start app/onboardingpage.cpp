@@ -442,7 +442,6 @@ void OnboardingPage::updateTheme(bool isDark)
             "   text-align: center;"
             "   transition: all 0.3s ease;"
             "   box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);"
-            "   qproperty-alignment: AlignCenter;"
             "}"
             "QPushButton#nextButton:hover {"
             "   background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "

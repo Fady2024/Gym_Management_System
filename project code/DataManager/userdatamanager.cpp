@@ -11,14 +11,18 @@
 #include <QDebug>
 #include <QStandardPaths>
 
-UserDataManager::UserDataManager(QObject* parent) : QObject(parent) {
+UserDataManager::UserDataManager(QObject* parent)
+    : QObject(parent)
+{
     QString appDataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     QDir().mkpath(appDataPath);
     
     usersFilePath = appDataPath + "/users.json";
     rememberedCredentialsPath = appDataPath + "/remembered.json";
     
-    initializeFromFile();
+    if (!initializeFromFile()) {
+        qWarning() << "Failed to initialize user data from file";
+    }
     loadRememberedCredentials();
 }
 

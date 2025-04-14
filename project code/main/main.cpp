@@ -9,9 +9,12 @@
 #include "../Util/LanguageManager.h"
 #include <QSettings>
 #include <QStackedWidget>
+#include "../Util/AppInitializer.h"
 
 int main(int argc, char* argv[])
 {
+  //  AppInitializer::initializeApplication();
+    
     QApplication app(argc, argv);
     QApplication::setApplicationName("FitFlex Pro");
 
