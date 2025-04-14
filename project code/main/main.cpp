@@ -13,7 +13,7 @@
 
 int main(int argc, char* argv[])
 {
-  //  AppInitializer::initializeApplication();
+ AppInitializer::initializeApplication();
     
     QApplication app(argc, argv);
     QApplication::setApplicationName("FitFlex Pro");
