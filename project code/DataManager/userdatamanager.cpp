@@ -18,7 +18,7 @@ UserDataManager::UserDataManager(QObject* parent)
 {
     // Get the project directory path
     QString projectDir = QCoreApplication::applicationDirPath();
-    projectDir = QFileInfo(projectDir).dir().absolutePath(); // Go up to project root
+    projectDir = QFileInfo(projectDir).dir().absolutePath();
     
     // Set data directory paths
     dataDir = projectDir + "/project code/Data";
@@ -109,7 +109,7 @@ bool UserDataManager::saveToFile()
 
     success = saveRememberedCredentialsToFile();
     if (success) {
-        dataModified = false;  // Reset modified flag after successful save
+        dataModified = false;
     }
     return success;
 }
@@ -143,8 +143,8 @@ bool UserDataManager::saveUserData(const User& user, QString& errorMessage)
         emailToIdMap[newUser.getEmail()] = newId;
     }
 
-    dataModified = true;  // Mark data as modified
-    return true;  // Don't save to file here, will be saved at exit
+    dataModified = true;
+    return true;
 }
 
 bool UserDataManager::validateUser(const QString& email, const QString& password)
@@ -207,8 +207,8 @@ bool UserDataManager::deleteAccountById(int id, QString& errorMessage)
     usersById.erase(id);
     users.removeAll(user);
 
-    dataModified = true;  // Mark data as modified
-    return true;  // Don't save to file here, will be saved at exit
+    dataModified = true;
+    return true;
 }
 
 bool UserDataManager::emailExists(const QString& email) const
