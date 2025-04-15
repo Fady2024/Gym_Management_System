@@ -10,7 +10,7 @@
 #include "homepage.h"
 #include "settingspage.h"
 #include <QLabel>
-#include "../Util/LanguageSelector.h"
+#include "../Language/LanguageSelector.h"
 
 class MainPage : public QMainWindow
 {

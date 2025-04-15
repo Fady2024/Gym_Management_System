@@ -9,10 +9,11 @@
 #include <QGraphicsOpacityEffect>
 #include <QEvent>
 #include <QComboBox>
+#include <QDateEdit>
 #include "../DataManager/userdatamanager.h"
 #include "imageslider.h"
-#include "../Util/UIUtils.h"
-#include "../Util/LanguageManager.h"
+#include "../UI/UIUtils.h"
+#include "../Language//LanguageManager.h"
 
 class CustomLineEdit : public QLineEdit
 {
@@ -95,6 +96,7 @@ private:
     CustomLineEdit* signupNameInput{};
     CustomLineEdit* signupEmailInput{};
     CustomLineEdit* signupPasswordInput{};
+    CustomLineEdit* signupAgeInput{};
     QPushButton* profileImageButton{};
     QCheckBox* termsCheckbox{};
     QPushButton* signupButton{};

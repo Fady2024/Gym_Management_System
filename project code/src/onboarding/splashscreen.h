@@ -9,7 +9,7 @@
 #include <QTimer>
 #include <QSequentialAnimationGroup>
 #include <QParallelAnimationGroup>
-#include "../Util/ThemeManager.h"
+#include "../Theme/ThemeManager.h"
 
 class SplashScreen : public QWidget
 {

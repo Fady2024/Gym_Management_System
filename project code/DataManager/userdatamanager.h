@@ -6,9 +6,11 @@
 #include <QFile>
 #include <QJsonParseError>
 #include "../Model/user.h"
-#include <QList>
 #include <QString>
 #include <QVector>
+#include <unordered_map>
+#include <QObject>
+#include <QDir>
 
 class UserDataManager : public QObject
 {
@@ -20,19 +22,22 @@ public:
 
     bool initializeFromFile();  // Load data at startup
     bool saveToFile();         // Save data at exit
+    void handleApplicationClosing();  // Handle application closing
 
     // In-memory operations
     bool saveUserData(const User& user, QString& errorMessage);
     bool validateUser(const QString& email, const QString& password);
     bool emailExists(const QString& email) const;
     User getUserData(const QString& email);
-    QList<User>& getUsers();
+    User getUserDataById(int id);
     bool deleteAccount(const QString& email, QString& errorMessage);
+    bool deleteAccountById(int id, QString& errorMessage);
 
     // Validation methods
     static bool validateEmail(const QString& email, QString& errorMessage);
     static bool validatePassword(const QString& password, QString& errorMessage);
     static bool validateName(const QString& name, QString& errorMessage);
+    static bool validateDateOfBirth(const QDate& dateOfBirth, QString& errorMessage);
     bool validateNewUser(const User& user, QString& errorMessage);
 
     [[nodiscard]] QVector<User> getAllUsers() const;
@@ -42,13 +47,19 @@ public:
     bool clearRememberedCredentials();
     bool getRememberedCredentials(QString& email, QString& password) const;
 
+    QString getUsersPhotoDir() const { return usersPhotoDir; }
+
 private:
-    QString usersFilePath;
-    QString rememberedCredentialsPath;
-    QList<User> users;
+    QString dataDir;
+    QString usersPhotoDir;
+    QVector<User> users;
+    QVector<QPair<QString, QString>> rememberedCredentials;
+    std::unordered_map<int, User> usersById;  // Primary storage by ID
+    std::unordered_map<QString, int> emailToIdMap;  // Secondary index for email lookups
     bool hasRememberedCredentials = false;
     QString rememberedEmail;
     QString rememberedPassword;
+    bool dataModified = false;  // Track if data has been modified
 
     QJsonArray readUsersFromFile(QString& errorMessage) const;
     bool writeUsersToFile(const QJsonArray& users, QString& errorMessage) const;

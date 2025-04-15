@@ -13,6 +13,7 @@
         <file>Images/dumbbell.ico</file>
         <file>Images/moon.png</file>
         <file>Images/sun.png</file>
+        <file>Images/Age.png</file>
         <file>Images/mail.png</file>
         <file>Images/lock.png</file>
         <file>Images/person.png</file>
@@ -40,7 +41,9 @@
         <file>translations/fitflexpro_en.qm</file>
         <file>translations/fitflexpro_fr.qm</file>
         <file>translations/fitflexpro_de.qm</file>
-        <file>project code/Data/remembered.json</file>
+    </qresource>
+    <qresource prefix="/data">
         <file>project code/Data/users.json</file>
+        <file>project code/Data/remembered.json</file>
     </qresource>
 </RCC> 

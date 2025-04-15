@@ -1,7 +1,7 @@
 #include "splashscreen.h"
 #include <QApplication>
 #include <QScreen>
-#include "../Util/UIUtils.h"
+#include "../UI/UIUtils.h"
 #include <QDebug>
 #include <QVBoxLayout>
 #include <QTimer>

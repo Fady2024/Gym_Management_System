@@ -1,7 +1,7 @@
 #include "authpage.h"
 #include "mainpage.h"
-#include "../Util/ThemeManager.h"
-#include "../Util/LanguageManager.h"
+#include "../Theme/ThemeManager.h"
+#include "../Language/LanguageManager.h"
 
 #include <QScrollArea>
 #include <QTextEdit>
@@ -23,6 +23,8 @@
 #include <QParallelAnimationGroup>
 #include <QDebug>
 #include <QSequentialAnimationGroup>
+#include <QImageReader>
+#include <QImage>
 
 #include "TopPanel.h"
 
@@ -647,29 +649,27 @@ void AuthPage::setupSignupForm()
 {
     signupWidget = new QWidget;
     const auto layout = new QVBoxLayout(signupWidget);
-    layout->setSpacing(16);
+    layout->setSpacing(12);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setAlignment(Qt::AlignCenter);
 
-    // Create a container for all form elements
     const auto formContainer = new QWidget;
     formContainer->setFixedWidth(400);
     const auto formLayout = new QVBoxLayout(formContainer);
-    formLayout->setSpacing(16);
-    formLayout->setContentsMargins(24, 24, 24, 24);
+    formLayout->setSpacing(12);
+    formLayout->setContentsMargins(24, 16, 24, 16);
     formLayout->setAlignment(Qt::AlignHCenter);
 
-    // Profile image upload with improved container
     const auto profileContainer = new QWidget;
     const auto profileLayout = new QVBoxLayout(profileContainer);
-    profileLayout->setSpacing(8);
+    profileLayout->setSpacing(4);
     profileLayout->setAlignment(Qt::AlignCenter);
-    profileLayout->setContentsMargins(0, 0, 0, 16);
+    profileLayout->setContentsMargins(0, 0, 0, 8);
 
     profileImageButton = new QPushButton;
-    profileImageButton->setFixedSize(120, 120);
-    profileImageButton->setIcon(UIUtils::getIcon("person.png", 60));
-    profileImageButton->setIconSize(QSize(60, 60));
+    profileImageButton->setFixedSize(100, 100);
+    profileImageButton->setIcon(UIUtils::getIcon("person.png", 50));
+    profileImageButton->setIconSize(QSize(50, 50));
     profileImageButton->setStyleSheet(UIUtils::getProfileUploadStyle(isDarkTheme));
     profileImageButton->setCursor(Qt::PointingHandCursor);
     connect(profileImageButton, &QPushButton::clicked, this, &AuthPage::selectProfileImage);
@@ -681,60 +681,65 @@ void AuthPage::setupSignupForm()
     profileLayout->addWidget(profileImageButton, 0, Qt::AlignCenter);
     profileLayout->addWidget(uploadLabel, 0, Qt::AlignCenter);
 
-    // Input fields container
     const auto inputsContainer = new QWidget;
     const auto inputsLayout = new QVBoxLayout(inputsContainer);
-    inputsLayout->setSpacing(12);
+    inputsLayout->setSpacing(8);
     inputsLayout->setContentsMargins(0, 0, 0, 0);
     inputsLayout->setAlignment(Qt::AlignCenter);
 
-    // Name input
     signupNameInput = new CustomLineEdit;
     signupNameInput->setPlaceholderText(tr("Your Name"));
-    signupNameInput->setFixedHeight(45);
+    signupNameInput->setFixedHeight(40);
     signupNameInput->setFixedWidth(352);
     signupNameInput->setStyleSheet(UIUtils::getInputStyle(isDarkTheme));
 
     const auto nameIcon = new QLabel(signupNameInput);
     nameIcon->setPixmap(UIUtils::getIconWithColor("person_bw.png", QColor(0x8B5CF6), 18));
     nameIcon->setStyleSheet("QLabel { background: transparent; padding: 0; margin: 0; }");
-    nameIcon->setGeometry(16, 14, 18, 18);
+    nameIcon->setGeometry(16, 11, 18, 18);
 
-    // Email input
     signupEmailInput = new CustomLineEdit;
     signupEmailInput->setPlaceholderText(tr("Email address"));
-    signupEmailInput->setFixedHeight(45);
+    signupEmailInput->setFixedHeight(40);
     signupEmailInput->setFixedWidth(352);
     signupEmailInput->setStyleSheet(UIUtils::getInputStyle(isDarkTheme));
 
     const auto emailIcon = new QLabel(signupEmailInput);
     emailIcon->setPixmap(UIUtils::getIconWithColor("mail.png", QColor(0x8B5CF6), 18));
     emailIcon->setStyleSheet("QLabel { background: transparent; padding: 0; margin: 0; }");
-    emailIcon->setGeometry(16, 14, 18, 18);
+    emailIcon->setGeometry(16, 11, 18, 18);
 
-    // Password input
+    signupAgeInput = new CustomLineEdit;
+    signupAgeInput->setPlaceholderText(tr("Age"));
+    signupAgeInput->setFixedHeight(40);
+    signupAgeInput->setFixedWidth(352);
+    signupAgeInput->setStyleSheet(UIUtils::getInputStyle(isDarkTheme));
+    signupAgeInput->setValidator(new QIntValidator(13, 120, signupAgeInput));
+
+    const auto ageIcon = new QLabel(signupAgeInput);
+    ageIcon->setPixmap(UIUtils::getIconWithColor("Age.png", QColor(0x8B5CF6), 18));
+    ageIcon->setStyleSheet("QLabel { background: transparent; padding: 0; margin: 0; }");
+    ageIcon->setGeometry(16, 11, 18, 18);
+
     signupPasswordInput = new CustomLineEdit;
     signupPasswordInput->setPlaceholderText(tr("Password"));
     signupPasswordInput->setEchoMode(QLineEdit::Password);
-    signupPasswordInput->setFixedHeight(45);
+    signupPasswordInput->setFixedHeight(40);
     signupPasswordInput->setFixedWidth(352);
     signupPasswordInput->setStyleSheet(UIUtils::getInputStyle(isDarkTheme));
 
-    // Lock icon for password
     const auto lockIcon = new QLabel(signupPasswordInput);
     lockIcon->setPixmap(UIUtils::getIconWithColor("lock.png", QColor(0x8B5CF6), 18));
     lockIcon->setStyleSheet("QLabel { background: transparent; padding: 0; margin: 0; }");
-    lockIcon->setGeometry(16, 14, 18, 18);
+    lockIcon->setGeometry(16, 11, 18, 18);
 
-    // Toggle password visibility icon
     const auto togglePasswordIcon = new QLabel(signupPasswordInput);
     togglePasswordIcon->setPixmap(UIUtils::getIconWithColor("close eyes.png", QColor(0x8B5CF6), 18));
     togglePasswordIcon->setStyleSheet("QLabel { background: transparent; padding: 0; margin: 0; cursor: pointer; }");
-    togglePasswordIcon->setGeometry(signupPasswordInput->width() - 34, 14, 18, 18);
+    togglePasswordIcon->setGeometry(signupPasswordInput->width() - 34, 11, 18, 18);
     togglePasswordIcon->setCursor(Qt::PointingHandCursor);
     togglePasswordIcon->installEventFilter(this);
 
-    // Terms checkbox container
     const auto termsContainer = new QWidget;
     termsContainer->setFixedWidth(352);
     const auto termsLayout = new QHBoxLayout(termsContainer);
@@ -756,26 +761,49 @@ void AuthPage::setupSignupForm()
     termsLayout->addWidget(termsLink);
     termsLayout->addStretch();
 
-    // Create Account button
     signupButton = new QPushButton(tr("Sign Up"));
     signupButton->setFixedWidth(352);
     signupButton->setFixedHeight(45);
-    signupButton->setStyleSheet(UIUtils::getButtonStyle(isDarkTheme));
+    signupButton->setStyleSheet(
+        "QPushButton {"
+        "   background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+        "       stop:0 #8B5CF6, stop:0.5 #7C3AED, stop:1 #6D28D9);"
+        "   color: white;"
+        "   border: none;"
+        "   border-radius: 12px;"
+        "   padding: 8px 16px;"
+        "   font-size: 15px;"
+        "   font-weight: 600;"
+        "   letter-spacing: 0.3px;"
+        "   box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2);"
+        "   transition: all 0.3s ease;"
+        "}"
+        "QPushButton:hover {"
+        "   background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+        "       stop:0 #7C3AED, stop:0.5 #6D28D9, stop:1 #5B21B6);"
+        "   box-shadow: 0 6px 10px rgba(139, 92, 246, 0.3);"
+        "   transform: translateY(-1px);"
+        "}"
+        "QPushButton:pressed {"
+        "   background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+        "       stop:0 #6D28D9, stop:0.5 #5B21B6, stop:1 #4C1D95);"
+        "   box-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);"
+        "   transform: translateY(1px);"
+        "}"
+    );
     signupButton->setCursor(Qt::PointingHandCursor);
     connect(signupButton, &QPushButton::clicked, this, &AuthPage::handleSignup);
 
-    // Add all widgets to the inputs layout
     inputsLayout->addWidget(signupNameInput, 0, Qt::AlignCenter);
     inputsLayout->addWidget(signupEmailInput, 0, Qt::AlignCenter);
+    inputsLayout->addWidget(signupAgeInput, 0, Qt::AlignCenter);
     inputsLayout->addWidget(signupPasswordInput, 0, Qt::AlignCenter);
     inputsLayout->addWidget(termsContainer, 0, Qt::AlignCenter);
     inputsLayout->addWidget(signupButton, 0, Qt::AlignCenter);
 
-    // Add containers to form layout
     formLayout->addWidget(profileContainer);
     formLayout->addWidget(inputsContainer);
 
-    // Add form container to main layout with stretches for vertical centering
     layout->addStretch(1);
     layout->addWidget(formContainer, 0, Qt::AlignCenter);
     layout->addStretch(1);
@@ -874,19 +902,60 @@ void AuthPage::handleLogin()
 
 void AuthPage::handleSignup()
 {
+    // Validate name first (top field)
     const QString name = signupNameInput->text();
-    const QString email = signupEmailInput->text();
-    const QString password = signupPasswordInput->text();
+    QString errorMessage;
+    if (!userDataManager->validateName(name, errorMessage)) {
+        showError(tr("Name: %1").arg(errorMessage));
+        signupNameInput->setFocus();
+        return;
+    }
 
+    // Validate email (second field)
+    const QString email = signupEmailInput->text();
+    if (!userDataManager->validateEmail(email, errorMessage)) {
+        showError(tr("Email: %1").arg(errorMessage));
+        signupEmailInput->setFocus();
+        return;
+    }
+    
     // Check if email already exists
     if (userDataManager->emailExists(email)) {
-        showError(tr("This email is already registered. Please use a different email or login."));
+        showError(tr("Email is already registered. Please use a different email or login."));
+        signupEmailInput->setFocus();
+        return;
+    }
+
+    // Validate age (third field)
+    const QString ageStr = signupAgeInput->text();
+    bool ok;
+    int age = ageStr.toInt(&ok);
+    if (!ok || age < 13 || age > 120) {
+        showError(tr("Please enter a valid age between 13 and 120"));
+        signupAgeInput->setFocus();
+        return;
+    }
+
+    // Calculate date of birth from age
+    QDate currentDate = QDate::currentDate();
+    QDate dateOfBirth = currentDate.addYears(-age);
+
+    // Validate password (fourth field)
+    const QString password = signupPasswordInput->text();
+    if (!userDataManager->validatePassword(password, errorMessage)) {
+        showError(tr("Password: %1").arg(errorMessage));
+        signupPasswordInput->setFocus();
+        return;
+    }
+
+    // Validate terms checkbox (bottom)
+    if (!termsCheckbox->isChecked()) {
+        showError(tr("Please agree to the Terms of Service"));
         return;
     }
 
     // Create and validate new user
-    const User newUser(name, email, password, selectedImagePath);
-    QString errorMessage;
+    const User newUser(name, email, password, selectedImagePath, dateOfBirth);
     if (!userDataManager->saveUserData(newUser, errorMessage)) {
         showError(tr("Failed to create account: %1").arg(errorMessage));
         return;
@@ -907,84 +976,163 @@ void AuthPage::handleSignup()
 
 void AuthPage::selectProfileImage()
 {
+    // Debug: Print supported formats
+    qDebug() << "Supported image formats:" << QImageReader::supportedImageFormats();
+
     const QString filePath = QFileDialog::getOpenFileName(
         this,
         "Select Profile Image",
         "",
-        "Images (*.png *.jpg *.jpeg)"
+        "Images (*.png *.jpg *.jpeg *.bmp *.gif *.tiff *.webp *.svg *.ico)"
     );
 
     if (!filePath.isEmpty()) {
-        const QPixmap uploadedPhoto(filePath);
-        if (!uploadedPhoto.isNull()) {
-            // Create a square pixmap as the base
-            constexpr int size = 140;
-            QPixmap circularPhoto(size, size);
-            circularPhoto.fill(Qt::transparent);
-
-            // Create a painter for the circular mask
-            QPainter painter(&circularPhoto);
-            painter.setRenderHint(QPainter::Antialiasing);
-            painter.setRenderHint(QPainter::SmoothPixmapTransform);
-
-            // Create circular mask
-            QPainterPath path;
-            path.addEllipse(0, 0, size, size);
-            painter.setClipPath(path);
-
-            // Scale and center the uploaded photo
-            const QPixmap scaledPhoto = uploadedPhoto.scaled(size, size, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
-
-            // Calculate centering position for the scaled photo
-            const int x = (scaledPhoto.width() - size) / 2;
-            const int y = (scaledPhoto.height() - size) / 2;
-
-            // Draw the scaled and centered photo
-            painter.drawPixmap(-x, -y, scaledPhoto);
-
-            // Create final circular border
-            painter.setClipping(false);
-            painter.setPen(QPen(QColor(isDarkTheme ? "#475569" : "#cbd5e1"), 2));
-            painter.drawEllipse(1, 1, size-2, size-2);
-
-            // Set the circular photo as the button icon
-            profileImageButton->setIcon(QIcon(circularPhoto));
-            profileImageButton->setIconSize(QSize(size, size));
-            
-            // Store the circular photo for reuse
-            lastCircularPhoto = circularPhoto;
-
-            // Save the photo to the UsersPhoto directory
-            QString newRelativePath = filePath;
-            QDir dir("project code/UsersPhoto");
-            if (!dir.mkpath(".")) {
-                showError("Failed to create directory for saving photos.");
-                return;
-            }
-
-            QFileInfo fileInfo(filePath);
-            QString baseName = fileInfo.baseName();
-            QString extension = fileInfo.suffix();
-            QString newFileName = baseName + "." + extension;
-            newRelativePath = "project code/UsersPhoto/" + newFileName;
-            QString newAbsolutePath = dir.absoluteFilePath(newFileName);
-
-            if (QFile::exists(newAbsolutePath)) {
-                QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss");
-                newFileName = baseName + "_" + timestamp + "." + extension;
-                newRelativePath = "project code/UsersPhoto/" + newFileName;
-                newAbsolutePath = dir.absoluteFilePath(newFileName);
-            }
-
-            if (!QFile::copy(filePath, newAbsolutePath)) {
-                showError("Failed to save photo.");
-                return;
-            }
-
-            selectedImagePath = newRelativePath;
-        } else {
-            showError("Failed to load photo.");
+        QFile file(filePath);
+        if (!file.exists()) {
+            showError(tr("File does not exist: %1").arg(filePath));
+            return;
         }
+
+        // Get file info and extension
+        QFileInfo fileInfo(filePath);
+        QString extension = fileInfo.suffix().toLower();
+        QString baseName = fileInfo.baseName();
+
+        // Try multiple loading methods with special handling for JPEG/JPG
+        QImage image;
+        bool loaded = false;
+
+        // Method 1: Use QImageReader with explicit format for JPG/JPEG
+        if (extension == "jpg" || extension == "jpeg") {
+            QImageReader reader(filePath);
+            reader.setFormat("jpeg");  // Explicitly set JPEG format
+            reader.setAutoTransform(true);
+            reader.setDecideFormatFromContent(true);
+            image = reader.read();
+            loaded = !image.isNull();
+            
+            if (!loaded) {
+                qDebug() << "JPEG loading error:" << reader.errorString();
+            }
+        }
+
+        // Method 2: Direct QImage loading if previous method failed
+        if (!loaded) {
+            image = QImage(filePath);
+            loaded = !image.isNull();
+        }
+
+        // Method 3: QImageReader with format detection
+        if (!loaded) {
+            QImageReader reader(filePath);
+            QByteArray format = QImageReader::imageFormat(filePath);
+            if (!format.isEmpty()) {
+                reader.setFormat(format);
+            }
+            reader.setAutoTransform(true);
+            reader.setDecideFormatFromContent(true);
+            image = reader.read();
+            loaded = !image.isNull();
+            
+            if (!loaded) {
+                qDebug() << "QImageReader error:" << reader.errorString();
+            }
+        }
+
+        // Method 4: Try loading through QPixmap
+        if (!loaded) {
+            QPixmap pixmap(filePath);
+            if (!pixmap.isNull()) {
+                image = pixmap.toImage();
+                loaded = !image.isNull();
+            }
+        }
+
+        if (!loaded) {
+            // Special error message for JPEG files
+            if (extension == "jpg" || extension == "jpeg") {
+                showError(tr("Failed to load JPEG image: %1\nPlease ensure the file is not corrupted and try again.").arg(filePath));
+            } else {
+                showError(tr("Failed to load image: %1\nSupported formats are PNG, JPEG, BMP, and GIF.").arg(filePath));
+            }
+            return;
+        }
+
+        // Convert QImage to QPixmap
+        QPixmap uploadedPhoto = QPixmap::fromImage(image);
+        
+        if (uploadedPhoto.isNull()) {
+            showError(tr("Failed to convert image: %1").arg(filePath));
+            return;
+        }
+
+        // Create a square pixmap as the base
+        constexpr int size = 140;
+        QPixmap circularPhoto(size, size);
+        circularPhoto.fill(Qt::transparent);
+
+        // Create a painter for the circular mask
+        QPainter painter(&circularPhoto);
+        painter.setRenderHint(QPainter::Antialiasing);
+        painter.setRenderHint(QPainter::SmoothPixmapTransform);
+
+        // Create circular mask
+        QPainterPath path;
+        path.addEllipse(0, 0, size, size);
+        painter.setClipPath(path);
+
+        // Scale and center the uploaded photo
+        const QPixmap scaledPhoto = uploadedPhoto.scaled(size, size, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+
+        // Calculate centering position for the scaled photo
+        const int x = (scaledPhoto.width() - size) / 2;
+        const int y = (scaledPhoto.height() - size) / 2;
+
+        // Draw the scaled and centered photo
+        painter.drawPixmap(-x, -y, scaledPhoto);
+
+        // Create final circular border
+        painter.setClipping(false);
+        painter.setPen(QPen(QColor(isDarkTheme ? "#475569" : "#cbd5e1"), 2));
+        painter.drawEllipse(1, 1, size-2, size-2);
+
+        // Set the circular photo as the button icon
+        profileImageButton->setIcon(QIcon(circularPhoto));
+        profileImageButton->setIconSize(QSize(size, size));
+        
+        // Store the circular photo for reuse
+        lastCircularPhoto = circularPhoto;
+
+        // Get the project directory path
+        QString projectDir = QCoreApplication::applicationDirPath();
+        projectDir = QFileInfo(projectDir).dir().absolutePath(); // Go up to project root
+        QString usersPhotoDir = projectDir + "/project code/UsersPhoto";
+
+        // Create UsersPhoto directory if it doesn't exist
+        QDir dir(usersPhotoDir);
+        if (!dir.exists() && !dir.mkpath(".")) {
+            showError(tr("Failed to create directory: %1").arg(dir.absolutePath()));
+            return;
+        }
+
+        QString newFileName = baseName + "." + extension;
+        QString newAbsolutePath = dir.absoluteFilePath(newFileName);
+
+        if (QFile::exists(newAbsolutePath)) {
+            QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss");
+            newFileName = baseName + "_" + timestamp + "." + extension;
+            newAbsolutePath = dir.absoluteFilePath(newFileName);
+        }
+
+        // Save both the original and circular versions
+        if (!image.save(newAbsolutePath)) {
+            showError(tr("Failed to save photo to: %1").arg(newAbsolutePath));
+            return;
+        }
+
+        // Store the relative path for the user data
+        selectedImagePath = "project code/UsersPhoto/" + newFileName;
+        showSuccess(tr("Photo uploaded successfully!"));
     }
 }
 
@@ -1397,6 +1545,7 @@ void AuthPage::clearFields()
     signupNameInput->clear();
     signupEmailInput->clear();
     signupPasswordInput->clear();
+    signupAgeInput->clear();
     selectedImagePath.clear();
 
     // Reset profile image button to default state with circular shape

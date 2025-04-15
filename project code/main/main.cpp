@@ -1,20 +1,20 @@
 #include <QApplication>
 #include <QScreen>
-#include "../Start app/authpage.h"
-#include "../Start app/mainpage.h"
-#include "../Start app/splashscreen.h"
-#include "../Start app/onboardingpage.h"
-#include "../Start app/languageselectionpage.h"
+#include "../src/auth/authpage.h"
+#include "../src/pages/mainpage.h"
+#include "../src/onboarding/splashscreen.h"
+#include "../src/onboarding/onboardingpage.h"
+#include "../src/onboarding/languageselectionpage.h"
 #include "../DataManager/userdatamanager.h"
-#include "../Util/LanguageManager.h"
+#include "../Language/LanguageManager.h"
 #include <QSettings>
 #include <QStackedWidget>
-#include "../Util/AppInitializer.h"
+#include "../Core/AppInitializer.h"
+#include <QCloseEvent>
+#include "mainwindow.h"
 
 int main(int argc, char* argv[])
 {
- AppInitializer::initializeApplication();
-    
     QApplication app(argc, argv);
     QApplication::setApplicationName("FitFlex Pro");
 
@@ -35,8 +35,11 @@ int main(int argc, char* argv[])
     const QIcon appIcon(":/Images/dumbbell.png");
     QApplication::setWindowIcon(appIcon);
 
+    // Create user data manager
+    const auto userDataManager = new UserDataManager(&app);
+
     // Create main window
-    QMainWindow mainWindow;
+    MainWindow mainWindow(userDataManager);
     mainWindow.setWindowIcon(appIcon);
     mainWindow.setWindowTitle(QObject::tr("FitFlex Pro"));
 
@@ -57,7 +60,6 @@ int main(int argc, char* argv[])
     mainWindow.setCentralWidget(stackedWidget);
 
     // Create pages
-    const auto userDataManager = new UserDataManager(&app);
     auto splashScreen = new SplashScreen(&mainWindow);
     auto languageSelectionPage = new LanguageSelectionPage(&mainWindow);
     auto onboardingPage = new OnboardingPage(&mainWindow);

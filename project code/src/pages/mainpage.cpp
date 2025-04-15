@@ -12,10 +12,10 @@
 #include <QScrollArea>
 #include <QStackedWidget>
 #include <QResizeEvent>
-#include "../Util/TopPanel.h"
-#include "../Util/ThemeManager.h"
-#include "../Util/LanguageManager.h"
-#include "../Util/LanguageSelector.h"
+#include "../UI/TopPanel.h"
+#include "../Theme/ThemeManager.h"
+#include "../Language/LanguageManager.h"
+#include "../Language/LanguageSelector.h"
 
 MainPage::MainPage(UserDataManager* userDataManager, QWidget* parent)
     : QMainWindow(parent)

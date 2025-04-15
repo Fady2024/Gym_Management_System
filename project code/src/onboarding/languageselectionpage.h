@@ -8,7 +8,7 @@
 #include <QHBoxLayout>
 #include <QPropertyAnimation>
 #include <QGraphicsOpacityEffect>
-#include "../Util/LanguageSelector.h"
+#include "../Language/LanguageSelector.h"
 
 class LanguageSelectionPage : public QWidget
 {

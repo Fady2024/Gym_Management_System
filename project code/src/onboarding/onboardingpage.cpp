@@ -3,8 +3,8 @@
 #include <QScreen>
 #include <QTimer>
 #include <QPainter>
-#include "../Util/UIUtils.h"
-#include "../Util/ThemeManager.h"
+#include "../UI/UIUtils.h"
+#include "../Theme/ThemeManager.h"
 #include <QDebug>
 #include <QSequentialAnimationGroup>
 

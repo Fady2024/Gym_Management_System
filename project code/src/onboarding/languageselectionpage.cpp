@@ -1,6 +1,6 @@
 #include "languageselectionpage.h"
-#include "../Util/UIUtils.h"
-#include "../Util/ThemeManager.h"
+#include "../UI/UIUtils.h"
+#include "../Theme/ThemeManager.h"
 #include <QApplication>
 #include <QScreen>
 #include <QTimer>

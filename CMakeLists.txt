@@ -30,8 +30,9 @@ find_package(Qt6 COMPONENTS
 
 # Set up translations
 set(TS_FILES
-    translations/fitflexpro_fr.ts
-    translations/fitflexpro_de.ts
+    "translations/fitflexpro_fr.ts"
+    "translations/fitflexpro_de.ts"
+    "translations/fitflexpro_en.ts"
 )
 
 qt_add_translation(QM_FILES ${TS_FILES})
@@ -40,26 +41,34 @@ qt_add_translation(QM_FILES ${TS_FILES})
 add_custom_target(translations ALL DEPENDS ${QM_FILES})
 
 # Group source files for organization
-set(START_APP_SOURCES
-        "project code/Start app/authpage.cpp"
-        "project code/Start app/authpage.h"
-        "project code/Start app/mainpage.cpp"
-        "project code/Start app/mainpage.h"
-        "project code/Start app/imageslider.cpp"
-        "project code/Start app/imageslider.h"
-        "project code/Start app/homepage.cpp"
-        "project code/Start app/homepage.h"
-        "project code/Start app/settingspage.cpp"
-        "project code/Start app/settingspage.h"
-        "project code/Start app/developerpage.h"
-        "project code/Start app/developerpage.cpp"
-        "project code/Start app/onboardingpage.h"
-        "project code/Start app/onboardingpage.cpp"
-        "project code/Start app/splashscreen.h"
-        "project code/Start app/splashscreen.cpp"
-        "project code/Start app/languageselectionpage.h"
-        "project code/Start app/languageselectionpage.cpp"
+set(MAIN_SOURCES
+        "project code/main/main.cpp"
+        "project code/main/mainwindow.cpp"
+        "project code/main/mainwindow.h"
+)
 
+set(SRC_SOURCES
+        "project code/src/auth/authpage.cpp"
+        "project code/src/auth/authpage.h"
+        "project code/src/auth/imageslider.cpp"
+        "project code/src/auth/imageslider.h"
+        "project code/src/pages/mainpage.cpp"
+        "project code/src/pages/mainpage.h"
+        "project code/src/pages/homepage.cpp"
+        "project code/src/pages/homepage.h"
+        "project code/src/onboarding/onboardingpage.h"
+        "project code/src/onboarding/onboardingpage.cpp"
+        "project code/src/onboarding/splashscreen.h"
+        "project code/src/onboarding/splashscreen.cpp"
+        "project code/src/onboarding/languageselectionpage.h"
+        "project code/src/onboarding/languageselectionpage.cpp"
+)
+
+set(SETTINGS_SOURCES
+        "project code/Settings/settingspage.cpp"
+        "project code/Settings/settingspage.h"
+        "project code/Settings/developerpage.h"
+        "project code/Settings/developerpage.cpp"
 )
 
 set(DATA_MANAGER_SOURCES
@@ -72,28 +81,41 @@ set(MODEL_SOURCES
         "project code/Model/user.h"
 )
 
-set(UTIL_SOURCES
-        "project code/Util/AppInitializer.h"
-        "project code/Util/AppInitializer.cpp"
-        "project code/Util/ThemeManager.cpp"
-        "project code/Util/ThemeManager.h"
-        "project code/Util/TopPanel.cpp"
-        "project code/Util/TopPanel.h"
-        "project code/Util/UIUtils.cpp"
-        "project code/Util/UIUtils.h"
-        "project code/Util/LanguageManager.h"
-        "project code/Util/LanguageManager.cpp"
-        "project code/Util/LanguageSelector.h"
-        "project code/Util/LanguageSelector.cpp"
+set(CORE_SOURCES
+        "project code/Core/AppInitializer.h"
+        "project code/Core/AppInitializer.cpp"
+)
+
+set(THEME_SOURCES
+        "project code/Theme/ThemeManager.cpp"
+        "project code/Theme/ThemeManager.h"
+)
+
+set(UI_SOURCES
+        "project code/UI/TopPanel.cpp"
+        "project code/UI/TopPanel.h"
+        "project code/UI/UIUtils.cpp"
+        "project code/UI/UIUtils.h"
+)
+
+set(LANGUAGE_SOURCES
+        "project code/Language/LanguageManager.h"
+        "project code/Language/LanguageManager.cpp"
+        "project code/Language/LanguageSelector.h"
+        "project code/Language/LanguageSelector.cpp"
 )
 
 # Define project sources
 set(PROJECT_SOURCES
-        "project code/main/main.cpp"
-        ${START_APP_SOURCES}
+        ${MAIN_SOURCES}
+        ${SRC_SOURCES}
+        ${SETTINGS_SOURCES}
         ${DATA_MANAGER_SOURCES}
         ${MODEL_SOURCES}
-        ${UTIL_SOURCES}
+        ${CORE_SOURCES}
+        ${THEME_SOURCES}
+        ${UI_SOURCES}
+        ${LANGUAGE_SOURCES}
         ${RESOURCE_FILES}
         ${QM_FILES}
 )
@@ -101,21 +123,57 @@ set(PROJECT_SOURCES
 # Create executable
 add_executable(DS_Project ${PROJECT_SOURCES})
 
-# Copy data files to build directory
+# Create data directories in source directory
+add_custom_command(TARGET DS_Project PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+    "${CMAKE_SOURCE_DIR}/project code/Data"
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+    "${CMAKE_SOURCE_DIR}/project code/UsersPhoto"
+)
+
+# Copy data files to source directory
 foreach(DATA_FILE ${DATA_FILES})
     add_custom_command(TARGET DS_Project POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+        "${CMAKE_SOURCE_DIR}/project code/Data"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_SOURCE_DIR}/${DATA_FILE}"
-        "$<TARGET_FILE_DIR:DS_Project>/${DATA_FILE}"
+        "${CMAKE_SOURCE_DIR}/project code/Data"
     )
 endforeach()
 
+# Create data directories in build directory
+add_custom_command(TARGET DS_Project POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+    "$<TARGET_FILE_DIR:DS_Project>/project code/Data"
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+    "$<TARGET_FILE_DIR:DS_Project>/project code/UsersPhoto"
+)
+
+# Install data files and directories
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/project code/Data"
+    DESTINATION "project code"
+    FILES_MATCHING PATTERN "*.json"
+)
+
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/project code/UsersPhoto"
+    DESTINATION "project code"
+    FILES_MATCHING PATTERN "*.png" PATTERN "*.jpg" PATTERN "*.jpeg"
+)
+
 # Include directories
 target_include_directories(DS_Project PRIVATE
-        "${CMAKE_SOURCE_DIR}/project code/Start app"
+        "${CMAKE_SOURCE_DIR}/project code/src"
+        "${CMAKE_SOURCE_DIR}/project code/src/auth"
+        "${CMAKE_SOURCE_DIR}/project code/src/pages"
+        "${CMAKE_SOURCE_DIR}/project code/src/onboarding"
+        "${CMAKE_SOURCE_DIR}/project code/Settings"
         "${CMAKE_SOURCE_DIR}/project code/DataManager"
         "${CMAKE_SOURCE_DIR}/project code/Model"
-        "${CMAKE_SOURCE_DIR}/project code/Util"
+        "${CMAKE_SOURCE_DIR}/project code/Core"
+        "${CMAKE_SOURCE_DIR}/project code/Theme"
+        "${CMAKE_SOURCE_DIR}/project code/UI"
+        "${CMAKE_SOURCE_DIR}/project code/Language"
 )
 
 # Link Qt libraries
@@ -155,4 +213,21 @@ if(WIN32)
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${QT_INSTALL_PATH}/plugins/platforms/qwindows${DEBUG_SUFFIX}.dll"
             "$<TARGET_FILE_DIR:DS_Project>/plugins/platforms/")
+
+    # Create imageformats directory and copy image format plugins
+    add_custom_command(TARGET DS_Project POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_FILE_DIR:DS_Project>/plugins/imageformats/"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${QT_INSTALL_PATH}/plugins/imageformats/qjpeg${DEBUG_SUFFIX}.dll"
+            "$<TARGET_FILE_DIR:DS_Project>/plugins/imageformats/"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${QT_INSTALL_PATH}/plugins/imageformats/qgif${DEBUG_SUFFIX}.dll"
+            "$<TARGET_FILE_DIR:DS_Project>/plugins/imageformats/"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${QT_INSTALL_PATH}/plugins/imageformats/qico${DEBUG_SUFFIX}.dll"
+            "$<TARGET_FILE_DIR:DS_Project>/plugins/imageformats/"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${QT_INSTALL_PATH}/plugins/imageformats/qsvg${DEBUG_SUFFIX}.dll"
+            "$<TARGET_FILE_DIR:DS_Project>/plugins/imageformats/")
 endif()

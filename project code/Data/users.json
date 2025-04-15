@@ -1,14 +1,18 @@
 [
     {
+        "age": 20,
         "email": "Fadygerges2023@gmail.com",
-        "name": "Fady Gerges",
+        "id": 1,
+        "name": "Fadygerges2023@gmail.com",
         "password": "Fadygerges2023@gmail.com",
-        "photoPath": "project code/UsersPhoto/personc.png"
+        "photoPath": "project code/UsersPhoto/github_20250415_134613.png"
     },
     {
-        "email": "fadygerges2023@gmail.com",
-        "name": "fady fady",
-        "password": "Fadygerges2023@gmail.com",
-        "photoPath": "project code/UsersPhoto/icon_20250331_074927.jpg"
+        "age": 20,
+        "email": "Fadygerges2024@gmail.com",
+        "id": 2,
+        "name": "Fadygerges2024@gmail.com",
+        "password": "Fadygerges2024@gmail.com",
+        "photoPath": "project code/UsersPhoto/github (1).png"
     }
 ]
