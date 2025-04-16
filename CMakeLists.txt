@@ -6,11 +6,34 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# Set Qt installation path from environment variable
-if(NOT DEFINED ENV{QT_DIR})
-    message(FATAL_ERROR "QT_DIR environment variable is not set. Please create a .env file based on .env.example")
+# Function to read .env file
+function(read_env_file)
+    if(EXISTS "${CMAKE_SOURCE_DIR}/.env")
+        file(READ "${CMAKE_SOURCE_DIR}/.env" ENV_CONTENT)
+        string(REGEX REPLACE "\n" ";" ENV_LINES "${ENV_CONTENT}")
+        foreach(LINE ${ENV_LINES})
+            if(LINE MATCHES "^[^#].*=")
+                string(REGEX REPLACE "^([^=]+)=.*" "\\1" VAR_NAME "${LINE}")
+                string(REGEX REPLACE "^[^=]+=(.*)" "\\1" VAR_VALUE "${LINE}")
+                string(STRIP "${VAR_NAME}" VAR_NAME)
+                string(STRIP "${VAR_VALUE}" VAR_VALUE)
+                set(${VAR_NAME} "${VAR_VALUE}" PARENT_SCOPE)
+            endif()
+        endforeach()
+    else()
+        message(FATAL_ERROR ".env file not found. Please create a .env file based on .env.example")
+    endif()
+endfunction()
+
+# Read environment variables from .env file
+read_env_file()
+
+# Set Qt installation path
+if(NOT DEFINED QT_DIR)
+    message(FATAL_ERROR "QT_DIR not found in .env file. Please check your .env file.")
 endif()
-set(Qt6_DIR "$ENV{QT_DIR}/lib/cmake/Qt6")
+
+set(Qt6_DIR "${QT_DIR}/lib/cmake/Qt6")
 
 # Add resource files
 set(RESOURCE_FILES
@@ -193,8 +216,8 @@ if(WIN32)
         set(DEBUG_SUFFIX "")
     endif()
     
-    # Use environment variable for Qt installation path
-    set(QT_INSTALL_PATH "$ENV{QT_DIR}")
+    # Set the absolute path to Qt installation from .env file
+    set(QT_INSTALL_PATH "${QT_DIR}")
     
     # Create the destination directory if it doesn't exist
     add_custom_command(TARGET DS_Project POST_BUILD
