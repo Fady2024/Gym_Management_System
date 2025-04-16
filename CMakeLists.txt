@@ -6,8 +6,11 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# Set Qt installation path
-set(Qt6_DIR "C:/Qt/6.10.0/msvc2022_64/lib/cmake/Qt6")
+# Set Qt installation path from environment variable
+if(NOT DEFINED ENV{QT_DIR})
+    message(FATAL_ERROR "QT_DIR environment variable is not set. Please create a .env file based on .env.example")
+endif()
+set(Qt6_DIR "$ENV{QT_DIR}/lib/cmake/Qt6")
 
 # Add resource files
 set(RESOURCE_FILES
@@ -190,8 +193,8 @@ if(WIN32)
         set(DEBUG_SUFFIX "")
     endif()
     
-    # Set the absolute path to Qt installation
-    set(QT_INSTALL_PATH "C:/Qt/6.10.0/msvc2022_64")
+    # Use environment variable for Qt installation path
+    set(QT_INSTALL_PATH "$ENV{QT_DIR}")
     
     # Create the destination directory if it doesn't exist
     add_custom_command(TARGET DS_Project POST_BUILD
