@@ -52,10 +52,8 @@ public:
 private:
     QString dataDir;
     QString usersPhotoDir;
-    QVector<User> users;
-    QVector<QPair<QString, QString>> rememberedCredentials;
-    std::unordered_map<int, User> usersById;  // Primary storage by ID
-    std::unordered_map<QString, int> emailToIdMap;  // Secondary index for email lookups
+    std::unordered_map<int, User> usersById;
+    std::unordered_map<QString, int> emailToIdMap;
     bool hasRememberedCredentials = false;
     QString rememberedEmail;
     QString rememberedPassword;

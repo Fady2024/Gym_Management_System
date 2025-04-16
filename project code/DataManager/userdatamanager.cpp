@@ -76,28 +76,23 @@ bool UserDataManager::initializeFromFile()
         return false;
     }
 
-    // Clear existing data
-    users.clear();
     usersById.clear();
     emailToIdMap.clear();
 
-    // Load users from JSON
     for (const QJsonValue& userValue : usersArray) {
         User user = jsonToUser(userValue.toObject());
-        users.append(user);
         usersById[user.getId()] = user;
         emailToIdMap[user.getEmail()] = user.getId();
     }
 
-    // Load remembered credentials
     return loadRememberedCredentials();
 }
 
 bool UserDataManager::saveToFile()
 {
     QJsonArray usersArray;
-    for (const User& user : users) {
-        usersArray.append(userToJson(user));
+    for (const auto& pair : usersById) {
+        usersArray.append(userToJson(pair.second));
     }
 
     QString errorMessage;
@@ -120,25 +115,14 @@ bool UserDataManager::saveUserData(const User& user, QString& errorMessage)
         return false;
     }
 
-    // Check if user exists
     auto it = emailToIdMap.find(user.getEmail());
     if (it != emailToIdMap.end()) {
-        // Update existing user
         int userId = it->second;
         usersById[userId] = user;
-        // Update the user in the vector
-        for (User& u : users) {
-            if (u.getId() == userId) {
-                u = user;
-                break;
-            }
-        }
     } else {
-        // Add new user with unique ID
         User newUser = user;
         int newId = generateUserId();
         newUser.setId(newId);
-        users.append(newUser);
         usersById[newId] = newUser;
         emailToIdMap[newUser.getEmail()] = newId;
     }
@@ -164,7 +148,7 @@ User UserDataManager::getUserData(const QString& email)
     if (it != emailToIdMap.end()) {
         return usersById[it->second];
     }
-    return User(); // Return empty user if not found
+    return User();
 }
 
 User UserDataManager::getUserDataById(int id)
@@ -173,12 +157,17 @@ User UserDataManager::getUserDataById(int id)
     if (it != usersById.end()) {
         return it->second;
     }
-    return User(); // Return empty user if not found
+    return User();
 }
 
 QVector<User> UserDataManager::getAllUsers() const
 {
-    return users;
+    QVector<User> result;
+    result.reserve(usersById.size());
+    for (const auto& pair : usersById) {
+        result.append(pair.second);
+    }
+    return result;
 }
 
 bool UserDataManager::deleteAccount(const QString& email, QString& errorMessage)
@@ -205,7 +194,6 @@ bool UserDataManager::deleteAccountById(int id, QString& errorMessage)
     const User& user = it->second;
     emailToIdMap.erase(user.getEmail());
     usersById.erase(id);
-    users.removeAll(user);
 
     dataModified = true;
     return true;
