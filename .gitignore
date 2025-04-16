@@ -1,18 +1,3 @@
-# Environment files
-.env
-.env.*
-
-# Build directories
-build/
-out/
-*.build/
-
-# IDE specific files
-.vs/
-.vscode/
-*.user
-*.user.*
-
 # Qt specific
 *.pro.user
 *.pro.user.*
@@ -29,7 +14,9 @@ debug/
 release/
 
 # Visual Studio specific
+.vs/
 *.suo
+*.user
 *.userosscache
 *.sln.docstates
 *.vcxproj.filters
@@ -43,15 +30,50 @@ ipch/
 *.VC.db
 *.VC.VC.opendb
 
-# Compiled files
+# Build directories
+build/
+out/
+debug/
+release/
+x64/
+x86/
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+*.cmake
+!CMakeLists.txt
+
+# Compiled Object files
+*.slo
+*.lo
 *.o
 *.obj
-*.exe
-*.dll
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
 *.so
 *.dylib
+*.dll
 
-# Debug files
-*.pdb
-*.idb
-*.ilk
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~

@@ -6,11 +6,8 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# Set Qt installation path from environment variable
-if(NOT DEFINED ENV{QT_DIR})
-    message(FATAL_ERROR "QT_DIR environment variable is not set. Please create a .env file based on .env.template")
-endif()
-set(Qt6_DIR "$ENV{QT_DIR}/lib/cmake/Qt6")
+# Set Qt installation path
+set(Qt6_DIR "C:/Qt/6.10.0/msvc2022_64/lib/cmake/Qt6")
 
 # Add resource files
 set(RESOURCE_FILES
