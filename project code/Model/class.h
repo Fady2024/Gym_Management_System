@@ -9,8 +9,6 @@
 class Class
 {
 public:
-	Class();
-
 	//setters
 	void setClassName(const QString& className);
 	void setCoachName(const QString& coachName);
@@ -18,16 +16,19 @@ public:
 	void setTo(const QTime& to);
 	void setCapacity(int capacity);
 	void setNumOfEnrolled(int numOfEnrolled);
+	void setId(int id);
 
 	//getters
 	[[nodiscard]] int getCapacity() const;
 	[[nodiscard]] int getNumOfEnrolled() const;
+	[[nodiscard]] int getId() const;
 	[[nodiscard]] QTime getTo() const;
 	[[nodiscard]] QTime getFrom() const;
 	[[nodiscard]] QString getClassName() const;
 	[[nodiscard]] QString getCoachName() const;
 
 private:
+	int id;
 	QString className;
 	QString coachName;
 	queue<QDate> sessions;
