@@ -7,7 +7,12 @@
 class Staff
 {
 public:
-    Staff(int id,const QString& name, const QString& email, const QString& password, const QString& photoPath, const QDate& dateOfBirth);
+    enum class Role {
+        COACH,
+        MANGER,
+        RECEPTIONIST
+    };
+    Staff(int id,const QString& name, const QString& email, const QString& password, const QString& photoPath, const QDate& dateOfBirth, const Role role);
 
     [[nodiscard]] int getId() const;
     [[nodiscard]] QString getName() const;
@@ -15,6 +20,7 @@ public:
     [[nodiscard]] QString getPassword() const;
     [[nodiscard]] QString getUserPhotoPath() const;
     [[nodiscard]] QDate getDateOfBirth() const;
+    [[nodiscard]] Role getRole() const;
 
     void setId(int id);
     void setName(const QString& name);
@@ -22,6 +28,7 @@ public:
     void setPassword(const QString& password);
     void setUserPhotoPath(const QString& photoPath);
     void setDateOfBirth(const QDate& dateOfBirth);
+    void setRole(const Role role);
 
     bool operator==(const User& other) const {
         return id == other.id &&
@@ -29,7 +36,8 @@ public:
             email == other.email &&
             password == other.password &&
             photoPath == other.photoPath &&
-            dateOfBirth == other.dateOfBirth;
+            dateOfBirth == other.dateOfBirth &&
+            role == other.role;
     }
 
 private:
@@ -39,4 +47,5 @@ private:
     QString password;
     QString photoPath;
     QDate dateOfBirth;
+    Role role;
 };
