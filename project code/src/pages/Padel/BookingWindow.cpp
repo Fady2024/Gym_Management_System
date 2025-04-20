@@ -9,7 +9,7 @@ bool BookingWindow::canCancelOrReschedule(const Booking& booking) {
     return now.secsTo(bookingTime) > 3 * 60; // 3 min as 3 hours
 
 }
- void BookingWindow::cancelBooking(int bookingId ,vector<Booking> bookings) {
+ void BookingWindow::cancelBooking(int bookingId ,vector<Booking>& bookings) {
         for (int i = 0; i < bookings.size(); ++i) {
             if (bookings[i].getBookingId() == bookingId) {
                 if (canCancelOrReschedule(bookings[i])) {
@@ -27,7 +27,7 @@ bool BookingWindow::canCancelOrReschedule(const Booking& booking) {
     }
 
 
- void BookingWindow::rescheduleBooking(int bookingId, const QDateTime& newTime , vector<Booking> bookings) {
+ void BookingWindow::rescheduleBooking(int bookingId, const QDateTime& newTime , vector<Booking>& bookings) {
      for (Booking& booking : bookings) {
          if (booking.getBookingId() == bookingId) {
             
