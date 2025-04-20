@@ -27,7 +27,7 @@ bool BookingWindow::canCancelOrReschedule(const Booking& booking) {
     }
 
 
- void BookingWindow::rescheduleBooking(int bookingId, const QDateTime& newTime , vector<Booking>& bookings) {
+ void BookingWindow::rescheduleBooking(int bookingId, const QDateTime& startTime, const QDateTime& endtime, vector<Booking>& bookings) {
      for (Booking& booking : bookings) {
          if (booking.getBookingId() == bookingId) {
             
@@ -42,7 +42,8 @@ bool BookingWindow::canCancelOrReschedule(const Booking& booking) {
                  return;
              }*/
 
-             booking.setStartTime(newTime);
+             booking.setStartTime(startTime);
+             booking.setEndTime(endtime);
              qDebug() << "Booking rescheduled successfully.";
              return;
          }

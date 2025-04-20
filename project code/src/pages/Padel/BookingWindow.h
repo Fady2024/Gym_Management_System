@@ -17,7 +17,7 @@ public:
     //void searchAvailableCourts(const QDateTime& dateTime, const QString& location);
     //void selectCourt(int index);
     void cancelBooking(int bookingId, vector<Booking>& bookings);
-    void rescheduleBooking(int bookingId, const QDateTime& newTime, vector<Booking>& bookings);
+    void rescheduleBooking(int bookingId, const QDateTime& startTime, const QDateTime& endtime, vector<Booking>& bookings);
     bool canCancelOrReschedule(const Booking& booking);
 
 private:
