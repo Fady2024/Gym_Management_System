@@ -12,7 +12,7 @@
 #include "../Core/AppInitializer.h"
 #include <QCloseEvent>
 #include "mainwindow.h"
-#include "../src/pages/staffpages/addmember.h"
+#include "../src/pages/staffhomepage.h"
 int main(int argc, char* argv[])
 {
     AppInitializer::initializeApplication();
@@ -66,14 +66,14 @@ int main(int argc, char* argv[])
     auto onboardingPage = new OnboardingPage(&mainWindow);
     auto authPage = new AuthPage(userDataManager);
     auto mainPage = new MainPage(userDataManager);
-    auto addMemberPage = new AddMember();
+    auto staffHomePage = new StaffHomePage(&mainWindow);
     // Add pages to stacked widget
     stackedWidget->addWidget(splashScreen);
     stackedWidget->addWidget(languageSelectionPage);
     stackedWidget->addWidget(onboardingPage);
     stackedWidget->addWidget(authPage);
     stackedWidget->addWidget(mainPage);
-    stackedWidget->addWidget(addMemberPage);
+    stackedWidget->addWidget(staffHomePage);
     // Connect signals and slots
     QObject::connect(splashScreen, &SplashScreen::animationFinished, [stackedWidget, languageSelectionPage]() {
         stackedWidget->setCurrentWidget(languageSelectionPage);

@@ -1,11 +1,11 @@
-#include "addmember.h"
+#include "staffhomepage.h"
 
-AddMember::AddMember(QWidget* parent) : QWidget(parent)
+StaffHomePage::StaffHomePage(QWidget* parent) : QWidget(parent)
 {
     setupUI();
 }
 
-void AddMember::setupUI()
+void StaffHomePage::setupUI()
 {
     // Create a vertical layout
     auto layout = new QVBoxLayout(this);
@@ -23,7 +23,7 @@ void AddMember::setupUI()
     layout->addWidget(backButton);
 
     // Connect button to signal
-    connect(backButton, &QPushButton::clicked, this, &AddMember::navigateBack);
+    connect(backButton, &QPushButton::clicked, this, &StaffHomePage::navigateBack);
 
     // Allow the layout to stretch
     layout->addStretch();

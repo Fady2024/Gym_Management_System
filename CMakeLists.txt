@@ -88,8 +88,8 @@ set(SRC_SOURCES
         "project code/src/onboarding/splashscreen.cpp"
         "project code/src/onboarding/languageselectionpage.h"
         "project code/src/onboarding/languageselectionpage.cpp"
-        "project code/src/pages/staffpages/addmember.h"
-        "project code/src/pages/staffpages/addmember.cpp"
+        "project code/src/pages/staffhomepage.h"
+        "project code/src/pages/staffhomepage.cpp"
 )
 
 set(SETTINGS_SOURCES
