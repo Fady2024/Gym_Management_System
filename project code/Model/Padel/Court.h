@@ -5,21 +5,21 @@
 
 class Court {
 public:
-    Court();
-    Court(int id, const QString& location, const QString& name);
+    Court(); // default constructor
+    Court(int id, const QString& name, const QString& location);
 
     int getId() const;
-    QString getLocation() const;
     QString getName() const;
+    QString getLocation() const;
 
     void setId(int id);
-    void setLocation(const QString& location);
     void setName(const QString& name);
+    void setLocation(const QString& location);
 
 private:
     int m_id;
-    QString m_location;
     QString m_name;
+    QString m_location;
 };
 
 #endif // COURT_H

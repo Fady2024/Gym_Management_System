@@ -147,7 +147,7 @@ set(PROJECT_SOURCES
 )
 
 # Create executable
-add_executable(DS_Project ${PROJECT_SOURCES} "project code/Model/Padel/Booking.h" "project code/Model/Padel/Booking.cpp" "project code/Model/Padel/Court.h")
+add_executable(DS_Project ${PROJECT_SOURCES} "project code/Model/Padel/Booking.h" "project code/Model/Padel/Booking.cpp" "project code/Model/Padel/Court.h" "project code/Model/Padel/Court.cpp")
 
 # Create data directories in source directory
 add_custom_command(TARGET DS_Project PRE_BUILD
