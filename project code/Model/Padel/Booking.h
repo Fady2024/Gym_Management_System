@@ -8,19 +8,19 @@
 class Booking {
 public:
     Booking();
-    Booking(int bookingId, const Court& court, const QDateTime& start, const QDateTime& end, const QString& memberName);
+    Booking(int bookingId, const Court& court, const QDateTime& start, const QDateTime& end);
 
     int getBookingId() const;
     Court getCourt() const;
     QDateTime getStartTime() const;
     QDateTime getEndTime() const;
-    QString getMemberName() const;
+   
 
     void setBookingId(int id);
     void setCourt(const Court& court);
     void setStartTime(const QDateTime& start);
     void setEndTime(const QDateTime& end);
-    void setMemberName(const QString& name);
+   
 
 private:
     int m_bookingId;
@@ -28,6 +28,7 @@ private:
     QDateTime m_startTime;
     QDateTime m_endTime;
     QString m_memberName;
+    QDate m_date;
 };
 
 #endif // BOOKING_H
