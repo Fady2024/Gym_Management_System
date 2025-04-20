@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
     auto onboardingPage = new OnboardingPage(&mainWindow);
     auto authPage = new AuthPage(userDataManager);
     auto mainPage = new MainPage(userDataManager);
-    auto staffHomePage = new StaffHomePage(&mainWindow);
+    auto staffHomePage = new StaffHomePage(userDataManager);
     // Add pages to stacked widget
     stackedWidget->addWidget(splashScreen);
     stackedWidget->addWidget(languageSelectionPage);
@@ -93,10 +93,17 @@ int main(int argc, char* argv[])
         mainPage->handleLogin(email);
         stackedWidget->setCurrentWidget(mainPage);
     });
+    /* QObject::connect(authPage, &AuthPage::loginSuccessful, [stackedWidget, staffHomePage](const QString& email) {
+        staffHomePage->handleLogin(email);
+        stackedWidget->setCurrentWidget(staffHomePage);
+        });*/
 
     QObject::connect(mainPage, &MainPage::logoutRequested, [stackedWidget, authPage]() {
         stackedWidget->setCurrentWidget(authPage);
     });
+    QObject::connect(staffHomePage, &StaffHomePage::logoutRequested, [stackedWidget, authPage]() {
+        stackedWidget->setCurrentWidget(authPage);
+        });
 
     // Start with splash screen
     stackedWidget->setCurrentWidget(splashScreen);
