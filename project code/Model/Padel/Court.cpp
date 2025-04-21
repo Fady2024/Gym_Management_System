@@ -21,6 +21,11 @@ QString Court::getLocation() const {
     return m_location;
 }
 
+vector<QTime> Court::getAllTimeSlots()
+{
+    return allTimeSlots;
+}
+
 // Setters
 void Court::setId(int id) {
     m_id = id;
@@ -33,3 +38,4 @@ void Court::setName(const QString& name) {
 void Court::setLocation(const QString& location) {
     m_location = location;
 }
+

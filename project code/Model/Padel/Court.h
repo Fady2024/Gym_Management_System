@@ -2,6 +2,9 @@
 #define COURT_H
 
 #include <QString>
+#include<vector>
+#include <QTime>
+using namespace std;
 
 class Court {
 public:
@@ -16,10 +19,13 @@ public:
     void setName(const QString& name);
     void setLocation(const QString& location);
 
+    vector<QTime> getAllTimeSlots();
+
 private:
     int m_id;
     QString m_name;
     QString m_location;
+    vector<QTime> allTimeSlots; 
 };
 
 #endif // COURT_H

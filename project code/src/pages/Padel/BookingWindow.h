@@ -14,7 +14,9 @@ class BookingWindow {
 public:
     BookingWindow();
 
-    //void searchAvailableCourts(const QDateTime& dateTime, const QString& location);
+    bool isBooked(const Court& court, const QDate& date, const QTime& time, vector<Booking>& bookings);
+    vector<Court> BookingWindow::searchAvailableCourts(const QDate& date,const QTime& time,const QString& location,
+        vector<Court>& courts,vector<Booking>& bookings);
     //void selectCourt(int index);
     void cancelBooking(int bookingId, vector<Booking>& bookings);
     void rescheduleBooking(int bookingId, const QDateTime& startTime, const QDateTime& endtime, vector<Booking>& bookings);
@@ -22,10 +24,9 @@ public:
 
 private:
  
-   
 
-   // void showAvailableCourts(const std::vector<Court>& courts);
-    //void showAvailableTimeSlots(const Court& court, const QDateTime& baseTime);
+    void showAvailableCourts(vector<Court>& courts, const QDate& dateconst, QTime& time, vector<Booking>& bookings);
+    void showAvailableTimeSlots(const Court& court, const QDateTime& baseTime, vector<Booking>& bookings);
     //void showSuggestions(const std::vector<QDateTime>& suggestions);
 };
 
