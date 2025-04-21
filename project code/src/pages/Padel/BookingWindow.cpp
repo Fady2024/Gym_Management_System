@@ -58,6 +58,24 @@ vector<Court> BookingWindow::searchAvailableCourts(
     return available;
 }
 
+vector<QDateTime> BookingWindow::suggestNextSlots(const Court& court,const QDate& date,const QTime& fromTime,vector<Booking>& bookings) {
+    vector<QDateTime> suggestions;
+    vector<QTime>& slots = court.getAllTimeSlots();
+
+    for (int i = 0; i < slots.size(); i++) {
+        QTime slot = slots[i];
+
+        if (slot > fromTime) {
+            if (!isBooked(court, date, slot, bookings)) {
+                suggestions.push_back(QDateTime(date, slot));
+            }
+        }
+    }
+
+    return suggestions;
+}
+
+
 void BookingWindow::showAvailableCourts(vector<Court>& courts,const QDate& dateconst,QTime& time,vector<Booking>& bookings)
 {
     qDebug() << "Available Courts :";
@@ -86,6 +104,20 @@ void BookingWindow::showAvailableTimeSlots(const Court& court, const QDateTime& 
         }
     }
 }
+
+void BookingWindow::showSuggestions(vector<QDateTime>& suggestions)
+{
+        if (suggestions.empty()) {
+            qDebug() << "No alternative time slots available.";
+            return;
+        }
+
+        qDebug() << "Suggested alternative time slots:";
+
+        for (int i = 0; i < suggestions.size();i++) {
+            qDebug() << "• " << suggestions[i].toString("dd-MM-yyyy hh:mm");
+        }
+    }
 
 
 void BookingWindow::cancelBooking(int bookingId ,vector<Booking>& bookings) {
