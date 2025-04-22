@@ -17,9 +17,12 @@
 #include "../Language/LanguageManager.h"
 #include "../Language/LanguageSelector.h"
 
-StaffHomePage::StaffHomePage(UserDataManager* userDataManager, QWidget* parent)
+StaffHomePage::StaffHomePage(UserDataManager* userDataManager, MemberDataManager* memberDataManager, 
+                         ClassDataManager* classDataManager, QWidget* parent)
     : QMainWindow(parent)
     , userDataManager(userDataManager)
+    , memberDataManager(memberDataManager)
+    , classDataManager(classDataManager)
 {
     isDarkTheme = ThemeManager::getInstance().isDarkTheme();
     setupUI();
@@ -27,14 +30,14 @@ StaffHomePage::StaffHomePage(UserDataManager* userDataManager, QWidget* parent)
 
     // Connect to ThemeManager
     connect(&ThemeManager::getInstance(), &ThemeManager::themeChanged,
-        this, [this](bool isDark) {
-            isDarkTheme = isDark;
-            updateTheme(isDark);
-        });
+            this, [this](bool isDark) {
+                isDarkTheme = isDark;
+                updateTheme(isDark);
+            });
 
     // Connect to LanguageManager
     connect(&LanguageManager::getInstance(), &LanguageManager::languageChanged,
-        this, &StaffHomePage::onLanguageChanged);
+            this, &StaffHomePage::onLanguageChanged);
 }
 
 StaffHomePage::~StaffHomePage()
@@ -295,7 +298,7 @@ void StaffHomePage::setupPages()
     workoutPage = new QWidget;
     nutritionPage = new QWidget;
     profilePage = new QWidget;
-    settingsPage = new SettingsPage(userDataManager, this);
+    settingsPage = new SettingsPage(userDataManager, memberDataManager, this);
 
     connect(settingsPage, &SettingsPage::logoutRequested, this, &StaffHomePage::logoutRequested);
     connect(this, &StaffHomePage::userDataLoaded, settingsPage, &SettingsPage::onUserDataLoaded);

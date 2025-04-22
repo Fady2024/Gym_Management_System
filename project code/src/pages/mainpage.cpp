@@ -16,25 +16,51 @@
 #include "../Theme/ThemeManager.h"
 #include "../Language/LanguageManager.h"
 #include "../Language/LanguageSelector.h"
+#include <QDebug>
 
-MainPage::MainPage(UserDataManager* userDataManager, QWidget* parent)
+MainPage::MainPage(UserDataManager* userDataManager, MemberDataManager* memberDataManager, 
+                   ClassDataManager* classDataManager, QWidget* parent)
     : QMainWindow(parent)
     , userDataManager(userDataManager)
+    , memberDataManager(memberDataManager)
+    , classDataManager(classDataManager)
 {
-    isDarkTheme = ThemeManager::getInstance().isDarkTheme();
-    setupUI();
-    updateTheme(isDarkTheme);
+    try {
+        qDebug() << "MainPage constructor started";
+        
+        if (!userDataManager) {
+            qDebug() << "Warning: userDataManager is null in MainPage constructor";
+        }
+        
+        if (!memberDataManager) {
+            qDebug() << "Warning: memberDataManager is null in MainPage constructor";
+        }
+        
+        if (!classDataManager) {
+            qDebug() << "Warning: classDataManager is null in MainPage constructor";
+        }
+        
+        isDarkTheme = ThemeManager::getInstance().isDarkTheme();
+        setupUI();
+        updateTheme(isDarkTheme);
 
-    // Connect to ThemeManager
-    connect(&ThemeManager::getInstance(), &ThemeManager::themeChanged,
-            this, [this](bool isDark) {
-                isDarkTheme = isDark;
-                updateTheme(isDark);
-            });
+        // Connect to ThemeManager
+        connect(&ThemeManager::getInstance(), &ThemeManager::themeChanged,
+                this, [this](bool isDark) {
+                    isDarkTheme = isDark;
+                    updateTheme(isDark);
+                });
 
-    // Connect to LanguageManager
-    connect(&LanguageManager::getInstance(), &LanguageManager::languageChanged,
-            this, &MainPage::onLanguageChanged);
+        // Connect to LanguageManager
+        connect(&LanguageManager::getInstance(), &LanguageManager::languageChanged,
+                this, &MainPage::onLanguageChanged);
+        
+        qDebug() << "MainPage constructor completed successfully";
+    } catch (const std::exception& e) {
+        qDebug() << "Exception in MainPage constructor: " << e.what();
+    } catch (...) {
+        qDebug() << "Unknown exception in MainPage constructor";
+    }
 }
 
 MainPage::~MainPage()
@@ -291,26 +317,93 @@ bool MainPage::eventFilter(QObject* obj, QEvent* event)
 
 void MainPage::setupPages()
 {
-    homePage = new HomePage(this);
-    workoutPage = new QWidget;
-    nutritionPage = new QWidget;
-    profilePage = new QWidget;
-    settingsPage = new SettingsPage(userDataManager, this);
+    try {
+        qDebug() << "MainPage::setupPages called";
+        
+        if (!stackedWidget) {
+            qDebug() << "Error: stackedWidget is null in setupPages";
+            return;
+        }
+        
+        homePage = new HomePage(this);
+        if (!homePage) {
+            qDebug() << "Error: Failed to create HomePage";
+            return;
+        }
+        
+        workoutPage = new QWidget;
+        if (!workoutPage) {
+            qDebug() << "Error: Failed to create workoutPage";
+            return;
+        }
+        
+        nutritionPage = new QWidget;
+        if (!nutritionPage) {
+            qDebug() << "Error: Failed to create nutritionPage";
+            return;
+        }
+        
+        profilePage = new QWidget;
+        if (!profilePage) {
+            qDebug() << "Error: Failed to create profilePage";
+            return;
+        }
+        
+        settingsPage = new SettingsPage(userDataManager, memberDataManager, this);
+        if (!settingsPage) {
+            qDebug() << "Error: Failed to create settingsPage";
+            return;
+        }
 
-    connect(settingsPage, &SettingsPage::logoutRequested, this, &MainPage::logoutRequested);
-    connect(this, &MainPage::userDataLoaded, settingsPage, &SettingsPage::onUserDataLoaded);
+        qDebug() << "Connecting settingsPage signals";
+        connect(settingsPage, &SettingsPage::logoutRequested, this, &MainPage::logoutRequested);
+        connect(this, &MainPage::userDataLoaded, settingsPage, &SettingsPage::onUserDataLoaded);
 
-    stackedWidget->addWidget(homePage);
-    stackedWidget->addWidget(workoutPage);
-    stackedWidget->addWidget(nutritionPage);
-    stackedWidget->addWidget(profilePage);
-    stackedWidget->addWidget(settingsPage);
+        qDebug() << "Adding widgets to stackedWidget";
+        stackedWidget->addWidget(homePage);
+        stackedWidget->addWidget(workoutPage);
+        stackedWidget->addWidget(nutritionPage);
+        stackedWidget->addWidget(profilePage);
+        stackedWidget->addWidget(settingsPage);
+        qDebug() << "Pages setup completed successfully";
+    } catch (const std::exception& e) {
+        qDebug() << "Exception in MainPage::setupPages: " << e.what();
+    } catch (...) {
+        qDebug() << "Unknown exception in MainPage::setupPages";
+    }
 }
 
 void MainPage::handleHomePage() const
 {
-    stackedWidget->setCurrentWidget(homePage);
-    updateButtonStates(homeButton);
+    try {
+        qDebug() << "MainPage::handleHomePage called";
+        
+        if (!stackedWidget) {
+            qDebug() << "Error: stackedWidget is null in handleHomePage";
+            return;
+        }
+        
+        if (!homePage) {
+            qDebug() << "Error: homePage is null in handleHomePage";
+            return;
+        }
+        
+        qDebug() << "Setting current widget to homePage";
+        stackedWidget->setCurrentWidget(homePage);
+        
+        if (!homeButton) {
+            qDebug() << "Error: homeButton is null in handleHomePage";
+            return;
+        }
+        
+        qDebug() << "Updating button states";
+        updateButtonStates(homeButton);
+        qDebug() << "MainPage::handleHomePage completed successfully";
+    } catch (const std::exception& e) {
+        qDebug() << "Exception in MainPage::handleHomePage: " << e.what();
+    } catch (...) {
+        qDebug() << "Unknown exception in MainPage::handleHomePage";
+    }
 }
 
 void MainPage::handleWorkoutPage() const
@@ -366,20 +459,57 @@ void MainPage::updateAllTextColors()
 
 void MainPage::updateButtonStates(QPushButton* activeButton) const
 {
-    homeButton->setChecked(false);
-    workoutButton->setChecked(false);
-    nutritionButton->setChecked(false);
-    profileButton->setChecked(false);
-    settingsButton->setChecked(false);
+    try {
+        qDebug() << "MainPage::updateButtonStates called";
+        
+        if (!homeButton || !workoutButton || !nutritionButton || !profileButton || !settingsButton) {
+            qDebug() << "Error: One or more navigation buttons are null";
+            return;
+        }
+        
+        if (!activeButton) {
+            qDebug() << "Error: activeButton is null";
+            return;
+        }
+        
+        homeButton->setChecked(false);
+        workoutButton->setChecked(false);
+        nutritionButton->setChecked(false);
+        profileButton->setChecked(false);
+        settingsButton->setChecked(false);
 
-    activeButton->setChecked(true);
+        activeButton->setChecked(true);
+        qDebug() << "Button states updated successfully";
+    } catch (const std::exception& e) {
+        qDebug() << "Exception in MainPage::updateButtonStates: " << e.what();
+    } catch (...) {
+        qDebug() << "Unknown exception in MainPage::updateButtonStates";
+    }
 }
 
 void MainPage::handleLogin(const QString& email)
 {
-    currentUserEmail = email;
-    emit userDataLoaded(email);
-    handleHomePage();
+    try {
+        qDebug() << "MainPage::handleLogin called with email: " << email;
+        currentUserEmail = email;
+        
+        qDebug() << "About to emit userDataLoaded signal";
+        emit userDataLoaded(email);
+        
+        qDebug() << "Checking if homePage is initialized";
+        if (!homePage) {
+            qDebug() << "Error: homePage is null in MainPage::handleLogin";
+            return;
+        }
+        
+        qDebug() << "Calling handleHomePage()";
+        handleHomePage();
+        qDebug() << "MainPage::handleLogin completed successfully";
+    } catch (const std::exception& e) {
+        qDebug() << "Exception in MainPage::handleLogin: " << e.what();
+    } catch (...) {
+        qDebug() << "Unknown exception in MainPage::handleLogin";
+    }
 }
 
 void MainPage::clearUserData()

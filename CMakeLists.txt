@@ -102,11 +102,21 @@ set(SETTINGS_SOURCES
 set(DATA_MANAGER_SOURCES
         "project code/DataManager/userdatamanager.cpp"
         "project code/DataManager/userdatamanager.h"
+        "project code/DataManager/memberdatamanager.cpp"
+        "project code/DataManager/memberdatamanager.h"
+        "project code/DataManager/classdatamanager.cpp"
+        "project code/DataManager/classdatamanager.h"
 )
 
 set(MODEL_SOURCES
         "project code/Model/user.cpp"
         "project code/Model/user.h"
+        "project code/Model/member.cpp"
+        "project code/Model/member.h"
+        "project code/Model/class.cpp"
+        "project code/Model/class.h"
+        "project code/Model/subscription.cpp"
+        "project code/Model/subscription.h"
 )
 
 set(CORE_SOURCES
@@ -124,6 +134,8 @@ set(UI_SOURCES
         "project code/UI/TopPanel.h"
         "project code/UI/UIUtils.cpp"
         "project code/UI/UIUtils.h"
+        "project code/UI/leftsidebar.cpp"
+        "project code/UI/leftsidebar.h"
 )
 
 set(LANGUAGE_SOURCES
@@ -131,6 +143,16 @@ set(LANGUAGE_SOURCES
         "project code/Language/LanguageManager.cpp"
         "project code/Language/LanguageSelector.h"
         "project code/Language/LanguageSelector.cpp"
+)
+
+set(SUBSCRIPTION_SOURCES
+        "project code/Subscription/subscriptionpage.cpp"
+        "project code/Subscription/subscriptionpage.h"
+)
+
+set(PAYMENT_SOURCES
+        "project code/Payment/paymentpage.cpp"
+        "project code/Payment/paymentpage.h"
 )
 
 # Define project sources
@@ -144,6 +166,8 @@ set(PROJECT_SOURCES
         ${THEME_SOURCES}
         ${UI_SOURCES}
         ${LANGUAGE_SOURCES}
+        ${SUBSCRIPTION_SOURCES}
+        ${PAYMENT_SOURCES}
         ${RESOURCE_FILES}
         ${QM_FILES}
 )
@@ -202,6 +226,8 @@ target_include_directories(DS_Project PRIVATE
         "${CMAKE_SOURCE_DIR}/project code/Theme"
         "${CMAKE_SOURCE_DIR}/project code/UI"
         "${CMAKE_SOURCE_DIR}/project code/Language"
+        "${CMAKE_SOURCE_DIR}/project code/Subscription"
+        "${CMAKE_SOURCE_DIR}/project code/Payment"
 )
 
 # Link Qt libraries

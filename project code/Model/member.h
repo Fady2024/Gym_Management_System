@@ -4,32 +4,40 @@
 #include "user.h"
 #include <QList>
 #include <QPair>
+#include "subscription.h"
 
-class Member : public User // ba inherit 3shan mekasel
-{
+class Member {
 public:
   Member();
-  Member(const QString &name, const QString &email, const QString &password,
-         const QString &photoPath, const QDate &dateOfBirth,
-         const QDate &subscriptionStart, const QDate &subscriptionEnd,
-         int classId = -1); // bos ya m3alem -1 = not enrolled yet
-
-  QDate getSubscriptionStart() const;
-  QDate getSubscriptionEnd() const;
-  void setSubscriptionStart(const QDate &date);
-  void setSubscriptionEnd(const QDate &date);
-
+  // Constructor that takes a User reference and member-specific data
+  Member(int memberId, int userId, int classId = -1);
+  
+  // Getters
+  int getId() const { return memberId; }
+  int getUserId() const { return userId; }
+  int getClassId() const { return classId; }
+  const Subscription& getSubscription() const { return subscription; }
+  QList<QPair<int, QDate>> getHistory() const { return history; }
+  
+  // Setters
+  void setId(int id) { memberId = id; }
+  void setUserId(int id) { userId = id; }
+  void setClassId(int id) { classId = id; }
+  void setSubscription(const Subscription& sub) { subscription = sub; }
+  bool hasActiveSubscription() const { return subscription.isActive(); }
+  
+  // History management
   void addClassToHistory(const QDate &date);
-  QList<QPair<int, QDate>> getHistory() const;
-
-  int getClassId() const;
-  void setClassId(int classId);
+  
+  // Convert to string for debugging
+  QString toString() const;
 
 private:
-  QDate subscriptionStart;
-  QDate subscriptionEnd;
-  QList<QPair<int, QDate>> history;
+  int memberId;
+  int userId;
   int classId;
+  Subscription subscription;
+  QList<QPair<int, QDate>> history;
 };
 
 #endif

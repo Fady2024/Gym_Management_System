@@ -7,6 +7,8 @@
 #include <QScrollBar>
 #include <QMouseEvent>
 #include "../DataManager/userdatamanager.h"
+#include "../DataManager/memberdatamanager.h"
+#include "../DataManager/classdatamanager.h"
 #include "homepage.h"
 #include "settingspage.h"
 #include <QLabel>
@@ -17,7 +19,8 @@ class StaffHomePage : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit StaffHomePage(UserDataManager* userDataManager, QWidget* parent = nullptr);
+    explicit StaffHomePage(UserDataManager* userDataManager, MemberDataManager* memberDataManager, 
+                          ClassDataManager* classDataManager, QWidget* parent = nullptr);
     ~StaffHomePage();
     void handleHomePage() const;
     void clearUserData();
@@ -58,6 +61,8 @@ private:
     void retranslateUI();
 
     UserDataManager* userDataManager;
+    MemberDataManager* memberDataManager;
+    ClassDataManager* classDataManager;
     QStackedWidget* stackedWidget;
     bool isDarkTheme;
     QString currentUserEmail;

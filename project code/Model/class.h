@@ -3,8 +3,11 @@
 
 #include <QString>
 #include <QDate>
+#include <QTime>
+#include <QVector>
+#include <deque>
 #include <queue>
-#include<deque>
+#include <QJsonObject>
 
 class Class
 {
@@ -26,15 +29,32 @@ public:
 	[[nodiscard]] QTime getFrom() const;
 	[[nodiscard]] QString getClassName() const;
 	[[nodiscard]] QString getCoachName() const;
+	
+	// Session management
+	void addSession(const QDate& date);
+	void removeSession(const QDate& date);
+	[[nodiscard]] std::queue<QDate> getSessions() const;
+	[[nodiscard]] bool hasSessionOnDate(const QDate& date) const;
+	
+	// Capacity management
+	[[nodiscard]] bool isFull() const;
+	
+	// Waitlist management
+	void addToWaitlist(int memberId);
+	void removeFromWaitlist(int memberId);
+	[[nodiscard]] int getNextWaitlistMember() const;
+	[[nodiscard]] std::deque<int> getWaitlist() const;
+	[[nodiscard]] bool isInWaitlist(int memberId) const;
 
 private:
 	int id;
 	QString className;
 	QString coachName;
-	queue<QDate> sessions;
+	std::queue<QDate> sessions;
 	QTime from;
 	QTime to;
 	int capacity;
 	int numOfEnrolled;
-	deque<int>waiting_users_ids
+	std::deque<int>waiting_users_ids;
 };
+#endif

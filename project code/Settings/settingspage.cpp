@@ -22,21 +22,35 @@
 #include <QScrollArea>
 #include <QButtonGroup>
 #include <QGraphicsDropShadowEffect>
+#include "LeftSidebar.h"
+#include "../Subscription/subscriptionpage.h"
+#include "../Payment/paymentpage.h"
 
-SettingsPage::SettingsPage(UserDataManager* userDataManager, QWidget *parent)
+SettingsPage::SettingsPage(UserDataManager* userDataManager, MemberDataManager* memberManager, QWidget *parent)
     : QWidget(parent)
     , userDataManager(userDataManager)
-    , isDarkTheme(false)
+    , memberManager(memberManager)
     , mainLayout(nullptr)
-    , leftLayout(nullptr)
+    , leftSidebar(nullptr)
     , contentStack(nullptr)
     , settingsContent(nullptr)
+    , profileContainer(nullptr)
+    , profilePictureLabel(nullptr)
+    , profileImageButton(nullptr)
+    , nameEdit(nullptr)
+    , emailEdit(nullptr)
+    , phoneInput(nullptr)
+    , saveButton(nullptr)
+    , resetButton(nullptr)
+    , logoutButton(nullptr)
+    , deleteAccountButton(nullptr)
+    , subscriptionPage(nullptr)
+    , paymentPage(nullptr)
     , developerPage(nullptr)
-    , settingsTabButton(nullptr)
-    , developerTabButton(nullptr)
+    , isDarkTheme(false)
+    , currentUserId(0)
 {
     setupUI();
-    loadUserData();
 }
 
 void SettingsPage::showMessageDialog(const QString& message, bool isError)
@@ -130,116 +144,12 @@ void SettingsPage::setupUI()
     mainLayout->setSpacing(0);
     mainLayout->setContentsMargins(0, 0, 0, 0);
 
-    // Left sidebar
-    const auto leftSidebar = new QWidget;
-    leftSidebar->setObjectName("leftSidebar");
-    leftSidebar->setFixedWidth(72); // Slightly reduced width
-    leftSidebar->setStyleSheet(QString(R"(
-        QWidget#leftSidebar {
-            background: %1;
-            border-right: 1px solid %2;
-        }
-    )").arg(
-        isDarkTheme ? "rgba(31, 41, 55, 0.98)" : "rgba(255, 255, 255, 0.98)",
-        isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)"
-    ));
-
-    leftLayout = new QVBoxLayout(leftSidebar);
-    leftLayout->setSpacing(16);
-    leftLayout->setContentsMargins(12, 24, 12, 24);
-    leftLayout->setAlignment(Qt::AlignHCenter | Qt::AlignTop);
-
-    // Create tab buttons with enhanced styling
-    auto createTabButton = [this](const QString& icon, const QString& tooltip) {
-        const auto button = new QPushButton;
-        button->setToolTip(tooltip);
-        button->setFixedSize(48, 48);
-        button->setCursor(Qt::PointingHandCursor);
-        button->setCheckable(true);
-        button->setAutoExclusive(true);
-
-        // Create colored icons for different states
-        QIcon normalIcon;
-        QIcon activeIcon;
-        QPixmap originalPixmap(icon);
-        if (!originalPixmap.isNull()) {
-            // Normal state icon (gray)
-            QPixmap normalPixmap = originalPixmap;
-            QPainter normalPainter(&normalPixmap);
-            normalPainter.setCompositionMode(QPainter::CompositionMode_SourceIn);
-            normalPainter.fillRect(normalPixmap.rect(), isDarkTheme ? QColor(156, 163, 175) : QColor(75, 85, 99));
-            normalIcon.addPixmap(normalPixmap);
-
-            // Active state icon (white)
-            QPixmap activePixmap = originalPixmap;
-            QPainter activePainter(&activePixmap);
-            activePainter.setCompositionMode(QPainter::CompositionMode_SourceIn);
-            activePainter.fillRect(activePixmap.rect(), QColor(255, 255, 255));
-            activeIcon.addPixmap(activePixmap);
-        }
-
-        button->setIcon(normalIcon);
-        button->setIconSize(QSize(24, 24));
-        button->setStyleSheet(QString(R"(
-            QPushButton {
-                background: %1;
-                border: none;
-                border-radius: 14px;
-                padding: 0;
-                margin: 0;
-                qproperty-iconSize: 24px 24px;
-            }
-            QPushButton:hover:!checked {
-                background: %2;
-            }
-            QPushButton:checked {
-                background: %3;
-            }
-            QPushButton:checked:hover {
-                background: %4;
-            }
-        )").arg(
-            isDarkTheme ? "rgba(31, 41, 55, 0.5)" : "rgba(255, 255, 255, 0.5)",
-            isDarkTheme ? "rgba(139, 92, 246, 0.15)" : "rgba(139, 92, 246, 0.1)",
-            isDarkTheme ? "#8B5CF6" : "#7C3AED",
-            isDarkTheme ? "#7C3AED" : "#6D28D9"
-        ));
-
-        // Change icon when button state changes
-        connect(button, &QPushButton::toggled, [button, normalIcon, activeIcon](bool checked) {
-            button->setIcon(checked ? activeIcon : normalIcon);
-        });
-
-        // Add glow effect for better depth
-        QGraphicsDropShadowEffect* glowEffect = new QGraphicsDropShadowEffect(button);
-        glowEffect->setBlurRadius(15);
-        glowEffect->setColor(QColor(139, 92, 246, isDarkTheme ? 80 : 40));
-        glowEffect->setOffset(0, 0);
-        button->setGraphicsEffect(glowEffect);
-
-        return button;
-    };
-
-    settingsTabButton = createTabButton(":/Images/settings.png", tr("Settings"));
-    developerTabButton = createTabButton(":/Images/team.png", tr("Developer Team"));
-
-    // Set up button group for mutual exclusivity
-    QButtonGroup* buttonGroup = new QButtonGroup(this);
-    buttonGroup->addButton(settingsTabButton);
-    buttonGroup->addButton(developerTabButton);
-    buttonGroup->setExclusive(true);
-
-    // Add spacer for better vertical alignment
-    QSpacerItem* topSpacer = new QSpacerItem(0, 20, QSizePolicy::Fixed, QSizePolicy::Fixed);
-    leftLayout->addItem(topSpacer);
-
-    leftLayout->addWidget(settingsTabButton, 0, Qt::AlignCenter);
-    leftLayout->addWidget(developerTabButton, 0, Qt::AlignCenter);
-    leftLayout->addStretch();
-
-    // Connect signals for navigation
-    connect(settingsTabButton, &QPushButton::clicked, this, &SettingsPage::handleSettingsTab);
-    connect(developerTabButton, &QPushButton::clicked, this, &SettingsPage::handleDeveloperTab);
+    // Create and setup left sidebar
+    leftSidebar = new LeftSidebar(this);
+    leftSidebar->addButton(":/Images/settings.png", tr("Settings"), "settings");
+    leftSidebar->addButton(":/Images/subscription.png", tr("Subscription"), "subscription");
+    leftSidebar->addButton(":/Images/team.png", tr("Developer Team"), "developer");
+    connect(leftSidebar, &LeftSidebar::pageChanged, this, &SettingsPage::handlePageChange);
 
     // Content area
     contentStack = new QStackedWidget;
@@ -482,11 +392,46 @@ void SettingsPage::setupUI()
     // Add center container to settings layout
     settingsLayout->addWidget(centerContainer);
 
+    // Create subscription page
+    subscriptionPage = new SubscriptionPage(this, memberManager);
+    contentStack->addWidget(subscriptionPage);
+
+    // Create payment page with both data managers
+    paymentPage = new PaymentPage(this, memberManager, userDataManager);
+    contentStack->addWidget(paymentPage);
+
+    connect(subscriptionPage, &SubscriptionPage::paymentRequested, this, [this](int planId, bool isVip) {
+        if (memberManager && userDataManager && currentUserId > 0) {
+            // Allow any user to proceed to payment, regardless of membership status
+            paymentPage->setCurrentUserId(currentUserId);
+            
+            // If they're already a member, also set the member ID
+            int memberId = memberManager->getMemberIdByUserId(currentUserId);
+            if (memberId > 0) {
+                paymentPage->setCurrentMemberId(memberId);
+            }
+            
+            paymentPage->setPlanDetails(planId, isVip);
+            contentStack->setCurrentWidget(paymentPage);
+        } else {
+            QMessageBox::warning(this, tr("Error"), tr("System error: User data not available"));
+        }
+    });
+
+    connect(paymentPage, &PaymentPage::paymentCompleted, this, [this](int planId, bool isVip) {
+        contentStack->setCurrentWidget(subscriptionPage);
+    });
+
+    connect(paymentPage, &PaymentPage::backToSubscription, this, [this]() {
+        contentStack->setCurrentWidget(subscriptionPage);
+    });
+
     // Create developer page
     developerPage = new DeveloperPage(this);
 
     // Add pages to stack
     contentStack->addWidget(settingsContent);
+    contentStack->addWidget(subscriptionPage);
     contentStack->addWidget(developerPage);
 
     // Add widgets to main layout
@@ -500,135 +445,43 @@ void SettingsPage::setupUI()
     connect(deleteAccountButton, &QPushButton::clicked, this, &SettingsPage::handleDeleteAccount);
 
     // Initialize with settings tab
-    handleSettingsTab();
+    leftSidebar->setActiveButton("settings");
+    handlePageChange("settings");
 }
 
-void SettingsPage::handleSettingsTab()
+void SettingsPage::handlePageChange(const QString& pageId)
 {
-    contentStack->setCurrentWidget(settingsContent);
-    updateTabButtons();
-    settingsTabButton->setChecked(true);
-}
-
-void SettingsPage::handleDeveloperTab()
-{
-    // Create developer page if it doesn't exist
-    if (!developerPage) {
-        developerPage = new DeveloperPage(this);
-        contentStack->addWidget(developerPage);
+    if (pageId == "settings") {
+        contentStack->setCurrentWidget(settingsContent);
+    } else if (pageId == "subscription") {
+        contentStack->setCurrentWidget(subscriptionPage);
+        subscriptionPage->updateLayout();
+    } else if (pageId == "developer") {
+        if (!developerPage) {
+            developerPage = new DeveloperPage(this);
+            contentStack->addWidget(developerPage);
+        }
+        contentStack->setCurrentWidget(developerPage);
+        developerPage->setMinimumSize(contentStack->size());
+        developerPage->updateLayout();
+        developerPage->show();
+        developerPage->raise();
+        QTimer::singleShot(100, developerPage, &DeveloperPage::updateLayout);
     }
-
-    // Show developer page
-    contentStack->setCurrentWidget(developerPage);
-    
-    // Update tab buttons
-    settingsTabButton->setChecked(false);
-    developerTabButton->setChecked(true);
-    
-    // Ensure proper sizing
-    developerPage->setMinimumSize(contentStack->size());
-    developerPage->updateLayout();
-    
-    // Force update
-    developerPage->show();
-    developerPage->raise();
-    
-    // Update the layout after a short delay to ensure proper rendering
-    QTimer::singleShot(100, developerPage, &DeveloperPage::updateLayout);
-}
-
-void SettingsPage::updateTabButtons()
-{
-    // Update button styles based on current theme
-    const auto buttonStyle = isDarkTheme ? R"(
-        QPushButton {
-            background: transparent;
-            border: none;
-            color: #9CA3AF;
-            font-size: 14px;
-            font-weight: 500;
-            padding: 8px 16px;
-            border-radius: 8px;
-            text-align: left;
-        }
-        QPushButton:hover {
-            background: rgba(139, 92, 246, 0.1);
-            color: #8B5CF6;
-        }
-        QPushButton:checked {
-            background: #8B5CF6;
-            color: white;
-        }
-    )" : R"(
-        QPushButton {
-            background: transparent;
-            border: none;
-            color: #64748b;
-            font-size: 14px;
-            font-weight: 500;
-            padding: 8px 16px;
-            border-radius: 8px;
-            text-align: left;
-        }
-        QPushButton:hover {
-            background: rgba(139, 92, 246, 0.1);
-            color: #8B5CF6;
-        }
-        QPushButton:checked {
-            background: #8B5CF6;
-            color: white;
-        }
-    )";
-
-    settingsTabButton->setStyleSheet(buttonStyle);
-    developerTabButton->setStyleSheet(buttonStyle);
 }
 
 void SettingsPage::updateTheme(bool isDark)
 {
     isDarkTheme = isDark;
-
-    // Update left sidebar
-    if (const auto leftSidebar = findChild<QWidget*>("leftSidebar")) {
-        leftSidebar->setStyleSheet(QString(R"(
-            QWidget#leftSidebar {
-                background: %1;
-                border-right: 1px solid %2;
-            }
-        )").arg(
-            isDark ? "rgba(31, 41, 55, 0.98)" : "rgba(255, 255, 255, 0.98)",
-            isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)"
-        ));
+    leftSidebar->updateTheme(isDark);
+    
+    if (subscriptionPage) {
+        subscriptionPage->updateTheme(isDark);
     }
-
-    // Update tab buttons
-    const QString tabButtonStyle = QString(R"(
-        QPushButton {
-            background: transparent;
-            border: none;
-            color: %1;
-            font-size: 14px;
-            font-weight: 500;
-            padding: 8px 16px;
-            border-radius: 8px;
-            text-align: left;
-        }
-        QPushButton:hover {
-            background: rgba(139, 92, 246, 0.1);
-            color: #8B5CF6;
-        }
-        QPushButton:checked {
-            background: #8B5CF6;
-            color: white;
-        }
-    )").arg(isDark ? "#64748b" : "#64748b");
-
-    settingsTabButton->setStyleSheet(tabButtonStyle);
-    developerTabButton->setStyleSheet(tabButtonStyle);
-
+    
     // Update card container
-    if (const auto cardContainer = findChild<QWidget*>("cardContainer")) {
-        cardContainer->setStyleSheet(QString(R"(
+    if (const auto container = findChild<QWidget*>("cardContainer")) {
+        container->setStyleSheet(QString(R"(
             QWidget#cardContainer {
                 background: %1;
                 border-radius: 24px;
@@ -756,8 +609,29 @@ void SettingsPage::updateTheme(bool isDark)
     }
 }
 
-void SettingsPage::onUserDataLoaded(const QString& email) {
+void SettingsPage::onUserDataLoaded(const QString& email)
+{
     loadUserData(email);
+    
+    if (!email.isEmpty() && userDataManager) {
+        User user = userDataManager->getUserData(email);
+        currentUserId = user.getId();
+        
+        // Don't create member automatically - only check if user is already a member
+        if (memberManager && currentUserId > 0) {
+            // Check if the user is already a member
+            if (memberManager->userIsMember(currentUserId)) {
+                // Set current member ID for subscription page only if they're already a member
+                int memberId = memberManager->getMemberIdByUserId(currentUserId);
+                if (memberId > 0 && subscriptionPage) {
+                    subscriptionPage->setCurrentMemberId(memberId);
+                    qDebug() << "Set subscription page member ID to: " << memberId;
+                }
+            } else {
+                qDebug() << "User is not yet a member - will become one after subscription";
+            }
+        }
+    }
 }
 
 void SettingsPage::loadUserData(const QString& email)
@@ -1474,6 +1348,11 @@ void SettingsPage::retranslateUI()
         if (label->text() == "Change Photo" || label->text() == "Changer la Photo" || label->text() == "Foto ändern") {
             label->setText(tr("Change Photo"));
         }
+    }
+
+    // Update subscription page translations
+    if (subscriptionPage) {
+        subscriptionPage->retranslateUI();
     }
 }
 
