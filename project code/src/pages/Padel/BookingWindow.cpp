@@ -60,10 +60,10 @@ vector<Court> BookingWindow::searchAvailableCourts(
 
 vector<QDateTime> BookingWindow::suggestNextSlots(const Court& court,const QDate& date,const QTime& fromTime,vector<Booking>& bookings) {
     vector<QDateTime> suggestions;
-    vector<QTime>& slots = court.getAllTimeSlots();
+    vector<QTime> Tslots = court.getAllTimeSlots();
 
-    for (int i = 0; i < slots.size(); i++) {
-        QTime slot = slots[i];
+    for (int i = 0; i < Tslots.size(); i++) {
+        QTime slot = Tslots[i];
 
         if (slot > fromTime) {
             if (!isBooked(court, date, slot, bookings)) {
@@ -76,7 +76,7 @@ vector<QDateTime> BookingWindow::suggestNextSlots(const Court& court,const QDate
 }
 
 
-void BookingWindow::showAvailableCourts(vector<Court>& courts,const QDate& dateconst,QTime& time,vector<Booking>& bookings)
+void BookingWindow::showAvailableCourts(vector<Court>& courts,const QDate& date,QTime& time,vector<Booking>& bookings)
 {
     qDebug() << "Available Courts :";
 
@@ -94,10 +94,10 @@ void BookingWindow::showAvailableTimeSlots(const Court& court, const QDateTime& 
     QDate date = baseTime.date();
     qDebug() << "Available Time Slots for Court:" << court.getName() << "on" << date.toString("dd-MM-yyyy");
 
-    const vector<QTime>& slots = court.getAllTimeSlots();
+    const vector<QTime>& Tslots = court.getAllTimeSlots();
 
-    for (int i = 0; i < slots.size(); ++i) {
-        QTime slot = slots[i];
+    for (int i = 0; i < Tslots.size(); i++) {
+        QTime slot = Tslots[i];
 
         if (!isBooked(court, date, slot, bookings)) {
             qDebug() << "• " << slot.toString("hh:mm");
