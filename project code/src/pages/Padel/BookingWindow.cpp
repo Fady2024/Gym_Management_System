@@ -50,6 +50,19 @@ vector<Court> BookingWindow::searchAvailableCourts(
     return available;
 }
 
+vector<QDateTime> BookingWindow::suggestNextSlots(const Court& court, const QDate& date, const QTime& fromTime, vector<Booking>& bookings) {
+    vector<QDateTime> suggestions;
+    const vector<QTime>& timeSlots = court.getAllTimeSlots();
+    
+    for (const QTime& slot : timeSlots) {
+        if (slot > fromTime && !isBooked(court, date, slot, bookings)) {
+            suggestions.push_back(QDateTime(date, slot));
+        }
+    }
+    
+    return suggestions;
+}
+
 void BookingWindow::showAvailableCourts(vector<Court>& courts, const QDate& date, QTime& time, vector<Booking>& bookings) {
     qDebug() << "Available Courts:";
 
@@ -72,6 +85,18 @@ void BookingWindow::showAvailableTimeSlots(const Court& court, const QDateTime& 
     }
 }
 
+void BookingWindow::showSuggestions(vector<QDateTime>& suggestions) {
+    if (suggestions.empty()) {
+        qDebug() << "No alternative time slots available.";
+        return;
+    }
+    
+    qDebug() << "Suggested alternative time slots:";
+    for (const QDateTime& suggestion : suggestions) {
+        qDebug() << "•" << suggestion.toString("dd-MM-yyyy hh:mm");
+    }
+}
+
 void BookingWindow::cancelBooking(int bookingId, vector<Booking>& bookings) {
     for (int i = 0; i < bookings.size(); ++i) {
         if (bookings[i].getBookingId() == bookingId) {
@@ -89,7 +114,7 @@ void BookingWindow::cancelBooking(int bookingId, vector<Booking>& bookings) {
     qDebug() << "Booking ID not found.";
 }
 
-void BookingWindow::rescheduleBooking(int bookingId, const QDateTime& startTime, const QDateTime& endtime, vector<Booking>& bookings) {
+void BookingWindow::rescheduleBooking(int bookingId, const QDateTime& startTime, const QDateTime& endTime, vector<Booking>& bookings) {
     for (Booking& booking : bookings) {
         if (booking.getBookingId() == bookingId) {
             if (canCancelOrReschedule(booking)) {
@@ -98,7 +123,7 @@ void BookingWindow::rescheduleBooking(int bookingId, const QDateTime& startTime,
             }
 
             booking.setStartTime(startTime);
-            booking.setEndTime(endtime);
+            booking.setEndTime(endTime);
             qDebug() << "Booking rescheduled successfully.";
             return;
         }
