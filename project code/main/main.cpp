@@ -8,6 +8,7 @@
 #include "../DataManager/userdatamanager.h"
 #include "../DataManager/memberdatamanager.h"
 #include "../DataManager/classdatamanager.h"
+#include "../DataManager/padeldatamanager.h"
 #include "../Language/LanguageManager.h"
 #include <QSettings>
 #include <QStackedWidget>
@@ -45,12 +46,15 @@ int main(int argc, char* argv[])
     const auto userDataManager = new UserDataManager(&app);
     const auto memberDataManager = new MemberDataManager(&app);
     const auto classDataManager = new ClassDataManager(&app);
+    const auto padelDataManager = new PadelDataManager(&app);
     
     // Connect the data managers
     memberDataManager->setUserDataManager(userDataManager);
+    classDataManager->setMemberDataManager(memberDataManager);
+    padelDataManager->setMemberDataManager(memberDataManager);
 
     // Create main window with all data managers
-    MainWindow mainWindow(userDataManager, memberDataManager, classDataManager);
+    MainWindow mainWindow(userDataManager, memberDataManager, classDataManager, padelDataManager);
     mainWindow.setWindowIcon(appIcon);
     mainWindow.setWindowTitle(QObject::tr("FitFlex Pro"));
 
@@ -75,8 +79,8 @@ int main(int argc, char* argv[])
     auto languageSelectionPage = new LanguageSelectionPage(&mainWindow);
     auto onboardingPage = new OnboardingPage(&mainWindow);
     auto authPage = new AuthPage(userDataManager);
-    auto mainPage = new MainPage(userDataManager, memberDataManager, classDataManager);
-    auto staffHomePage = new StaffHomePage(userDataManager, memberDataManager, classDataManager);
+    auto mainPage = new MainPage(userDataManager, memberDataManager, classDataManager, padelDataManager);
+    auto staffHomePage = new StaffHomePage(userDataManager, memberDataManager, classDataManager, padelDataManager);
 
     // Add pages to stacked widget
     stackedWidget->addWidget(splashScreen);
@@ -281,6 +285,7 @@ int main(int argc, char* argv[])
     delete userDataManager;
     delete memberDataManager;
     delete classDataManager;
+    delete padelDataManager;
 
     return result;
 }

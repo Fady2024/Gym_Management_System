@@ -1,0 +1,48 @@
+#ifndef COURT_H
+#define COURT_H
+
+#include <QString>
+#include <QDateTime>
+#include <QMap>
+#include <vector>
+#include <QTime>
+
+class Court {
+public:
+    // Constructors
+    Court();
+    Court(int courtId, const QString& name, const QString& location, bool isIndoor, double pricePerHour);
+
+    // Getters
+    int getId() const { return m_courtId; }
+    const QString& getName() const { return m_name; }
+    const QString& getLocation() const { return m_location; }
+    bool isIndoor() const { return m_isIndoor; }
+    double getPricePerHour() const { return m_pricePerHour; }
+    const QMap<QDateTime, bool>& getAvailability() const { return m_availability; }
+    std::vector<QTime>& getAllTimeSlots() { return m_timeSlots; }
+    const std::vector<QTime>& getAllTimeSlots() const { return m_timeSlots; }
+
+    // Setters
+    void setId(int id) { m_courtId = id; }
+    void setName(const QString& name) { m_name = name; }
+    void setLocation(const QString& location) { m_location = location; }
+    void setIndoor(bool indoor) { m_isIndoor = indoor; }
+    void setPricePerHour(double price) { m_pricePerHour = price; }
+    void setAvailability(const QMap<QDateTime, bool>& availability) { m_availability = availability; }
+
+    // Availability management
+    bool isAvailable(const QDateTime& time) const;
+    void setTimeSlot(const QDateTime& time, bool available);
+
+private:
+    int m_courtId;
+    QString m_name;
+    QString m_location;
+    bool m_isIndoor;
+    double m_pricePerHour;
+    QMap<QDateTime, bool> m_availability;
+    std::vector<QTime> m_timeSlots;
+};
+
+#endif // COURT_H

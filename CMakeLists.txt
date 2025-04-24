@@ -106,6 +106,8 @@ set(DATA_MANAGER_SOURCES
         "project code/DataManager/memberdatamanager.h"
         "project code/DataManager/classdatamanager.cpp"
         "project code/DataManager/classdatamanager.h"
+        "project code/DataManager/padeldatamanager.cpp"
+        "project code/DataManager/padeldatamanager.h"
 )
 
 set(MODEL_SOURCES
@@ -117,6 +119,10 @@ set(MODEL_SOURCES
         "project code/Model/class.h"
         "project code/Model/subscription.cpp"
         "project code/Model/subscription.h"
+        "project code/Model/Padel/Court.cpp"
+        "project code/Model/Padel/Court.h"
+        "project code/Model/Padel/Booking.cpp"
+        "project code/Model/Padel/Booking.h"
 )
 
 set(CORE_SOURCES

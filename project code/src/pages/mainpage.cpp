@@ -20,11 +20,12 @@
 #include <QTimer>
 
 MainPage::MainPage(UserDataManager* userDataManager, MemberDataManager* memberDataManager, 
-                   ClassDataManager* classDataManager, QWidget* parent)
+                   ClassDataManager* classDataManager, PadelDataManager* padelDataManager, QWidget* parent)
     : QMainWindow(parent)
     , userDataManager(userDataManager)
     , memberDataManager(memberDataManager)
     , classDataManager(classDataManager)
+    , padelDataManager(padelDataManager)
 {
     try {
         qDebug() << "MainPage constructor started";
@@ -39,6 +40,10 @@ MainPage::MainPage(UserDataManager* userDataManager, MemberDataManager* memberDa
         
         if (!classDataManager) {
             qDebug() << "Warning: classDataManager is null in MainPage constructor";
+        }
+
+        if (!padelDataManager) {
+            qDebug() << "Warning: padelDataManager is null in MainPage constructor";
         }
         
         isDarkTheme = ThemeManager::getInstance().isDarkTheme();
@@ -579,6 +584,12 @@ void MainPage::clearUserData()
     
     if (profilePage) {
         qDebug() << "Cleared ProfilePage data";
+    }
+
+    // Clear Padel-related data
+    if (padelDataManager) {
+        qDebug() << "Clearing Padel-related data";
+        // Any specific padel data clearing can be added here
     }
     
     if (stackedWidget && homePage) {

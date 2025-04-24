@@ -8,6 +8,7 @@
 #include <deque>
 #include <queue>
 #include <QJsonObject>
+#include <set>
 
 class Class
 {
@@ -46,6 +47,12 @@ public:
 	[[nodiscard]] std::deque<int> getWaitlist() const;
 	[[nodiscard]] bool isInWaitlist(int memberId) const;
 
+	// Member management
+	void addMember(int memberId) { enrolled_members.insert(memberId); }
+	void removeMember(int memberId) { enrolled_members.erase(memberId); }
+	bool isMemberEnrolled(int memberId) const { return enrolled_members.find(memberId) != enrolled_members.end(); }
+	const std::set<int>& getEnrolledMembers() const { return enrolled_members; }
+
 private:
 	int id;
 	QString className;
@@ -55,6 +62,7 @@ private:
 	QTime to;
 	int capacity;
 	int numOfEnrolled;
-	std::deque<int>waiting_users_ids;
+	std::deque<int> waiting_users_ids;
+	std::set<int> enrolled_members;  // New member tracking
 };
 #endif
