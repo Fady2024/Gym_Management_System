@@ -857,121 +857,196 @@ void AuthPage::togglePasswordVisibility() const
 
 void AuthPage::handleLogin()
 {
-    const QString email = loginEmailInput->text();
-    const QString password = loginPasswordInput->text();
-
-    // First check if email exists
-    if (!userDataManager->emailExists(email)) {
-        showError(tr("Email not found. Please check your email or sign up."));
+    if (!userDataManager) {
+        qDebug() << "Fatal error: userDataManager is null in handleLogin";
+        showError(tr("System error. Please try again later."));
         return;
     }
 
-    // Then validate password
-    if (!userDataManager->validateUser(email, password)) {
-        showError(tr("Incorrect password. Please try again."));
-        return;
-    }
+    try {
+        const QString email = loginEmailInput ? loginEmailInput->text() : QString();
+        const QString password = loginPasswordInput ? loginPasswordInput->text() : QString();
+        
+        if (email.isEmpty() || password.isEmpty()) {
+            showError(tr("Please enter both email and password"));
+            return;
+        }
 
-    // Handle successful login
-    if (rememberMeCheckbox->isChecked()) {
-        userDataManager->saveRememberedCredentials(email, password);
-    } else if (!rememberMeCheckbox->isChecked()) {
-        // Show confirmation dialog before clearing remembered credentials
-        showConfirmationDialog(
-            tr("Clear Remembered Login"),
-            tr("Do you want to clear your remembered login information?"),
-            tr("Yes"),
-            tr("No"),
-            [this]() {
-                userDataManager->clearRememberedCredentials();
+        // First check if email exists
+        if (!userDataManager->emailExists(email)) {
+            showError(tr("Email not found. Please check your email or sign up."));
+            return;
+        }
+
+        // Then validate password
+        if (!userDataManager->validateUser(email, password)) {
+            showError(tr("Incorrect password. Please try again."));
+            return;
+        }
+
+        // Handle successful login
+        if (rememberMeCheckbox && rememberMeCheckbox->isChecked()) {
+            userDataManager->saveRememberedCredentials(email, password);
+        } else if (rememberMeCheckbox && !rememberMeCheckbox->isChecked()) {
+            // Show confirmation dialog before clearing remembered credentials
+            showConfirmationDialog(
+                tr("Clear Remembered Login"),
+                tr("Do you want to clear your remembered login information?"),
+                tr("Yes"),
+                tr("No"),
+                [this]() {
+                    userDataManager->clearRememberedCredentials();
+                }
+            );
+        }
+        
+        animateMessageWidget(false); // false means success
+        if (messageText) {
+            messageText->setText(tr("Login successful! Welcome back!"));
+        }
+        
+        // Create a timer to delay the navigation
+        const auto delayTimer = new QTimer(this);
+        delayTimer->setSingleShot(true);
+        connect(delayTimer, &QTimer::timeout, this, [this, email]() {
+            try {
+                qDebug() << "Emitting loginSuccessful signal for: " << email;
+                emit loginSuccessful(email);
+            } catch (const std::exception& e) {
+                qDebug() << "Exception when emitting login signal: " << e.what();
+            } catch (...) {
+                qDebug() << "Unknown exception when emitting login signal";
             }
-        );
+        });
+        delayTimer->start(1500);
+    } catch (const std::exception& e) {
+        qDebug() << "Exception in handleLogin: " << e.what();
+        showError(tr("An error occurred during login. Please try again."));
+    } catch (...) {
+        qDebug() << "Unknown exception in handleLogin";
+        showError(tr("An unexpected error occurred. Please try again."));
     }
-    
-    animateMessageWidget(false); // false means success
-    messageText->setText(tr("Login successful! Welcome back!"));
-    
-    // Create a timer to delay the navigation
-    const auto delayTimer = new QTimer(this);
-    delayTimer->setSingleShot(true);
-    connect(delayTimer, &QTimer::timeout, this, [this, email]() {
-        emit loginSuccessful(email);
-    });
-    delayTimer->start(1500);
 }
 
 void AuthPage::handleSignup()
 {
-    // Validate name first (top field)
-    const QString name = signupNameInput->text();
-    QString errorMessage;
-    if (!userDataManager->validateName(name, errorMessage)) {
-        showError(tr("Name: %1").arg(errorMessage));
-        signupNameInput->setFocus();
-        return;
-    }
-
-    // Validate email (second field)
-    const QString email = signupEmailInput->text();
-    if (!userDataManager->validateEmail(email, errorMessage)) {
-        showError(tr("Email: %1").arg(errorMessage));
-        signupEmailInput->setFocus();
+    if (!userDataManager) {
+        qDebug() << "Fatal error: userDataManager is null in handleSignup";
+        showError(tr("System error. Please try again later."));
         return;
     }
     
-    // Check if email already exists
-    if (userDataManager->emailExists(email)) {
-        showError(tr("Email is already registered. Please use a different email or login."));
-        signupEmailInput->setFocus();
-        return;
+    try {
+        // Validate name first (top field)
+        const QString name = signupNameInput ? signupNameInput->text() : QString();
+        if (name.isEmpty()) {
+            showError(tr("Please enter your name"));
+            if (signupNameInput) signupNameInput->setFocus();
+            return;
+        }
+        
+        QString errorMessage;
+        if (!userDataManager->validateName(name, errorMessage)) {
+            showError(tr("Name: %1").arg(errorMessage));
+            if (signupNameInput) signupNameInput->setFocus();
+            return;
+        }
+
+        // Validate email (second field)
+        const QString email = signupEmailInput ? signupEmailInput->text() : QString();
+        if (email.isEmpty()) {
+            showError(tr("Please enter your email"));
+            if (signupEmailInput) signupEmailInput->setFocus();
+            return;
+        }
+        
+        if (!userDataManager->validateEmail(email, errorMessage)) {
+            showError(tr("Email: %1").arg(errorMessage));
+            if (signupEmailInput) signupEmailInput->setFocus();
+            return;
+        }
+        
+        // Check if email already exists
+        if (userDataManager->emailExists(email)) {
+            showError(tr("Email is already registered. Please use a different email or login."));
+            if (signupEmailInput) signupEmailInput->setFocus();
+            return;
+        }
+
+        // Validate age (third field)
+        const QString ageStr = signupAgeInput ? signupAgeInput->text() : QString();
+        if (ageStr.isEmpty()) {
+            showError(tr("Please enter your age"));
+            if (signupAgeInput) signupAgeInput->setFocus();
+            return;
+        }
+        
+        bool ok;
+        int age = ageStr.toInt(&ok);
+        if (!ok || age < 13 || age > 120) {
+            showError(tr("Please enter a valid age between 13 and 120"));
+            if (signupAgeInput) signupAgeInput->setFocus();
+            return;
+        }
+
+        // Calculate date of birth from age
+        QDate currentDate = QDate::currentDate();
+        QDate dateOfBirth = currentDate.addYears(-age);
+
+        // Validate password (fourth field)
+        const QString password = signupPasswordInput ? signupPasswordInput->text() : QString();
+        if (password.isEmpty()) {
+            showError(tr("Please enter a password"));
+            if (signupPasswordInput) signupPasswordInput->setFocus();
+            return;
+        }
+        
+        if (!userDataManager->validatePassword(password, errorMessage)) {
+            showError(tr("Password: %1").arg(errorMessage));
+            if (signupPasswordInput) signupPasswordInput->setFocus();
+            return;
+        }
+
+        // Validate terms checkbox (bottom)
+        if (!termsCheckbox || !termsCheckbox->isChecked()) {
+            showError(tr("Please agree to the Terms of Service"));
+            return;
+        }
+
+        // Create and validate new user
+        const User newUser(name, email, password, selectedImagePath, dateOfBirth);
+        if (!userDataManager->saveUserData(newUser, errorMessage)) {
+            showError(tr("Failed to create account: %1").arg(errorMessage));
+            return;
+        }
+
+        // Handle successful signup
+        animateMessageWidget(false);
+        if (messageText) {
+            messageText->setText(tr("Account created successfully! Welcome to FitFlexPro!"));
+        }
+        
+        // Create a timer to delay the navigation
+        const auto delayTimer = new QTimer(this);
+        delayTimer->setSingleShot(true);
+        connect(delayTimer, &QTimer::timeout, this, [this, email]() {
+            try {
+                qDebug() << "Emitting loginSuccessful signal for new signup: " << email;
+                emit loginSuccessful(email);
+            } catch (const std::exception& e) {
+                qDebug() << "Exception when emitting login signal after signup: " << e.what();
+            } catch (...) {
+                qDebug() << "Unknown exception when emitting login signal after signup";
+            }
+        });
+        delayTimer->start(1500);
+    } catch (const std::exception& e) {
+        qDebug() << "Exception in handleSignup: " << e.what();
+        showError(tr("An error occurred during signup. Please try again."));
+    } catch (...) {
+        qDebug() << "Unknown exception in handleSignup";
+        showError(tr("An unexpected error occurred. Please try again."));
     }
-
-    // Validate age (third field)
-    const QString ageStr = signupAgeInput->text();
-    bool ok;
-    int age = ageStr.toInt(&ok);
-    if (!ok || age < 13 || age > 120) {
-        showError(tr("Please enter a valid age between 13 and 120"));
-        signupAgeInput->setFocus();
-        return;
-    }
-
-    // Calculate date of birth from age
-    QDate currentDate = QDate::currentDate();
-    QDate dateOfBirth = currentDate.addYears(-age);
-
-    // Validate password (fourth field)
-    const QString password = signupPasswordInput->text();
-    if (!userDataManager->validatePassword(password, errorMessage)) {
-        showError(tr("Password: %1").arg(errorMessage));
-        signupPasswordInput->setFocus();
-        return;
-    }
-
-    // Validate terms checkbox (bottom)
-    if (!termsCheckbox->isChecked()) {
-        showError(tr("Please agree to the Terms of Service"));
-        return;
-    }
-
-    // Create and validate new user
-    const User newUser(name, email, password, selectedImagePath, dateOfBirth);
-    if (!userDataManager->saveUserData(newUser, errorMessage)) {
-        showError(tr("Failed to create account: %1").arg(errorMessage));
-        return;
-    }
-
-    // Handle successful signup
-    animateMessageWidget(false);
-    messageText->setText(tr("Account created successfully! Welcome to FitFlexPro!"));
-    
-    // Create a timer to delay the navigation
-    const auto delayTimer = new QTimer(this);
-    delayTimer->setSingleShot(true);
-    connect(delayTimer, &QTimer::timeout, this, [this, email]() {
-        emit loginSuccessful(email);
-    });
-    delayTimer->start(1500);
 }
 
 void AuthPage::selectProfileImage()

@@ -25,6 +25,7 @@
         <file>Images/team-spirit.png</file>
         <file>Images/menu.png</file>
         <file>Images/settings.png</file>
+        <file>Images/subscription.png</file>
         <file>Images/profile.png</file>
         <file>Images/team.png</file>
         <file>Images/google.png</file>
@@ -41,9 +42,5 @@
         <file>translations/fitflexpro_en.qm</file>
         <file>translations/fitflexpro_fr.qm</file>
         <file>translations/fitflexpro_de.qm</file>
-    </qresource>
-    <qresource prefix="/data">
-        <file>project code/Data/users.json</file>
-        <file>project code/Data/remembered.json</file>
     </qresource>
 </RCC> 

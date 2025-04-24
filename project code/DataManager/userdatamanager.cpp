@@ -64,6 +64,8 @@ void UserDataManager::handleApplicationClosing()
         } else {
             qDebug() << "Data saved successfully before application closing.";
         }
+    } else {
+        qDebug() << "No changes to user data, skipping save on application exit";
     }
 }
 
@@ -128,6 +130,7 @@ bool UserDataManager::saveUserData(const User& user, QString& errorMessage)
     }
 
     dataModified = true;
+    qDebug() << "User data updated and marked for saving at application exit";
     return true;
 }
 
@@ -196,6 +199,7 @@ bool UserDataManager::deleteAccountById(int id, QString& errorMessage)
     usersById.erase(id);
 
     dataModified = true;
+    qDebug() << "User deleted and data marked for saving at application exit";
     return true;
 }
 
@@ -220,7 +224,8 @@ bool UserDataManager::saveRememberedCredentials(const QString& email, const QStr
     rememberedPassword = password;
     hasRememberedCredentials = true;
     dataModified = true;  // Mark data as modified
-    return true;  // Don't save to file here, will be saved at exit
+    qDebug() << "Remembered credentials updated and marked for saving at application exit";
+    return true;
 }
 
 bool UserDataManager::clearRememberedCredentials()
@@ -229,7 +234,8 @@ bool UserDataManager::clearRememberedCredentials()
     rememberedPassword.clear();
     hasRememberedCredentials = false;
     dataModified = true;  // Mark data as modified
-    return true;  // Don't save to file here, will be saved at exit
+    qDebug() << "Remembered credentials cleared and marked for saving at application exit";
+    return true;
 }
 
 bool UserDataManager::getRememberedCredentials(QString& email, QString& password) const

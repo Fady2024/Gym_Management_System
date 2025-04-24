@@ -15,7 +15,12 @@
 #include <QEvent>
 
 #include "../DataManager/userdatamanager.h"
+#include "../DataManager/memberdatamanager.h"
 #include "developerpage.h"
+#include "leftsidebar.h"
+#include "../Subscription/subscriptionpage.h"
+#include "../Subscription/subscriptionstatuspage.h"
+#include "../Payment/paymentpage.h"
 
 // Forward declaration
 class MainPage;
@@ -25,7 +30,7 @@ class SettingsPage : public QWidget
     Q_OBJECT
 
 public:
-    explicit SettingsPage(UserDataManager* userDataManager, QWidget *parent = nullptr);
+    explicit SettingsPage(UserDataManager* userDataManager, MemberDataManager* memberManager, QWidget *parent = nullptr);
     void updateTheme(bool isDark);
     void updateLayout();
     void loadUserData(const QString& email = QString());
@@ -55,9 +60,7 @@ private slots:
     void handleLogout();
     void handleDeleteAccount();
     void resetChanges();
-    void handleSettingsTab();
-    void handleDeveloperTab();
-    void updateTabButtons();
+    void handlePageChange(const QString& pageId);
 
 private:
     void setupUI();
@@ -68,23 +71,28 @@ private:
     void showMessageDialog(const QString& message, bool isError = false);
 
     UserDataManager* userDataManager;
+    MemberDataManager* memberManager;
     QHBoxLayout* mainLayout;
-    QVBoxLayout* leftLayout;
+    LeftSidebar* leftSidebar;
     QStackedWidget* contentStack;
     QWidget* settingsContent;
-    DeveloperPage* developerPage;
-    QPushButton* settingsTabButton;
-    QPushButton* developerTabButton;
+    QWidget* profileContainer;
+    QLabel* profilePictureLabel;
     QPushButton* profileImageButton;
     QLineEdit* nameEdit;
     QLineEdit* emailEdit;
+    QLineEdit* phoneInput;
     QPushButton* saveButton;
     QPushButton* resetButton;
-    QPushButton* changePictureButton;
     QPushButton* logoutButton;
     QPushButton* deleteAccountButton;
+    SubscriptionStatusPage* subscriptionStatusPage;
+    SubscriptionPage* subscriptionPage;
+    PaymentPage* paymentPage;
+    DeveloperPage* developerPage;
     QString currentPhotoPath;
-    bool isDarkTheme;  // Track current theme state
+    bool isDarkTheme;
+    int currentUserId;
 };
 
 #endif // SETTINGSPAGE_H 

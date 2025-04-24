@@ -1,0 +1,14 @@
+[
+    {
+        "classId": -1,
+        "id": 1,
+        "subscription": {
+            "active": true,
+            "endDate": "2026-02-23",
+            "isVIP": true,
+            "startDate": "2025-02-23",
+            "type": 3
+        },
+        "userId": 2
+    }
+]
