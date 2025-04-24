@@ -15,7 +15,7 @@ public:
     BookingWindow();
 
     bool isBooked(const Court& court, const QDate& date, const QTime& time, vector<Booking>& bookings);
-    vector<Court> BookingWindow::searchAvailableCourts(const QDate& date,const QTime& time,const QString& location,
+    vector<Court> searchAvailableCourts(const QDate& date,const QTime& time,const QString& location,
         vector<Court>& courts,vector<Booking>& bookings);
     //void selectCourt(int index);
     void cancelBooking(int bookingId, vector<Booking>& bookings);

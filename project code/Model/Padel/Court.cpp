@@ -21,8 +21,7 @@ QString Court::getLocation() const {
     return m_location;
 }
 
-vector<QTime> Court::getAllTimeSlots()
-{
+const vector<QTime>& Court::getAllTimeSlots() const {
     return allTimeSlots;
 }
 

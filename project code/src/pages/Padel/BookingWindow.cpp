@@ -1,5 +1,6 @@
 #include "BookingWindow.h"
 #include <iostream>
+#include <QDebug>
 using namespace std;
 #include <vector>
 
@@ -7,11 +8,10 @@ bool BookingWindow::canCancelOrReschedule(const Booking& booking) {
     QDateTime now = QDateTime::currentDateTime();
     QDateTime bookingTime(booking.getStartTime());
     return now.secsTo(bookingTime) > 3 * 60; // 3 min as 3 hours
-
 }
 
-bool BookingWindow::isBooked(const Court& court, const QDate& date, const QTime& time,vector<Booking>& bookings) {
-    for (int i = 0; i < bookings.size();i++) {
+bool BookingWindow::isBooked(const Court& court, const QDate& date, const QTime& time, vector<Booking>& bookings) {
+    for (int i = 0; i < bookings.size(); i++) {
         if (bookings[i].getCourt().getId() == court.getId() &&
             bookings[i].getStartTime().date() == date &&
             bookings[i].getStartTime().time() == time) {
@@ -20,7 +20,6 @@ bool BookingWindow::isBooked(const Court& court, const QDate& date, const QTime&
     }
     return false;
 }
-
 
 vector<Court> BookingWindow::searchAvailableCourts(
     const QDate& date,
@@ -32,25 +31,18 @@ vector<Court> BookingWindow::searchAvailableCourts(
     vector<Court> available;
 
     for (int i = 0; i < courts.size(); i++) {
-
         if (courts[i].getLocation() == location) {
-
             //Check if the time is available in this court
             bool timeExists = false;
-            for (int s = 0; s < courts[i].getAllTimeSlots().size();s++) {
+            for (int s = 0; s < courts[i].getAllTimeSlots().size(); s++) {
                 if (courts[i].getAllTimeSlots()[s] == time) {
                     timeExists = true;
                     break;
                 }
             }
 
-            if (timeExists) {
-                // Check if the time is booked
-                
-                if (!isBooked(courts[i], date, time, bookings)) {
-                    available.push_back(courts[i]);
-                }
-
+            if (timeExists && !isBooked(courts[i], date, time, bookings)) {
+                available.push_back(courts[i]);
             }
         }
     }
@@ -58,16 +50,12 @@ vector<Court> BookingWindow::searchAvailableCourts(
     return available;
 }
 
-void BookingWindow::showAvailableCourts(vector<Court>& courts,const QDate& dateconst,QTime& time,vector<Booking>& bookings)
-{
-    qDebug() << "Available Courts :";
+void BookingWindow::showAvailableCourts(vector<Court>& courts, const QDate& date, QTime& time, vector<Booking>& bookings) {
+    qDebug() << "Available Courts:";
 
-    for (int i = 0; i < courts.size(); i++) 
-    {
-        const Court& court = courts[i];
-
+    for (const Court& court : courts) {
         if (!isBooked(court, date, time, bookings)) {
-            qDebug() << court.getName() + " - " + court.getLocation();
+            qDebug() << court.getName() << "-" << court.getLocation();
         }
     }
 }
@@ -76,58 +64,46 @@ void BookingWindow::showAvailableTimeSlots(const Court& court, const QDateTime& 
     QDate date = baseTime.date();
     qDebug() << "Available Time Slots for Court:" << court.getName() << "on" << date.toString("dd-MM-yyyy");
 
-    const vector<QTime>& slots = court.getAllTimeSlots();
-
-    for (int i = 0; i < slots.size(); ++i) {
-        QTime slot = slots[i];
-
-        if (!isBooked(court, date, slot, bookings)) {
-            qDebug() << "• " << slot.toString("hh:mm");
+    const vector<QTime>& timeSlots = court.getAllTimeSlots();
+    for (const QTime& timeSlot : timeSlots) {
+        if (!isBooked(court, date, timeSlot, bookings)) {
+            qDebug() << "â€¢" << timeSlot.toString("hh:mm");
         }
     }
 }
 
-
-void BookingWindow::cancelBooking(int bookingId ,vector<Booking>& bookings) {
-        for (int i = 0; i < bookings.size(); ++i) {
-            if (bookings[i].getBookingId() == bookingId) {
-                if (canCancelOrReschedule(bookings[i])) {
-                    qDebug() << "Cannot cancel: Less than 3 hours before booking time.";
-                    return;
-                }
-
-                bookings.erase(bookings.begin() + i);
-                qDebug() << "Booking canceled successfully.";
+void BookingWindow::cancelBooking(int bookingId, vector<Booking>& bookings) {
+    for (int i = 0; i < bookings.size(); ++i) {
+        if (bookings[i].getBookingId() == bookingId) {
+            if (canCancelOrReschedule(bookings[i])) {
+                qDebug() << "Cannot cancel: Less than 3 hours before booking time.";
                 return;
             }
-        }
 
-        qDebug() << "Booking ID not found.";
+            bookings.erase(bookings.begin() + i);
+            qDebug() << "Booking canceled successfully.";
+            return;
+        }
     }
 
+    qDebug() << "Booking ID not found.";
+}
 
- void BookingWindow::rescheduleBooking(int bookingId, const QDateTime& startTime, const QDateTime& endtime, vector<Booking>& bookings) {
-     for (Booking& booking : bookings) {
-         if (booking.getBookingId() == bookingId) {
-            
-             if (canCancelOrReschedule(booking)) {
-                 qDebug() << "Cannot reschedule: Less than 3 hours before booking time.";
-                 return;
-             }
+void BookingWindow::rescheduleBooking(int bookingId, const QDateTime& startTime, const QDateTime& endtime, vector<Booking>& bookings) {
+    for (Booking& booking : bookings) {
+        if (booking.getBookingId() == bookingId) {
+            if (canCancelOrReschedule(booking)) {
+                qDebug() << "Cannot reschedule: Less than 3 hours before booking time.";
+                return;
+            }
 
-             // Check availability using a global CourtManager or similar
-         /*    if (!isCourtAvailable(booking.getCourt().getId(), newTime)) {
-                 qDebug() << "Court not available at new requested time.";
-                 return;
-             }*/
+            booking.setStartTime(startTime);
+            booking.setEndTime(endtime);
+            qDebug() << "Booking rescheduled successfully.";
+            return;
+        }
+    }
 
-             booking.setStartTime(startTime);
-             booking.setEndTime(endtime);
-             qDebug() << "Booking rescheduled successfully.";
-             return;
-         }
-     }
-
-     qDebug() << "Booking ID not found.";
- }
+    qDebug() << "Booking ID not found.";
+}
 

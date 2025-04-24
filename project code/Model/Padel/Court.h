@@ -19,7 +19,7 @@ public:
     void setName(const QString& name);
     void setLocation(const QString& location);
 
-    vector<QTime> getAllTimeSlots();
+    const vector<QTime>& getAllTimeSlots() const;
 
 private:
     int m_id;
