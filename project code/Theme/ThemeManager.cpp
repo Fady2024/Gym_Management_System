@@ -7,18 +7,27 @@ ThemeManager::ThemeManager(QObject* parent)
     : QObject(parent)
     , m_isDarkTheme(true)
 {
-    m_isDarkTheme = m_settings.value("darkTheme", true).toBool();
-    applyThemeToApplication(m_isDarkTheme);
-    emit themeChanged(m_isDarkTheme);
+    m_isDarkTheme = true;
+    m_settings.setValue("darkTheme", true);
+    m_settings.sync();
+    
+    // Apply the dark theme
+    applyThemeToApplication(true);
+    emit themeChanged(true);
+    
+    qDebug() << "ThemeManager initialized with dark theme";
 }
 
 void ThemeManager::initializeTheme() 
 {
-    bool savedTheme = m_settings.value("darkTheme", true).toBool();
-    if (m_isDarkTheme != savedTheme) {
-        m_isDarkTheme = savedTheme;
-        applyThemeToApplication(m_isDarkTheme);
-        emit themeChanged(m_isDarkTheme);
+    // Always set to dark theme when initializing
+    if (!m_isDarkTheme) {
+        m_isDarkTheme = true;
+        m_settings.setValue("darkTheme", true);
+        m_settings.sync();
+        applyThemeToApplication(true);
+        emit themeChanged(true);
+        qDebug() << "Theme initialized to dark mode";
     }
 }
 

@@ -1,5 +1,5 @@
-#ifndef MAINPAGE_H
-#define MAINPAGE_H
+#ifndef STAFFHOMEPAGE_H
+#define STAFFHOMEPAGE_H
 
 #include <QMainWindow>
 #include <QStackedWidget>
@@ -14,14 +14,14 @@
 #include <QLabel>
 #include "../Language/LanguageSelector.h"
 
-class MainPage : public QMainWindow
+class StaffHomePage : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    explicit MainPage(UserDataManager* userDataManager, MemberDataManager* memberDataManager, 
-                     ClassDataManager* classDataManager, QWidget *parent = nullptr);
-    ~MainPage();
+    explicit StaffHomePage(UserDataManager* userDataManager, MemberDataManager* memberDataManager, 
+                          ClassDataManager* classDataManager, QWidget* parent = nullptr);
+    ~StaffHomePage();
     void handleHomePage() const;
     void clearUserData();
     void handleLogin(const QString& email);
@@ -86,4 +86,4 @@ private:
     LanguageSelector* languageSelector;
 };
 
-#endif // MAINPAGE_H 
+#endif // STAFFHOMEPAGE_H 

@@ -341,4 +341,497 @@
         <translation>FitFlex Pro</translation>
     </message>
 </context>
+<context>
+    <name>PaymentPage</name>
+    <message>
+        <source>Payment Details</source>
+        <translation>Zahlungsdetails</translation>
+    </message>
+    <message>
+        <source>Standard Plan:</source>
+        <translation>Standard-Plan:</translation>
+    </message>
+    <message>
+        <source>VIP Option:</source>
+        <translation>VIP-Option:</translation>
+    </message>
+    <message>
+        <source>TOTAL:</source>
+        <translation>GESAMT:</translation>
+    </message>
+    <message>
+        <source>Card Number</source>
+        <translation>Kartennummer</translation>
+    </message>
+    <message>
+        <source>Name on Card</source>
+        <translation>Name auf der Karte</translation>
+    </message>
+    <message>
+        <source>Expiry Date</source>
+        <translation>Ablaufdatum</translation>
+    </message>
+    <message>
+        <source>CVC</source>
+        <translation>CVC</translation>
+    </message>
+    <message>
+        <source>1234 5678 9012 3456</source>
+        <translation>1234 5678 9012 3456</translation>
+    </message>
+    <message>
+        <source>MM / YY</source>
+        <translation>MM / JJ</translation>
+    </message>
+    <message>
+        <source>123</source>
+        <translation>123</translation>
+    </message>
+    <message>
+        <source>James Zapata</source>
+        <translation>James Zapata</translation>
+    </message>
+    <message>
+        <source>&lt;a href='#'&gt;What is CVC?&lt;/a&gt;</source>
+        <translation>&lt;a href='#'&gt;Was ist CVC?&lt;/a&gt;</translation>
+    </message>
+    <message>
+        <source>Your credit card information is encrypted</source>
+        <translation>Ihre Kreditkarteninformationen sind verschlüsselt</translation>
+    </message>
+    <message>
+        <source>Use saved card</source>
+        <translation>Gespeicherte Karte verwenden</translation>
+    </message>
+    <message>
+        <source>Pay Now</source>
+        <translation>Jetzt bezahlen</translation>
+    </message>
+    <message>
+        <source>Back</source>
+        <translation>Zurück</translation>
+    </message>
+    <message>
+        <source>CVC Information</source>
+        <translation>CVC-Informationen</translation>
+    </message>
+    <message>
+        <source>The CVC (Card Verification Code) is a 3 or 4 digit number found on the back of your card.</source>
+        <translation>Der CVC (Card Verification Code) ist eine 3- oder 4-stellige Nummer auf der Rückseite Ihrer Karte.</translation>
+    </message>
+    <message>
+        <source>Invalid CVV</source>
+        <translation>Ungültiger CVV</translation>
+    </message>
+    <message>
+        <source>CVV Verification Failed</source>
+        <translation>CVV-Überprüfung fehlgeschlagen</translation>
+    </message>
+    <message>
+        <source>Invalid saved card expiry date</source>
+        <translation>Ungültiges Ablaufdatum der gespeicherten Karte</translation>
+    </message>
+    <message>
+        <source>Your saved card has expired. Please use a different card.</source>
+        <translation>Ihre gespeicherte Karte ist abgelaufen. Bitte verwenden Sie eine andere Karte.</translation>
+    </message>
+    <message>
+        <source>Invalid card number</source>
+        <translation>Ungültige Kartennummer</translation>
+    </message>
+    <message>
+        <source>Invalid expiry date</source>
+        <translation>Ungültiges Ablaufdatum</translation>
+    </message>
+    <message>
+        <source>Card has expired</source>
+        <translation>Karte ist abgelaufen</translation>
+    </message>
+    <message>
+        <source>Please enter your full name</source>
+        <translation>Bitte geben Sie Ihren vollständigen Namen ein</translation>
+    </message>
+    <message>
+        <source>Invalid Payment Details</source>
+        <translation>Ungültige Zahlungsdetails</translation>
+    </message>
+    <message>
+        <source>Processing payment...</source>
+        <translation>Zahlung wird verarbeitet...</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Abbrechen</translation>
+    </message>
+    <message>
+        <source>Payment Processing</source>
+        <translation>Zahlungsverarbeitung</translation>
+    </message>
+    <message>
+        <source>Failed to create subscription: %1</source>
+        <translation>Erstellung des Abonnements fehlgeschlagen: %1</translation>
+    </message>
+    <message>
+        <source>Please try again.</source>
+        <translation>Bitte versuchen Sie es erneut.</translation>
+    </message>
+    <message>
+        <source>Payment Successful</source>
+        <translation>Zahlung erfolgreich</translation>
+    </message>
+    <message>
+        <source>Card ending in %1
+Cardholder: %2
+Expiry: %3</source>
+        <translation>Karte endend mit %1
+Karteninhaber: %2
+Gültig bis: %3</translation>
+    </message>
+</context>
+<context>
+    <name>SubscriptionPage</name>
+    <message>
+        <source>Choose Your Subscription Plan</source>
+        <translation>Wählen Sie Ihren Abonnementplan</translation>
+    </message>
+    <message>
+        <source>Access to all gym facilities</source>
+        <translation>Zugang zu allen Fitnesseinrichtungen</translation>
+    </message>
+    <message>
+        <source>Basic workout plans</source>
+        <translation>Grundlegende Trainingspläne</translation>
+    </message>
+    <message>
+        <source>Email support</source>
+        <translation>E-Mail-Support</translation>
+    </message>
+    <message>
+        <source>Progress tracking</source>
+        <translation>Fortschrittsverfolgung</translation>
+    </message>
+    <message>
+        <source>All Monthly features</source>
+        <translation>Alle monatlichen Funktionen</translation>
+    </message>
+    <message>
+        <source>Personalized workout plans</source>
+        <translation>Personalisierte Trainingspläne</translation>
+    </message>
+    <message>
+        <source>Priority email support</source>
+        <translation>Prioritäts-E-Mail-Support</translation>
+    </message>
+    <message>
+        <source>Nutrition guidance</source>
+        <translation>Ernährungsberatung</translation>
+    </message>
+    <message>
+        <source>All 3-Month features</source>
+        <translation>Alle 3-Monats-Funktionen</translation>
+    </message>
+    <message>
+        <source>Personal trainer consultation</source>
+        <translation>Beratung durch einen persönlichen Trainer</translation>
+    </message>
+    <message>
+        <source>Advanced workout analytics</source>
+        <translation>Erweiterte Trainingsanalysen</translation>
+    </message>
+    <message>
+        <source>Meal planning</source>
+        <translation>Mahlzeitenplanung</translation>
+    </message>
+    <message>
+        <source>All 6-Month features</source>
+        <translation>Alle 6-Monats-Funktionen</translation>
+    </message>
+    <message>
+        <source>Unlimited personal training</source>
+        <translation>Unbegrenztes persönliches Training</translation>
+    </message>
+    <message>
+        <source>VIP class booking</source>
+        <translation>VIP-Kursbuchung</translation>
+    </message>
+    <message>
+        <source>Exclusive member events</source>
+        <translation>Exklusive Mitgliederveranstaltungen</translation>
+    </message>
+    <message>
+        <source>Monthly</source>
+        <translation>Monatlich</translation>
+    </message>
+    <message>
+        <source>per month</source>
+        <translation>pro Monat</translation>
+    </message>
+    <message>
+        <source>3 Months</source>
+        <translation>3 Monate</translation>
+    </message>
+    <message>
+        <source>every 3 months</source>
+        <translation>alle 3 Monate</translation>
+    </message>
+    <message>
+        <source>6 Months</source>
+        <translation>6 Monate</translation>
+    </message>
+    <message>
+        <source>every 6 months</source>
+        <translation>alle 6 Monate</translation>
+    </message>
+    <message>
+        <source>Yearly</source>
+        <translation>Jährlich</translation>
+    </message>
+    <message>
+        <source>per year</source>
+        <translation>pro Jahr</translation>
+    </message>
+    <message>
+        <source>Most Popular</source>
+        <translation>Am beliebtesten</translation>
+    </message>
+    <message>
+        <source>VIP Upgrade</source>
+        <translation>VIP-Upgrade</translation>
+    </message>
+    <message>
+        <source>Get priority access to Padel courts and classes!</source>
+        <translation>Erhalten Sie vorrangigen Zugang zu Padel-Plätzen und Kursen!</translation>
+    </message>
+    <message>
+        <source>Select Plan</source>
+        <translation>Plan auswählen</translation>
+    </message>
+    <message>
+        <source>VIP Option Available</source>
+        <translation>VIP-Option verfügbar</translation>
+    </message>
+    <message>
+        <source>Add VIP Upgrade</source>
+        <translation>VIP-Upgrade hinzufügen</translation>
+    </message>
+    <message>
+        <source>Continue Without VIP</source>
+        <translation>Ohne VIP fortfahren</translation>
+    </message>
+    <message>
+        <source>Upgrade to VIP for Premium Benefits</source>
+        <translation>Upgraden Sie auf VIP für Premium-Vorteile</translation>
+    </message>
+    <message>
+        <source>additional</source>
+        <translation>zusätzlich</translation>
+    </message>
+    <message>
+        <source>Enhance your experience with these exclusive VIP benefits:</source>
+        <translation>Verbessern Sie Ihr Erlebnis mit diesen exklusiven VIP-Vorteilen:</translation>
+    </message>
+    <message>
+        <source>Priority booking for all Padel courts</source>
+        <translation>Vorrangige Buchung für alle Padel-Plätze</translation>
+    </message>
+    <message>
+        <source>Exclusive access to VIP-only classes and events</source>
+        <translation>Exklusiver Zugang zu VIP-only-Kursen und Veranstaltungen</translation>
+    </message>
+    <message>
+        <source>Premium customer support with dedicated VIP line</source>
+        <translation>Premium-Kundensupport mit dedizierter VIP-Leitung</translation>
+    </message>
+    <message>
+        <source>Join our elite members today!</source>
+        <translation>Werden Sie noch heute Mitglied unserer Elite!</translation>
+    </message>
+    <message>
+        <source>Subscription Error</source>
+        <translation>Abonnementfehler</translation>
+    </message>
+    <message>
+        <source>Failed to create subscription: %1</source>
+        <translation>Fehler beim Erstellen des Abonnements: %1</translation>
+    </message>
+</context>
+<context>
+    <name>SubscriptionStatusPage</name>
+    <message>
+        <source>Subscription Status</source>
+        <translation>Abonnementstatus</translation>
+    </message>
+    <message>
+        <source>Welcome back!</source>
+        <translation>Willkommen zurück!</translation>
+    </message>
+    <message>
+        <source>Subscribe Now</source>
+        <translation>Jetzt abonnieren</translation>
+    </message>
+    <message>
+        <source>Renew Subscription</source>
+        <translation>Abonnement erneuern</translation>
+    </message>
+    <message>
+        <source>Change Plan</source>
+        <translation>Plan ändern</translation>
+    </message>
+    <message>
+        <source>Your subscription is active</source>
+        <translation>Ihr Abonnement ist aktiv</translation>
+    </message>
+    <message>
+        <source>Your subscription expires in %1 days</source>
+        <translation>Ihr Abonnement läuft in %1 Tagen ab</translation>
+    </message>
+    <message>
+        <source>Plan: %1%2</source>
+        <translation>Plan: %1%2</translation>
+    </message>
+    <message>
+        <source> (VIP)</source>
+        <translation> (VIP)</translation>
+    </message>
+    <message>
+        <source>Valid from %1 to %2</source>
+        <translation>Gültig von %1 bis %2</translation>
+    </message>
+    <message>
+        <source>Subscription Price: $%1</source>
+        <translation>Abonnementpreis: $%1</translation>
+    </message>
+    <message>
+        <source>You don't have an active subscription</source>
+        <translation>Sie haben kein aktives Abonnement</translation>
+    </message>
+    <message>
+        <source>Welcome back, %1!</source>
+        <translation>Willkommen zurück, %1!</translation>
+    </message>
+    <message>
+        <source>Welcome!</source>
+        <translation>Willkommen!</translation>
+    </message>
+    <message>
+        <source>Member ID: %1 | Let's check your subscription status</source>
+        <translation>Mitglieds-ID: %1 | Lassen Sie uns Ihren Abonnementstatus überprüfen</translation>
+    </message>
+    <message>
+        <source>No active subscription</source>
+        <translation>Kein aktives Abonnement</translation>
+    </message>
+    <message>
+        <source>Your subscription is expiring soon</source>
+        <translation>Ihr Abonnement läuft bald ab</translation>
+    </message>
+    <message>
+        <source>Your subscription is active (VIP)</source>
+        <translation>Ihr Abonnement ist aktiv (VIP)</translation>
+    </message>
+    <message>
+        <source>Date information not available</source>
+        <translation>Datumsinformationen nicht verfügbar</translation>
+    </message>
+    <message>
+        <source>&lt;span style='color:%1; font-size:20px; font-weight:600;'&gt;%2&lt;/span&gt; &lt;span style='color:%3; font-weight:500; font-size:16px;'&gt;days remaining&lt;/span&gt;</source>
+        <translation>&lt;span style='color:%1; font-size:20px; font-weight:600;'&gt;%2&lt;/span&gt; &lt;span style='color:%3; font-weight:500; font-size:16px;'&gt;verbleibende Tage&lt;/span&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;span style='color:#EF4444; font-size:20px; font-weight:600;'&gt;Subscription expired&lt;/span&gt;</source>
+        <translation>&lt;span style='color:#EF4444; font-size:20px; font-weight:600;'&gt;Abonnement abgelaufen&lt;/span&gt;</translation>
+    </message>
+    <message>
+        <source>Monthly</source>
+        <translation>Monatlich</translation>
+    </message>
+    <message>
+        <source>Three Months</source>
+        <translation>Drei Monate</translation>
+    </message>
+    <message>
+        <source>Six Months</source>
+        <translation>Sechs Monate</translation>
+    </message>
+    <message>
+        <source>Yearly</source>
+        <translation>Jährlich</translation>
+    </message>
+    <message>
+        <source>Unknown</source>
+        <translation>Unbekannt</translation>
+    </message>
+    <message>
+        <source>Member ID: %1 | We've missed you!</source>
+        <translation>Mitglieds-ID: %1 | Wir haben Sie vermisst!</translation>
+    </message>
+    <message>
+        <source>Previous subscription ended: %1</source>
+        <translation>Vorheriges Abonnement endete: %1</translation>
+    </message>
+    <message>
+        <source>Special offer: Renew now and get 15% off your first month!</source>
+        <translation>Sonderangebot: Verlängern Sie jetzt und erhalten Sie 15% Rabatt auf Ihren ersten Monat!</translation>
+    </message>
+    <message>
+        <source>Renew Now</source>
+        <translation>Jetzt erneuern</translation>
+    </message>
+    <message>
+        <source>Explore Plans</source>
+        <translation>Pläne erkunden</translation>
+    </message>
+</context>
+<context>
+    <name>NewUserSubscriptionView</name>
+    <message>
+        <source>Start Your Fitness Journey</source>
+        <translation>Starten Sie Ihre Fitness-Reise</translation>
+    </message>
+    <message>
+        <source>Transform your workouts with FitFlex Pro</source>
+        <translation>Transformieren Sie Ihre Workouts mit FitFlex Pro</translation>
+    </message>
+    <message>
+        <source>Start Your Journey</source>
+        <translation>Starten Sie Ihre Reise</translation>
+    </message>
+    <message>
+        <source>Join thousands of members improving their fitness</source>
+        <translation>Schließen Sie sich Tausenden von Mitgliedern an, die ihre Fitness verbessern</translation>
+    </message>
+    <message>
+        <source>✨ Premium fitness classes and personal training</source>
+        <translation>✨ Premium-Fitnessklassen und persönliches Training</translation>
+    </message>
+    <message>
+        <source>📊 Personalized workout plans</source>
+        <translation>📊 Personalisierte Trainingspläne</translation>
+    </message>
+    <message>
+        <source>🥗 Nutrition guidance and meal planning</source>
+        <translation>🥗 Ernährungsberatung und Mahlzeitenplanung</translation>
+    </message>
+    <message>
+        <source>📈 Progress tracking and analytics</source>
+        <translation>📈 Fortschrittsverfolgung und Analysen</translation>
+    </message>
+    <message>
+        <source>🔒 Access to exclusive fitness content</source>
+        <translation>🔒 Zugang zu exklusiven Fitness-Inhalten</translation>
+    </message>
+    <message>
+        <source>$</source>
+        <translation>$</translation>
+    </message>
+    <message>
+        <source>29.99</source>
+        <translation>29,99</translation>
+    </message>
+    <message>
+        <source>/month</source>
+        <translation>/Monat</translation>
+    </message>
+</context>
 </TS>
+
