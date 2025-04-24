@@ -24,6 +24,7 @@
 #include <QGraphicsDropShadowEffect>
 #include "LeftSidebar.h"
 #include "../Subscription/subscriptionpage.h"
+#include "../Subscription/subscriptionstatuspage.h"
 #include "../Payment/paymentpage.h"
 
 SettingsPage::SettingsPage(UserDataManager* userDataManager, MemberDataManager* memberManager, QWidget *parent)
@@ -44,6 +45,7 @@ SettingsPage::SettingsPage(UserDataManager* userDataManager, MemberDataManager* 
     , resetButton(nullptr)
     , logoutButton(nullptr)
     , deleteAccountButton(nullptr)
+    , subscriptionStatusPage(nullptr)
     , subscriptionPage(nullptr)
     , paymentPage(nullptr)
     , developerPage(nullptr)
@@ -147,7 +149,7 @@ void SettingsPage::setupUI()
     // Create and setup left sidebar
     leftSidebar = new LeftSidebar(this);
     leftSidebar->addButton(":/Images/settings.png", tr("Settings"), "settings");
-    leftSidebar->addButton(":/Images/subscription.png", tr("Subscription"), "subscription");
+    leftSidebar->addButton(":/Images/subscription.png", tr("Subscription"), "subscription-status");
     leftSidebar->addButton(":/Images/team.png", tr("Developer Team"), "developer");
     connect(leftSidebar, &LeftSidebar::pageChanged, this, &SettingsPage::handlePageChange);
 
@@ -392,6 +394,10 @@ void SettingsPage::setupUI()
     // Add center container to settings layout
     settingsLayout->addWidget(centerContainer);
 
+    // Create subscription status page
+    subscriptionStatusPage = new SubscriptionStatusPage(this, memberManager, userDataManager);
+    contentStack->addWidget(subscriptionStatusPage);
+
     // Create subscription page
     subscriptionPage = new SubscriptionPage(this, memberManager);
     contentStack->addWidget(subscriptionPage);
@@ -400,6 +406,34 @@ void SettingsPage::setupUI()
     paymentPage = new PaymentPage(this, memberManager, userDataManager);
     contentStack->addWidget(paymentPage);
 
+    // Connect subscription status page signals
+    connect(subscriptionStatusPage, &SubscriptionStatusPage::subscribeRequested, this, [this]() {
+        contentStack->setCurrentWidget(subscriptionPage);
+        subscriptionPage->updateLayout();
+    });
+
+    connect(subscriptionStatusPage, &SubscriptionStatusPage::changePlanRequested, this, [this]() {
+        contentStack->setCurrentWidget(subscriptionPage);
+        subscriptionPage->updateLayout();
+    });
+
+    connect(subscriptionStatusPage, &SubscriptionStatusPage::renewRequested, this, [this](int planId, bool isVip) {
+        if (memberManager && userDataManager && currentUserId > 0) {
+            paymentPage->setCurrentUserId(currentUserId);
+            
+            int memberId = memberManager->getMemberIdByUserId(currentUserId);
+            if (memberId > 0) {
+                paymentPage->setCurrentMemberId(memberId);
+            }
+            
+            paymentPage->setPlanDetails(planId, isVip);
+            contentStack->setCurrentWidget(paymentPage);
+        } else {
+            QMessageBox::warning(this, tr("Error"), tr("System error: User data not available"));
+        }
+    });
+
+    // Connect subscription page signals
     connect(subscriptionPage, &SubscriptionPage::paymentRequested, this, [this](int planId, bool isVip) {
         if (memberManager && userDataManager && currentUserId > 0) {
             // Allow any user to proceed to payment, regardless of membership status
@@ -418,12 +452,43 @@ void SettingsPage::setupUI()
         }
     });
 
+    // Connect payment page signals
     connect(paymentPage, &PaymentPage::paymentCompleted, this, [this](int planId, bool isVip) {
-        contentStack->setCurrentWidget(subscriptionPage);
+        // Show success message
+        QMessageBox successDialog(QMessageBox::Information, 
+            tr("Payment Successful"), 
+            tr("Your subscription has been successfully activated!"), 
+            QMessageBox::Ok, 
+            this);
+        updateSuccessDialogTheme(&successDialog, isDarkTheme);
+        successDialog.exec();
+        
+        // After payment is complete and message is acknowledged, go to subscription status page
+        if (currentUserId > 0 && memberManager) {
+            int memberId = memberManager->getMemberIdByUserId(currentUserId);
+            if (memberId > 0) {
+                subscriptionStatusPage->setCurrentMemberId(memberId);
+                subscriptionStatusPage->loadMemberData();
+                contentStack->setCurrentWidget(subscriptionStatusPage);
+                leftSidebar->setActiveButton("subscription-status");
+            }
+        }
     });
 
     connect(paymentPage, &PaymentPage::backToSubscription, this, [this]() {
         contentStack->setCurrentWidget(subscriptionPage);
+    });
+
+    connect(subscriptionPage, &SubscriptionPage::subscriptionCompleted, this, [this]() {
+        // When subscription is completed, show status page
+        if (currentUserId > 0 && memberManager) {
+            int memberId = memberManager->getMemberIdByUserId(currentUserId);
+            if (memberId > 0) {
+                subscriptionStatusPage->setCurrentMemberId(memberId);
+                subscriptionStatusPage->loadMemberData();
+                contentStack->setCurrentWidget(subscriptionStatusPage);
+            }
+        }
     });
 
     // Create developer page
@@ -431,7 +496,6 @@ void SettingsPage::setupUI()
 
     // Add pages to stack
     contentStack->addWidget(settingsContent);
-    contentStack->addWidget(subscriptionPage);
     contentStack->addWidget(developerPage);
 
     // Add widgets to main layout
@@ -447,15 +511,55 @@ void SettingsPage::setupUI()
     // Initialize with settings tab
     leftSidebar->setActiveButton("settings");
     handlePageChange("settings");
+
+    // Set up a timer to make sure member data is loaded properly at startup
+    QTimer::singleShot(500, this, [this]() {
+        QString currentUserEmail;
+        QString dummyPassword;
+        if (userDataManager && userDataManager->getRememberedCredentials(currentUserEmail, dummyPassword)) {
+            User user = userDataManager->getUserData(currentUserEmail);
+            if (user.getId() > 0 && memberManager) {
+                currentUserId = user.getId();
+                
+                if (memberManager->userIsMember(currentUserId)) {
+                    int memberId = memberManager->getMemberIdByUserId(currentUserId);
+                    if (memberId > 0 && subscriptionStatusPage) {
+                        // Set member ID and force load data
+                        subscriptionStatusPage->setCurrentMemberId(memberId);
+                        subscriptionStatusPage->loadMemberData();
+                        
+                        // Switch to subscription tab to make sure it's displayed properly
+                        leftSidebar->setActiveButton("subscription-status");
+                        contentStack->setCurrentWidget(subscriptionStatusPage);
+                    }
+                }
+            }
+        }
+    });
 }
 
 void SettingsPage::handlePageChange(const QString& pageId)
 {
     if (pageId == "settings") {
         contentStack->setCurrentWidget(settingsContent);
-    } else if (pageId == "subscription") {
-        contentStack->setCurrentWidget(subscriptionPage);
-        subscriptionPage->updateLayout();
+    } else if (pageId == "subscription-status") {
+        // Make sure subscription status page has the latest data
+        if (subscriptionStatusPage && currentUserId > 0) {
+            // Always reload data when switching to subscription tab
+            if (memberManager && memberManager->userIsMember(currentUserId)) {
+                int memberId = memberManager->getMemberIdByUserId(currentUserId);
+                subscriptionStatusPage->setCurrentMemberId(memberId);
+            } else {
+                // Not a member, show new user view
+                subscriptionStatusPage->setCurrentMemberId(0);
+            }
+            
+            // Always reload the data
+            subscriptionStatusPage->loadMemberData();
+        }
+        
+        contentStack->setCurrentWidget(subscriptionStatusPage);
+        subscriptionStatusPage->updateLayout();
     } else if (pageId == "developer") {
         if (!developerPage) {
             developerPage = new DeveloperPage(this);
@@ -475,8 +579,20 @@ void SettingsPage::updateTheme(bool isDark)
     isDarkTheme = isDark;
     leftSidebar->updateTheme(isDark);
     
+    if (subscriptionStatusPage) {
+        subscriptionStatusPage->updateTheme(isDark);
+    }
+    
     if (subscriptionPage) {
         subscriptionPage->updateTheme(isDark);
+    }
+    
+    if (paymentPage) {
+        paymentPage->updateTheme(isDark);
+    }
+    
+    if (developerPage) {
+        developerPage->updateTheme(isDark);
     }
     
     // Update card container
@@ -611,27 +727,114 @@ void SettingsPage::updateTheme(bool isDark)
 
 void SettingsPage::onUserDataLoaded(const QString& email)
 {
+    qDebug() << "SettingsPage::onUserDataLoaded called with email: " << email;
+    // Clear any cached data first
+    currentUserId = 0;
     loadUserData(email);
-    
-    if (!email.isEmpty() && userDataManager) {
-        User user = userDataManager->getUserData(email);
-        currentUserId = user.getId();
-        
-        // Don't create member automatically - only check if user is already a member
-        if (memberManager && currentUserId > 0) {
-            // Check if the user is already a member
-            if (memberManager->userIsMember(currentUserId)) {
-                // Set current member ID for subscription page only if they're already a member
-                int memberId = memberManager->getMemberIdByUserId(currentUserId);
-                if (memberId > 0 && subscriptionPage) {
-                    subscriptionPage->setCurrentMemberId(memberId);
-                    qDebug() << "Set subscription page member ID to: " << memberId;
-                }
-            } else {
-                qDebug() << "User is not yet a member - will become one after subscription";
-            }
-        }
+    if (subscriptionStatusPage) {
+        qDebug() << "Resetting SubscriptionStatusPage with member ID 0";
+        subscriptionStatusPage->setCurrentMemberId(0);
     }
+    
+    if (subscriptionPage) {
+        qDebug() << "Resetting SubscriptionPage with member ID 0";
+        subscriptionPage->setCurrentMemberId(0);
+    }
+    
+    if (email.isEmpty() || !userDataManager) {
+        qDebug() << "No email provided or user data manager not available";
+        leftSidebar->setActiveButton("settings"); // Default to settings view
+        contentStack->setCurrentWidget(settingsContent);
+        return;
+    }
+    
+    // Get user data from email
+    User user = userDataManager->getUserData(email);
+    if (user.getId() <= 0 || user.getEmail() != email) {
+        qDebug() << "Failed to get valid user ID for email: " << email;
+        leftSidebar->setActiveButton("settings"); // Default to settings view
+        contentStack->setCurrentWidget(settingsContent);
+        return;
+    }
+    
+    currentUserId = user.getId();
+    qDebug() << "Loaded user data for ID: " << currentUserId << " with email: " << email;
+    
+    // Check if the user is a member, but only if we have a valid member manager
+    if (!memberManager || currentUserId <= 0) {
+        qDebug() << "No valid user ID or member manager available";
+        leftSidebar->setActiveButton("settings"); // Default to settings view
+        contentStack->setCurrentWidget(settingsContent);
+        return;
+    }
+    
+    // Check if user is a member with proper error handling
+    bool isMember = false;
+    int memberId = 0;
+    try {
+        isMember = memberManager->userIsMember(currentUserId);
+        qDebug() << "User membership check result: " << (isMember ? "Is a member" : "Not a member");
+        
+        if (isMember) {
+            memberId = memberManager->getMemberIdByUserId(currentUserId);
+            qDebug() << "Found member ID: " << memberId << " for user ID: " << currentUserId;
+        }
+    } catch (const std::exception& e) {
+        qDebug() << "Exception checking membership: " << e.what();
+        isMember = false;
+        memberId = 0;
+    }
+    
+    if (isMember && memberId > 0) {
+        // User is a confirmed member with valid member ID - update subscription pages
+        qDebug() << "User is a member with ID: " << memberId;
+        
+        if (subscriptionPage) {
+            qDebug() << "Setting subscriptionPage member ID to: " << memberId;
+            subscriptionPage->setCurrentMemberId(memberId);
+        }
+        
+        if (subscriptionStatusPage) {
+            qDebug() << "Setting subscriptionStatusPage member ID to: " << memberId;
+            subscriptionStatusPage->setCurrentMemberId(memberId);
+            QTimer::singleShot(300, [this, memberId]() {
+                if (subscriptionStatusPage) {
+                    qDebug() << "Force reloading member data for member ID: " << memberId;
+                    subscriptionStatusPage->loadMemberData();
+                }
+            });
+        }
+        leftSidebar->setActiveButton("subscription-status");
+        contentStack->setCurrentWidget(subscriptionStatusPage);
+    } else {
+        // User is not a member or memberId is invalid - show new user view
+        qDebug() << "User is not a member or has invalid member ID - showing new user subscription view";
+        
+        // Set explicit 0 ID for subscription components to show new user view
+        if (subscriptionStatusPage) {
+            qDebug() << "Ensuring subscriptionStatusPage has member ID 0 (new user)";
+            subscriptionStatusPage->setCurrentMemberId(0);
+            
+            // Force reload with a delay to ensure UI is ready
+            QTimer::singleShot(300, [this]() {
+                if (subscriptionStatusPage) {
+                    qDebug() << "Force reloading member data for new user";
+                    subscriptionStatusPage->loadMemberData();
+                }
+            });
+        }
+        
+        if (subscriptionPage) {
+            qDebug() << "Ensuring subscriptionPage has member ID 0 (new user)";
+            subscriptionPage->setCurrentMemberId(0);
+        }
+        
+        // Default to profile settings view for non-members
+        leftSidebar->setActiveButton("settings");
+        contentStack->setCurrentWidget(settingsContent);
+    }
+    
+    qDebug() << "SettingsPage::onUserDataLoaded completed for email: " << email;
 }
 
 void SettingsPage::loadUserData(const QString& email)
@@ -737,37 +940,36 @@ void SettingsPage::changeProfilePicture()
 
 void SettingsPage::updateSuccessDialogTheme(QDialog* dialog, bool isDark)
 {
-    if (const auto container = dialog->findChild<QWidget*>("successContainer")) {
-        container->setStyleSheet(QString(R"(
-            QWidget#successContainer {
-                background: %1;
-                border-radius: 16px;
-                border: 1px solid %2;
-                box-shadow: 0 4px 6px %3;
-            }
-        )").arg(
-            isDark ? "rgba(31, 41, 55, 0.95)" : "rgba(255, 255, 255, 0.95)",
-            isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
-            isDark ? "rgba(0, 0, 0, 0.3)" : "rgba(0, 0, 0, 0.1)"
-        ));
-    }
-
-    if (const auto messageLabel = dialog->findChild<QLabel*>("messageLabel")) {
-        messageLabel->setStyleSheet(QString(R"(
-            QLabel#messageLabel {
-                color: %1;
-                font-size: 18px;
-                font-weight: 600;
-                padding: 8px;
-            }
-        )").arg(isDark ? "#FFFFFF" : "#1F2937"));
-    }
-
+    if (!dialog) return;
+    
     dialog->setStyleSheet(QString(R"(
         QDialog {
-            background: %1;
+            background-color: %1;
+            color: %2;
         }
-    )").arg(isDark ? "rgba(0, 0, 0, 0.5)" : "rgba(0, 0, 0, 0.2)"));
+        QLabel {
+            color: %2;
+            font-size: 15px;
+        }
+        QPushButton {
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
+                stop:0 #8B5CF6, stop:0.5 #7C3AED, stop:1 #6D28D9);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            min-width: 100px;
+        }
+        QPushButton:hover {
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
+                stop:0 #7C3AED, stop:0.5 #6D28D9, stop:1 #5B21B6);
+        }
+    )").arg(
+        isDark ? "#1F2937" : "#FFFFFF",
+        isDark ? "#F9FAFB" : "#1F2937"
+    ));
 }
 
 void SettingsPage::saveChanges()

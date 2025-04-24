@@ -148,6 +148,9 @@ set(LANGUAGE_SOURCES
 set(SUBSCRIPTION_SOURCES
         "project code/Subscription/subscriptionpage.cpp"
         "project code/Subscription/subscriptionpage.h"
+        "project code/Subscription/subscriptionstatuspage.cpp"
+        "project code/Subscription/subscriptionstatuspage.h"
+        "project code/Subscription/newusersubscriptionview.cpp"
 )
 
 set(PAYMENT_SOURCES
@@ -175,31 +178,32 @@ set(PROJECT_SOURCES
 # Create executable
 add_executable(DS_Project ${PROJECT_SOURCES})
 
-# Create data directories in source directory
-add_custom_command(TARGET DS_Project PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory
+# Create required directories only once during configure time rather than build time
+file(MAKE_DIRECTORY 
     "${CMAKE_SOURCE_DIR}/project code/Data"
-    COMMAND ${CMAKE_COMMAND} -E make_directory
     "${CMAKE_SOURCE_DIR}/project code/UsersPhoto"
 )
 
-# Copy data files to source directory
+# Copy data files to build directory (only if they don't exist or have changed)
 foreach(DATA_FILE ${DATA_FILES})
-    add_custom_command(TARGET DS_Project POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory
-        "${CMAKE_SOURCE_DIR}/project code/Data"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    get_filename_component(FILE_NAME ${DATA_FILE} NAME)
+    configure_file(
         "${CMAKE_SOURCE_DIR}/${DATA_FILE}"
-        "${CMAKE_SOURCE_DIR}/project code/Data"
+        "${CMAKE_BINARY_DIR}/project code/Data/${FILE_NAME}"
+        COPYONLY
     )
 endforeach()
 
-# Create data directories in build directory
-add_custom_command(TARGET DS_Project POST_BUILD
+# Create required directories in build directory
+add_custom_command(
+    TARGET DS_Project 
+    POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory
-    "$<TARGET_FILE_DIR:DS_Project>/project code/Data"
-    COMMAND ${CMAKE_COMMAND} -E make_directory
-    "$<TARGET_FILE_DIR:DS_Project>/project code/UsersPhoto"
+        "$<TARGET_FILE_DIR:DS_Project>/project code/Data"
+        "$<TARGET_FILE_DIR:DS_Project>/project code/UsersPhoto"
+        "$<TARGET_FILE_DIR:DS_Project>/plugins/platforms"
+        "$<TARGET_FILE_DIR:DS_Project>/plugins/imageformats"
+    COMMENT "Creating required directories in build directory"
 )
 
 # Install data files and directories
@@ -247,41 +251,23 @@ if(WIN32)
     # Set the absolute path to Qt installation from .env file
     set(QT_INSTALL_PATH "${QT_DIR}")
     
-    # Create the destination directory if it doesn't exist
+    # Create a single custom command that copies all required DLLs
+    # Only copies if they don't exist or have been modified (timestamp comparison)
     add_custom_command(TARGET DS_Project POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E make_directory
-            "$<TARGET_FILE_DIR:DS_Project>")
-    
-    # Copy the required DLLs
-    foreach(QT_LIB Core Gui Widgets)
-        add_custom_command(TARGET DS_Project POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${QT_INSTALL_PATH}/bin/Qt6${QT_LIB}${DEBUG_SUFFIX}.dll"
-                "$<TARGET_FILE_DIR:DS_Project>")
-    endforeach()
-    
-    # Create platforms directory and copy the qwindowsd.dll
-    add_custom_command(TARGET DS_Project POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E make_directory
-            "$<TARGET_FILE_DIR:DS_Project>/plugins/platforms/"
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${QT_INSTALL_PATH}/bin/Qt6Core${DEBUG_SUFFIX}.dll"
+            "${QT_INSTALL_PATH}/bin/Qt6Gui${DEBUG_SUFFIX}.dll"
+            "${QT_INSTALL_PATH}/bin/Qt6Widgets${DEBUG_SUFFIX}.dll"
+            "$<TARGET_FILE_DIR:DS_Project>/"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${QT_INSTALL_PATH}/plugins/platforms/qwindows${DEBUG_SUFFIX}.dll"
-            "$<TARGET_FILE_DIR:DS_Project>/plugins/platforms/")
-
-    # Create imageformats directory and copy image format plugins
-    add_custom_command(TARGET DS_Project POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E make_directory
-            "$<TARGET_FILE_DIR:DS_Project>/plugins/imageformats/"
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE_DIR:DS_Project>/plugins/platforms/"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${QT_INSTALL_PATH}/plugins/imageformats/qjpeg${DEBUG_SUFFIX}.dll"
-            "$<TARGET_FILE_DIR:DS_Project>/plugins/imageformats/"
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${QT_INSTALL_PATH}/plugins/imageformats/qgif${DEBUG_SUFFIX}.dll"
-            "$<TARGET_FILE_DIR:DS_Project>/plugins/imageformats/"
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${QT_INSTALL_PATH}/plugins/imageformats/qico${DEBUG_SUFFIX}.dll"
-            "$<TARGET_FILE_DIR:DS_Project>/plugins/imageformats/"
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${QT_INSTALL_PATH}/plugins/imageformats/qsvg${DEBUG_SUFFIX}.dll"
-            "$<TARGET_FILE_DIR:DS_Project>/plugins/imageformats/")
+            "$<TARGET_FILE_DIR:DS_Project>/plugins/imageformats/"
+        COMMENT "Copying Qt DLLs and plugins"
+    )
 endif()

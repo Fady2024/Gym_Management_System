@@ -181,8 +181,6 @@ bool MemberDataManager::updateMember(const Member& member, QString& errorMessage
         membersById[member.getId()] = member;
         dataModified = true;
     }
-
-    // Don't save immediately - we'll save when the application closes
     qDebug() << "Member data updated and marked for saving at application exit";
 
     return true;
@@ -255,8 +253,6 @@ bool MemberDataManager::renewSubscription(int memberId, SubscriptionType newType
     // Apply early renewal discount if eligible
     if (isEligibleForEarlyRenewal(memberId)) {
         double discount = calculateRenewalDiscount(memberId, newType);
-        // Store the discount in the member's data or apply it to the payment
-        // This would depend on your payment processing system
     }
     
     member.setSubscription(newSubscription);
@@ -712,7 +708,7 @@ int MemberDataManager::generateMemberId() const {
 }
 
 bool MemberDataManager::saveCardData(int memberId, const QString& cardNumber, const QString& expiryDate, 
-                                    const QString& cardholderName, QString& errorMessage) {
+                                    const QString& cardholderName, const QString& cvc, QString& errorMessage) {
     QMutexLocker locker(&mutex);
     
     if (memberId <= 0) {
@@ -733,11 +729,11 @@ bool MemberDataManager::saveCardData(int memberId, const QString& cardNumber, co
     cardData.fullCardNumber = cardNumber;  // Store full card number
     cardData.expiryDate = expiryDate;
     cardData.cardholderName = cardholderName;
+    cardData.cvc = cvc;  // Store CVC code for future use
     
     savedCards[memberId] = cardData;
     dataModified = true;
     
-    // Don't save immediately - we'll save when the application closes
     qDebug() << "Card data updated and marked for saving at application exit";
     
     return true;
@@ -813,6 +809,13 @@ bool MemberDataManager::loadSavedCards() {
         cardData.expiryDate = cardObj["expiryDate"].toString();
         cardData.cardholderName = cardObj["cardholderName"].toString();
         
+        // Load CVC if available (for backward compatibility with existing files)
+        if (cardObj.contains("cvc")) {
+            cardData.cvc = cardObj["cvc"].toString();
+        } else {
+            cardData.cvc = ""; // Empty string if not available
+        }
+        
         savedCards[cardData.memberId] = cardData;
     }
     
@@ -837,6 +840,7 @@ bool MemberDataManager::saveSavedCards() const {
         cardObj["fullCardNumber"] = cardData.fullCardNumber;
         cardObj["expiryDate"] = cardData.expiryDate;
         cardObj["cardholderName"] = cardData.cardholderName;
+        cardObj["cvc"] = cardData.cvc;  // Include CVC in saved data
         
         cardsArray.append(cardObj);
     }

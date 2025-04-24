@@ -20,12 +20,15 @@
 #include <QCoreApplication>
 #include <QTimer>
 #include <QDebug>
+#include <QCheckBox>
+#include <QPixmap>
 
 #include "../../UI/UIUtils.h"
 #include "../../Theme/ThemeManager.h"
 #include "../DataManager/memberdatamanager.h"
 #include "../DataManager/userdatamanager.h"
 #include "../Model/subscription.h"
+#include "../Language/LanguageManager.h"
 
 PaymentPage::PaymentPage(QWidget *parent, MemberDataManager* memberManager, UserDataManager* userDataManager)
     : QWidget(parent)
@@ -54,12 +57,21 @@ PaymentPage::PaymentPage(QWidget *parent, MemberDataManager* memberManager, User
     , userDataManager(userDataManager)
     , currentMemberId(0)
     , currentUserId(0)
+    , hasSavedCard(false)
 {
     setupUI();
+    setupCVCDialog();
     
     // Connect to ThemeManager for theme updates
     connect(&ThemeManager::getInstance(), &ThemeManager::themeChanged,
             this, &PaymentPage::updateTheme);
+            
+    // Connect to LanguageManager for language changes
+    connect(&LanguageManager::getInstance(), &LanguageManager::languageChanged,
+            this, [this](const QString&) {
+                retranslateUI();
+                updateLayout();
+            });
 
     // Force initial theme application
     updateTheme(isDarkTheme);
@@ -79,8 +91,46 @@ void PaymentPage::setupUI()
     titleLabel->setObjectName("pageTitle");
     mainLayout->addWidget(titleLabel);
 
+    // Create a scroll area for responsive design
+    QScrollArea* scrollArea = new QScrollArea(this);
+    scrollArea->setObjectName("paymentScrollArea");
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    scrollArea->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    
+    // Style the scroll bar for a more modern look
+    scrollArea->setStyleSheet(R"(
+        QScrollArea {
+            background: transparent;
+            border: none;
+        }
+        QScrollBar:vertical {
+            border: none;
+            background: rgba(255, 255, 255, 0.05);
+            width: 8px;
+            border-radius: 4px;
+            margin: 0px;
+        }
+        QScrollBar::handle:vertical {
+            background: rgba(139, 92, 246, 0.6);
+            min-height: 30px;
+            border-radius: 4px;
+        }
+        QScrollBar::handle:vertical:hover {
+            background: rgba(139, 92, 246, 0.8);
+        }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            height: 0px;
+        }
+        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+            background: none;
+        }
+    )");
+
     // Content Container without top padding since we have spacing in main layout
-    contentContainer = new QWidget(this);
+    contentContainer = new QWidget();
     contentContainer->setObjectName("contentContainer");
     QVBoxLayout* contentLayout = new QVBoxLayout(contentContainer);
     contentLayout->setContentsMargins(0, 0, 0, 0);
@@ -320,6 +370,25 @@ void PaymentPage::setupUI()
 
     paymentLayout->addWidget(securityNote);
 
+    // Add saved card option if applicable
+    savedCardInfoContainer = new QWidget(paymentCard);
+    savedCardInfoContainer->setObjectName("savedCardContainer");
+    QVBoxLayout* savedCardLayout = new QVBoxLayout(savedCardInfoContainer);
+    savedCardLayout->setContentsMargins(24, 16, 24, 16);
+    savedCardLayout->setSpacing(8);
+
+    useSavedCardCheckbox = new QCheckBox(tr("Use saved card"));
+    useSavedCardCheckbox->setObjectName("useSavedCardCheckbox");
+    connect(useSavedCardCheckbox, &QCheckBox::toggled, this, &PaymentPage::toggleSavedCardUsage);
+
+    savedCardLabel = new QLabel();
+    savedCardLabel->setObjectName("savedCardLabel");
+    savedCardLabel->setWordWrap(true);
+
+    savedCardLayout->addWidget(useSavedCardCheckbox);
+    savedCardLayout->addWidget(savedCardLabel);
+    savedCardInfoContainer->hide();
+
     // Buttons
     QHBoxLayout* buttonLayout = new QHBoxLayout();
     buttonLayout->setSpacing(12);
@@ -341,6 +410,7 @@ void PaymentPage::setupUI()
     buttonLayout->addWidget(payButton);
 
     paymentCardLayout->addWidget(paymentSection);
+    paymentCardLayout->addWidget(savedCardInfoContainer);
     paymentCardLayout->addLayout(buttonLayout);
 
     contentLayout->addWidget(paymentCard);
@@ -352,34 +422,199 @@ void PaymentPage::setupUI()
     cardShadow->setOffset(0, 2);
     paymentCard->setGraphicsEffect(cardShadow);
 
-    mainLayout->addWidget(contentContainer);
+    // Set the content container as the scroll area's widget
+    scrollArea->setWidget(contentContainer);
+    
+    // Add the scroll area to the main layout
+    mainLayout->addWidget(scrollArea);
 }
 
 void PaymentPage::updateTheme(bool isDark)
 {
     isDarkTheme = isDark;
+    isUpdatingStyles = true;
     
-    // Set the main window background for dark mode
+    qDebug() << "PaymentPage::updateTheme called with isDark =" << isDark;
+    
+    // First, update the main background
     setStyleSheet(QString(
         "PaymentPage {"
         "   background-color: %1;"
         "}"
     ).arg(isDark ? "#111827" : "#F9FAFB"));
 
-    // Update title style with padding
-    titleLabel->setStyleSheet(QString(
-        "QLabel#pageTitle {"
-        "   color: %1 !important;"
-        "   font-size: 22px;"
-        "   font-weight: 700;"
-        "   letter-spacing: -0.5px;"
-        "   padding: 10px 0 !important;"
-        "   margin: 0 !important;"
-        "}"
-    ).arg(isDark ? "#FFFFFF" : "#111827"));
+    // Get all container widgets that need color updates
+    QList<QWidget*> allContainers = findChildren<QWidget*>();
+    
+    // ** DIRECTLY APPLY COLORS TO ALL CONTAINERS **
+    foreach (QWidget* container, allContainers) {
+        if (container->objectName() == "contentContainer") {
+            container->setStyleSheet(QString(
+                "QWidget#contentContainer {"
+                "   background-color: %1;"
+                "   border-radius: 16px;"
+                "}"
+            ).arg(isDark ? "#1E293B" : "#FFFFFF"));
+        }
+        else if (container->objectName() == "paymentCard") {
+            container->setStyleSheet(QString(
+                "QWidget#paymentCard {"
+                "   background-color: %1;"
+                "   border-radius: 16px;"
+                "   border: 1px solid %2;"
+                "}"
+            ).arg(
+                isDark ? "#1F2937" : "#FFFFFF",
+                isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)"
+            ));
+        }
+        else if (container->objectName() == "receiptSection") {
+            container->setStyleSheet(QString(
+                "QWidget#receiptSection {"
+                "   background-color: %1;"
+                "   border-radius: 16px;"
+                "   border: 1px solid %2;"
+                "}"
+            ).arg(
+                isDark ? "#1F2937" : "#FFFFFF",
+                isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)"
+            ));
+        }
+        else if (container->objectName() == "savedCardInfoContainer") {
+            // Update the saved card container styling directly here
+            container->setStyleSheet(QString(
+                "QWidget#savedCardInfoContainer {"
+                "   background-color: %1;"
+                "   border: 1px solid %2;"
+                "   border-radius: 12px;"
+                "   padding: 12px;"
+                "}"
+            ).arg(
+                isDark ? "rgba(30, 58, 138, 0.15)" : "rgba(219, 234, 254, 0.8)",
+                isDark ? "rgba(59, 130, 246, 0.5)" : "rgba(37, 99, 235, 0.3)"
+            ));
+        }
+    }
 
-    // Update all component styles
+    QList<QLabel*> allLabels = findChildren<QLabel*>();
+    foreach (QLabel* label, allLabels) {
+        if (label->objectName() == "receiptLabel") {
+            label->setStyleSheet(QString(
+                "QLabel#receiptLabel {"
+                "   color: %1 !important;"
+                "   font-size: 15px;"
+                "   font-weight: 500;"
+                "}"
+            ).arg(isDark ? "#FFFFFF" : "#111827"));
+        }
+        else if (label->objectName() == "receiptPrice") {
+            label->setStyleSheet(QString(
+                "QLabel#receiptPrice {"
+                "   color: %1 !important;"
+                "   font-size: 15px;"
+                "   font-weight: 600;"
+                "}"
+            ).arg(isDark ? "#FFFFFF" : "#111827"));
+        }
+        else if (label->objectName() == "vipPrice") {
+            label->setStyleSheet(QString(
+                "QLabel#vipPrice {"
+                "   color: %1 !important;"
+                "   font-size: 15px;"
+                "   font-weight: 600;"
+                "}"
+            ).arg(isDark ? "#A78BFA" : "#8B5CF6"));
+        }
+        else if (label->objectName() == "totalLabel") {
+            label->setStyleSheet(QString(
+                "QLabel#totalLabel {"
+                "   color: %1 !important;"
+                "   font-size: 17px;"
+                "   font-weight: 700;"
+                "}"
+            ).arg(isDark ? "#FFFFFF" : "#111827"));
+        }
+        else if (label->objectName() == "totalPrice") {
+            label->setStyleSheet(QString(
+                "QLabel#totalPrice {"
+                "   color: %1 !important;"
+                "   font-size: 17px;"
+                "   font-weight: 700;"
+                "}"
+            ).arg(isDark ? "#A78BFA" : "#8B5CF6"));
+        }
+        else if (label->objectName() == "savedCardLabel") {
+            // Direct styling of saved card label
+            label->setStyleSheet(QString(
+                "QLabel#savedCardLabel {"
+                "   color: %1;"
+                "   font-size: 14px;"
+                "   font-weight: 500;"
+                "}"
+            ).arg(isDark ? "#E2E8F0" : "#1E293B"));
+        }
+    }
+
+    // Update scroll area styling
+    QScrollArea* scrollArea = findChild<QScrollArea*>("paymentScrollArea");
+    if (scrollArea) {
+        scrollArea->setStyleSheet(QString(R"(
+            QScrollArea {
+                background: transparent;
+                border: none;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: %1;
+                width: 8px;
+                border-radius: 4px;
+                margin: 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: %2;
+                min-height: 30px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: %3;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+        )").arg(
+            isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.05)",
+            isDark ? "rgba(139, 92, 246, 0.6)" : "rgba(139, 92, 246, 0.5)",
+            isDark ? "rgba(139, 92, 246, 0.8)" : "rgba(139, 92, 246, 0.7)"
+        ));
+    }
+
+    // Update title style
+    updateTitleStyle();
+    
+    // Update all other component styles
     updateCardStyles();
+    updateInputStyles();
+    updateButtonStyles();
+
+    QTimer::singleShot(0, this, [this]() {
+        repaint();
+        if (contentContainer) contentContainer->repaint();
+        if (paymentCard) paymentCard->repaint();
+        if (QWidget* receiptSection = findChild<QWidget*>("receiptSection")) {
+            receiptSection->repaint();
+        }
+    });
+    
+    isUpdatingStyles = false;
+    if (isLayoutUpdatePending) {
+        isLayoutUpdatePending = false;
+        updateLayout();
+    }
+
+    qDebug() << "PaymentPage::updateTheme completed";
 }
 
 void PaymentPage::updateCardStyles()
@@ -762,64 +997,79 @@ void PaymentPage::updateLayout()
 
 void PaymentPage::retranslateUI()
 {
+    if (isUpdatingStyles) return;
+    isUpdatingStyles = true;
+    
+    qDebug() << "PaymentPage::retranslateUI called";
+
+    // Title
     titleLabel->setText(tr("Payment Details"));
+    
+    // Button text
     backButton->setText(tr("Back"));
     payButton->setText(tr("Pay Now"));
+    payButton->setIcon(UIUtils::getIcon("credit-card", 16));
 
-    // Update receipt labels
+    // Receipt section
     QList<QLabel*> receiptLabels = findChildren<QLabel*>("receiptLabel");
-    if (receiptLabels.count() >= 2) {
-        receiptLabels[0]->setText(tr("Standard Plan:"));
-        receiptLabels[1]->setText(tr("VIP Option:"));
+    foreach (QLabel* label, receiptLabels) {
+        if (label->text().contains("Standard Plan")) {
+            label->setText(tr("Standard Plan:"));
+        } else if (label->text().contains("VIP Option")) {
+            label->setText(tr("VIP Option:"));
+        }
     }
     
     QList<QLabel*> totalLabels = findChildren<QLabel*>("totalLabel");
-    if (!totalLabels.isEmpty()) {
-        totalLabels[0]->setText(tr("TOTAL:"));
+    foreach (QLabel* label, totalLabels) {
+        label->setText(tr("TOTAL:"));
     }
 
-    // Update payment form labels
+    // Payment form labels
     QList<QLabel*> fieldLabels = findChildren<QLabel*>("fieldLabel");
     foreach (QLabel* label, fieldLabels) {
-        if (label->parent() && label->parent()->objectName() == "nameSection") {
-            label->setText(tr("Name on Card"));
-        } else if (label->parent() && label->parent()->objectName() == "cardNumberContainer") {
+        if (label->text().contains("Card Number")) {
             label->setText(tr("Card Number"));
-        } else if (label->parent() && label->parent()->objectName() == "expiryContainer") {
+        } else if (label->text().contains("Name on Card")) {
+            label->setText(tr("Name on Card"));
+        } else if (label->text().contains("Expiry Date")) {
             label->setText(tr("Expiry Date"));
-        } else if (label->parent() && label->parent()->objectName() == "cvcContainer") {
+        } else if (label->text().contains("CVC")) {
             label->setText(tr("CVC"));
     }
     }
 
-    // Update the CVC help link
+    // Placeholders
+    if (cardNumberInput) cardNumberInput->setPlaceholderText(tr("1234 5678 9012 3456"));
+    if (expiryDateInput) expiryDateInput->setPlaceholderText(tr("MM / YY"));
+    if (cvvInput) cvvInput->setPlaceholderText(tr("123"));
+    if (nameInput) nameInput->setPlaceholderText(tr("James Zapata"));
+
+    // CVC help link
     QList<QLabel*> helpLinks = findChildren<QLabel*>("helpLink");
     foreach (QLabel* link, helpLinks) {
         link->setText(tr("<a href='#'>What is CVC?</a>"));
     }
 
-    // Update security text
+    // Security text
     QList<QLabel*> securityTexts = findChildren<QLabel*>("securityText");
     foreach (QLabel* text, securityTexts) {
         text->setText(tr("Your credit card information is encrypted"));
     }
 
-    // Update placeholders
-    QList<QLineEdit*> inputs = findChildren<QLineEdit*>();
-    foreach (QLineEdit* input, inputs) {
-        if (input->objectName() == "nameInput") {
-            input->setPlaceholderText(tr("James Zapata"));
-        } else if (input->objectName() == "cardNumberInput") {
-            input->setPlaceholderText("1234 5678 9012 3456");
-        } else if (input->objectName() == "expiryDateInput") {
-            input->setPlaceholderText("MM / YY");
-        } else if (input->objectName() == "cvcInput") {
-            input->setPlaceholderText("123");
-        }
+    // Saved card checkbox
+    if (useSavedCardCheckbox) {
+        useSavedCardCheckbox->setText(tr("Use saved card"));
+    }
+    
+    // Update CVC dialog
+    if (cvcDialog) {
+        cvcDialog->setWindowTitle(tr("CVC Information"));
+        cvcDialog->setText(tr("The CVC (Card Verification Code) is a 3 or 4 digit number found on the back of your card."));
     }
 
-    // Apply theme to ensure text colors are correct
-    updateCardStyles();
+    isUpdatingStyles = false;
+    updateLayout();
 }
 
 void PaymentPage::setPlanDetails(int planId, bool isVip)
@@ -850,21 +1100,66 @@ void PaymentPage::setPlanDetails(int planId, bool isVip)
             return;
     }
 
-    // Update receipt with enhanced formatting
     if (planPriceLabel) {
     planPriceLabel->setText(QString("$%1").arg(basePrice, 0, 'f', 2));
+        planPriceLabel->setStyleSheet(QString(
+            "QLabel {"
+            "   color: %1 !important;"
+            "   font-size: 15px;"
+            "   font-weight: 600;"
+            "}"
+        ).arg(isDarkTheme ? "#FFFFFF" : "#111827"));
     }
     
     if (vipPriceLabel) {
     vipPriceLabel->setText(isVip ? QString("+$%1").arg(vipCost, 0, 'f', 2) : "$0.00");
+        vipPriceLabel->setStyleSheet(QString(
+            "QLabel {"
+            "   color: %1 !important;"
+            "   font-size: 15px;"
+            "   font-weight: 600;"
+            "}"
+        ).arg(isDarkTheme ? "#A78BFA" : "#8B5CF6"));
     }
     
     if (totalPriceLabel) {
     totalPriceLabel->setText(QString("$%1").arg(isVip ? basePrice + vipCost : basePrice, 0, 'f', 2));
+        totalPriceLabel->setStyleSheet(QString(
+            "QLabel {"
+            "   color: %1 !important;"
+            "   font-size: 17px;"
+            "   font-weight: 700;"
+            "   letter-spacing: 0.2px;"
+            "}"
+        ).arg(isDarkTheme ? "#A78BFA" : "#8B5CF6"));
     }
 
-    // Force an update to ensure styles are applied
-    updateCardStyles();
+    // Ensure receipt labels have the correct color
+    QList<QLabel*> receiptLabels = findChildren<QLabel*>("receiptLabel");
+    foreach (QLabel* label, receiptLabels) {
+        label->setStyleSheet(QString(
+            "QLabel {"
+            "   color: %1 !important;"
+            "   font-size: 15px;"
+            "   font-weight: 500;"
+            "}"
+        ).arg(isDarkTheme ? "#FFFFFF" : "#111827"));
+    }
+
+    QList<QLabel*> totalLabels = findChildren<QLabel*>("totalLabel");
+    foreach (QLabel* label, totalLabels) {
+        label->setStyleSheet(QString(
+            "QLabel {"
+            "   color: %1 !important;"
+            "   font-size: 17px;"
+            "   font-weight: 700;"
+            "}"
+        ).arg(isDarkTheme ? "#FFFFFF" : "#111827"));
+    }
+
+    if (QWidget* receiptSection = findChild<QWidget*>("receiptSection")) {
+        receiptSection->update();
+    }
 }
 
 void PaymentPage::onPayButtonClicked()
@@ -879,45 +1174,141 @@ bool PaymentPage::validatePaymentDetails()
     QString errorMessage;
     bool isValid = true;
 
-    // Validate card number (16 digits)
-    QString cardNumber = cardNumberInput ? cardNumberInput->text().remove(' ') : QString();
-    if (cardNumber.length() != 16 || !cardNumber.toULongLong()) {
-        errorMessage += tr("Invalid card number\n");
-        isValid = false;
-    }
-
-    // Validate expiry date
-    QString expiry = expiryDateInput ? expiryDateInput->text() : QString();
-    QRegularExpression expiryRegex("^(0[1-9]|1[0-2]) / \\d{2}$");
-    if (!expiryRegex.match(expiry).hasMatch()) {
-        errorMessage += tr("Invalid expiry date\n");
-        isValid = false;
+    // Check if using saved card
+    bool usingSavedCard = useSavedCardCheckbox && useSavedCardCheckbox->isChecked() && hasSavedCard;
+    
+    if (usingSavedCard) {
+        // If using saved card, only validate the CVV
+        QString cvv = cvvInput ? cvvInput->text() : QString();
+        if (cvv.length() < 3 || cvv.length() > 4 || !cvv.toInt()) {
+            errorMessage += tr("Invalid CVV\n");
+            isValid = false;
+        } else {
+            // Check if saved CVC is available and verify it matches
+            if (!savedCardData.cvc.isEmpty() && cvv != savedCardData.cvc) {
+                isValid = false;
+                // Show a nicely styled error message
+                QMessageBox errorDialog(this);
+                errorDialog.setWindowTitle(tr("CVV Verification Failed"));
+                
+                // Get the current theme
+                bool isDark = ThemeManager::getInstance().isDarkTheme();
+                
+                QString htmlMessage = QString(
+                    "<div style='font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto; padding: 16px 0; max-width: 400px;'>"
+                    "<h3 style='margin: 0 0 18px 0; color: %1; font-size: 20px; letter-spacing: -0.5px; font-weight: 700;'>Security Verification Failed</h3>"
+                    "<p style='margin: 0 0 16px 0; color: %2; line-height: 1.6; font-size: 14px;'>"
+                    "The CVV code you entered doesn't match the one associated with this saved card. "
+                    "Please check and try again."
+                    "</p>"
+                    "<div style='margin: 20px 0; border-left: 3px solid %3; padding-left: 16px;'>"
+                    "<p style='color: %2; line-height: 1.6; margin: 0; font-size: 14px;'>"
+                    "For your security, you must enter the correct CVV code to use your saved card information."
+                    "</p>"
+                    "</div>"
+                    "</div>"
+                ).arg(
+                    isDark ? "#FFFFFF" : "#111827",  // Title color
+                    isDark ? "#E5E7EB" : "#374151",  // Main text color 
+                    isDark ? "#EF4444" : "#DC2626"   // Error highlight color
+                );
+                
+                errorDialog.setText(htmlMessage);
+                errorDialog.setIcon(QMessageBox::Warning);
+                errorDialog.setStyleSheet(QString(
+                    "QMessageBox {"
+                    "   background-color: %1;"
+                    "   border-radius: 16px;"
+                    "}"
+                    "QMessageBox QLabel {"
+                    "   background-color: transparent;"
+                    "   padding: 0;"
+                    "   margin: 0;"
+                    "}"
+                    "QPushButton {"
+                    "   background-color: %2;"
+                    "   color: white;"
+                    "   border: none;"
+                    "   border-radius: 8px;"
+                    "   min-width: 100px;"
+                    "   padding: 10px 16px;"
+                    "   font-weight: 600;"
+                    "   font-size: 14px;"
+                    "}"
+                    "QPushButton:hover {"
+                    "   background-color: %3;"
+                    "}"
+                    "QPushButton:pressed {"
+                    "   background-color: %4;"
+                    "}"
+                ).arg(
+                    isDark ? "#1F2937" : "#FFFFFF",
+                    isDark ? "#EF4444" : "#DC2626",  // Error button background
+                    isDark ? "#DC2626" : "#B91C1C",  // Error button hover
+                    isDark ? "#B91C1C" : "#991B1B"   // Error button pressed
+                ));
+                
+                errorDialog.exec();
+            }
+        }
+        
+        // Re-validate expiry date
+        QString expiry = savedCardData.expiryDate;
+        QRegularExpression expiryRegex("^(0[1-9]|1[0-2]) / \\d{2}$");
+        if (!expiryRegex.match(expiry).hasMatch()) {
+            errorMessage += tr("Invalid saved card expiry date\n");
+            isValid = false;
+        } else {
+            // Check if card is expired
+            int month = expiry.left(2).toInt();
+            int year = 2000 + expiry.right(2).toInt();
+            QDate expiryDate(year, month, 1);
+            if (expiryDate <= QDate::currentDate()) {
+                errorMessage += tr("Your saved card has expired. Please use a different card.\n");
+                isValid = false;
+            }
+        }
     } else {
-        // Check if card is expired
-        int month = expiry.left(2).toInt();
-        int year = 2000 + expiry.right(2).toInt();
-        QDate expiryDate(year, month, 1);
-        if (expiryDate <= QDate::currentDate()) {
-            errorMessage += tr("Card has expired\n");
+        // Validate card number (16 digits)
+        QString cardNumber = cardNumberInput ? cardNumberInput->text().remove(' ') : QString();
+        if (cardNumber.length() != 16 || !cardNumber.toULongLong()) {
+            errorMessage += tr("Invalid card number\n");
+            isValid = false;
+        }
+
+        // Validate expiry date
+        QString expiry = expiryDateInput ? expiryDateInput->text() : QString();
+        QRegularExpression expiryRegex("^(0[1-9]|1[0-2]) / \\d{2}$");
+        if (!expiryRegex.match(expiry).hasMatch()) {
+            errorMessage += tr("Invalid expiry date\n");
+            isValid = false;
+        } else {
+            // Check if card is expired
+            int month = expiry.left(2).toInt();
+            int year = 2000 + expiry.right(2).toInt();
+            QDate expiryDate(year, month, 1);
+            if (expiryDate <= QDate::currentDate()) {
+                errorMessage += tr("Card has expired\n");
+                isValid = false;
+            }
+        }
+
+        // Validate CVV (3-4 digits)
+        QString cvv = cvvInput ? cvvInput->text() : QString();
+        if (cvv.length() < 3 || cvv.length() > 4 || !cvv.toInt()) {
+            errorMessage += tr("Invalid CVV\n");
+            isValid = false;
+        }
+
+        // Validate name
+        QString name = nameInput ? nameInput->text().trimmed() : QString();
+        if (name.isEmpty() || !name.contains(' ')) {
+            errorMessage += tr("Please enter your full name\n");
             isValid = false;
         }
     }
 
-    // Validate CVV (3-4 digits)
-    QString cvv = cvvInput ? cvvInput->text() : QString();
-    if (cvv.length() < 3 || cvv.length() > 4 || !cvv.toInt()) {
-        errorMessage += tr("Invalid CVV\n");
-        isValid = false;
-    }
-
-    // Validate name
-    QString name = nameInput ? nameInput->text().trimmed() : QString();
-    if (name.isEmpty() || !name.contains(' ')) {
-        errorMessage += tr("Please enter your full name\n");
-        isValid = false;
-    }
-
-    if (!isValid) {
+    if (!isValid && !errorMessage.isEmpty()) {
         QMessageBox::warning(this, tr("Invalid Payment Details"), errorMessage);
     }
 
@@ -984,20 +1375,29 @@ void PaymentPage::processPayment()
             // Process payment
             qDebug() << "Creating subscription for user ID: " << currentUserId;
             success = createSubscription();
+
+            bool usingSavedCard = useSavedCardCheckbox && useSavedCardCheckbox->isChecked() && hasSavedCard;
             
-            // Store card data in memory (will be saved on app exit)
             if (success && currentMemberId > 0) {
-                bool cardSaveSuccess = memberManager->saveCardData(
-                    currentMemberId,
-                    cardNumberInput->text().remove(' '),
-                    expiryDateInput->text(),
-                    nameInput->text().trimmed(),
-                    errorMessage
-                );
+                bool cardSaveSuccess = false;
+                
+                if (usingSavedCard) {
+                    cardSaveSuccess = true;
+                    qDebug() << "Using existing saved card for transaction";
+                } else {
+                    // Save the newly entered card data
+                    cardSaveSuccess = memberManager->saveCardData(
+                        currentMemberId,
+                        cardNumberInput->text().remove(' '),
+                        expiryDateInput->text(),
+                        nameInput->text().trimmed(),
+                        cvvInput->text(),  // Save CVC for verification
+                        errorMessage
+                    );
+                }
                 
                 if (!cardSaveSuccess) {
                     qDebug() << "Failed to store card data in memory: " << errorMessage;
-                    // Continue with payment even if card save fails
                 }
             }
         }
@@ -1107,8 +1507,6 @@ bool PaymentPage::createSubscription()
     // Check if we already have the user ID
     int userId = currentUserId;
     qDebug() << "Initial userId from PaymentPage: " << userId;
-    
-    // If no userId was set directly, try to get it from remembered credentials
     if (userId <= 0) {
         QString email;
         QString password;
@@ -1126,8 +1524,6 @@ bool PaymentPage::createSubscription()
         qDebug() << "Could not determine user ID for subscription creation";
         return false;
     }
-
-    // Log the user ID we're working with
     qDebug() << "Creating subscription for user ID: " << userId;
     
     // Check if the user is already a member
@@ -1141,7 +1537,6 @@ bool PaymentPage::createSubscription()
         qDebug() << "Unknown exception checking member status";
     }
     
-    // If not a member yet, create a new member record
     if (!isMember) {
         qDebug() << "Creating new member for user ID: " << userId;
         QString errorMessage;
@@ -1257,6 +1652,130 @@ bool PaymentPage::createSubscription()
 void PaymentPage::setCurrentMemberId(int memberId)
 {
     currentMemberId = memberId;
+    loadSavedCardData();
+}
+
+void PaymentPage::loadSavedCardData()
+{
+    // Reset saved card flag
+    hasSavedCard = false;
+    
+    // Check if we have valid member info
+    if (!memberManager || currentMemberId <= 0) {
+        savedCardInfoContainer->hide();
+        return;
+    }
+    
+    // Check if member has saved card
+    hasSavedCard = memberManager->hasStoredCard(currentMemberId);
+    if (hasSavedCard) {
+        // Retrieve saved card
+        savedCardData = memberManager->getStoredCard(currentMemberId);
+        
+        // Format card info for display
+        QString lastFour = savedCardData.fullCardNumber.right(4);
+        QString maskedNumber = QString("**** **** **** ").append(lastFour);
+        
+        // Get the layout from the container
+        QVBoxLayout* savedCardLayout = qobject_cast<QVBoxLayout*>(savedCardInfoContainer->layout());
+        
+        // Clear existing content (important to prevent duplication during theme change)
+        if (savedCardLayout) {
+            // Remove all widgets except the checkbox
+            QLayoutItem* item;
+            while ((item = savedCardLayout->takeAt(1)) != nullptr) {
+                if (item->widget()) {
+                    item->widget()->deleteLater();
+                }
+                delete item;
+            }
+        }
+        
+        // Create a new container widget for card info
+        QWidget* savedCardContentWidget = new QWidget(savedCardInfoContainer);
+        savedCardContentWidget->setObjectName("savedCardContent");
+        QHBoxLayout* savedCardContentLayout = new QHBoxLayout(savedCardContentWidget);
+        savedCardContentLayout->setContentsMargins(0, 8, 0, 8);
+        savedCardContentLayout->setSpacing(12);
+        
+        // Add credit card icon
+        QLabel* cardIconLabel = new QLabel(savedCardContentWidget);
+        cardIconLabel->setObjectName("cardIconLabel");
+        QString cardIconColor = isDarkTheme ? "#60A5FA" : "#2563EB";
+        QPixmap cardIcon = UIUtils::getIconWithColor("credit-card", QColor(cardIconColor), 32);
+        cardIconLabel->setPixmap(cardIcon);
+        cardIconLabel->setFixedSize(32, 32);
+        
+        // Create a new label for card info
+        QLabel* cardInfoLabel = new QLabel(savedCardContentWidget);
+        cardInfoLabel->setObjectName("savedCardLabel");
+        cardInfoLabel->setWordWrap(true);
+        
+        // Set formatted card info on the label
+        QString cardInfo = tr("Card ending in %1\nCardholder: %2\nExpiry: %3")
+            .arg(lastFour)
+            .arg(savedCardData.cardholderName)
+            .arg(savedCardData.expiryDate);
+        cardInfoLabel->setText(cardInfo);
+        
+        // Add icon and info to layout
+        savedCardContentLayout->addWidget(cardIconLabel);
+        savedCardContentLayout->addWidget(cardInfoLabel, 1);
+        
+        // Add the content widget to the main layout
+        savedCardLayout->addWidget(savedCardContentWidget);
+        
+        // Update the reference to the saved card label
+        savedCardLabel = cardInfoLabel;
+        
+        // Show the saved card container and update its style
+        savedCardInfoContainer->show();
+        useSavedCardCheckbox->setChecked(false);  // Unchecked by default
+        
+        // Update the styles
+        updateInputStyles();
+    } else {
+        // No saved card, hide the container
+        savedCardInfoContainer->hide();
+    }
+}
+
+void PaymentPage::toggleSavedCardUsage(bool checked)
+{
+    if (checked && hasSavedCard) {
+        // Populate the form with saved card data
+        populateFieldsWithSavedCard();
+        
+        // Disable the card fields but enable the CVV field for security
+        cardNumberInput->setEnabled(false);
+        nameInput->setEnabled(false);
+        expiryDateInput->setEnabled(false);
+        cvvInput->setEnabled(true);
+        cvvInput->setFocus(); // Set focus to the CVV field
+    } else {
+        // Enable all fields
+        cardNumberInput->setEnabled(true);
+        nameInput->setEnabled(true);
+        expiryDateInput->setEnabled(true);
+        cvvInput->setEnabled(true);
+        
+        // Clear fields if user unchecks the box
+        if (!checked) {
+            cardNumberInput->clear();
+            nameInput->clear();
+            expiryDateInput->clear();
+            cvvInput->clear();
+        }
+    }
+}
+
+void PaymentPage::populateFieldsWithSavedCard()
+{
+    // Populate fields with saved card data
+    cardNumberInput->setText(savedCardData.fullCardNumber);
+    nameInput->setText(savedCardData.cardholderName);
+    expiryDateInput->setText(savedCardData.expiryDate);
+    cvvInput->clear(); // Always clear CVV for security
 }
 
 void PaymentPage::onBackButtonClicked()
@@ -1285,6 +1804,9 @@ void PaymentPage::setupCVCDialog()
         cvcDialog = new QMessageBox(this);
     }
     
+    // Get the current theme state directly from ThemeManager
+    bool currentIsDarkTheme = ThemeManager::getInstance().isDarkTheme();
+    
     cvcDialog->setWindowTitle(tr("CVC Information"));
     cvcDialog->setIcon(QMessageBox::Information);
     
@@ -1307,10 +1829,10 @@ void PaymentPage::setupCVCDialog()
         "</p>"
         "</div>"
     ).arg(
-        isDarkTheme ? "#FFFFFF" : "#111827",  // Title color
-        isDarkTheme ? "#E5E7EB" : "#374151",  // Main text color
-        isDarkTheme ? "#8B5CF6" : "#7C3AED",  // Highlight color
-        isDarkTheme ? "#9CA3AF" : "#6B7280"   // Note color
+        currentIsDarkTheme ? "#FFFFFF" : "#111827",  // Title color
+        currentIsDarkTheme ? "#E5E7EB" : "#374151",  // Main text color
+        currentIsDarkTheme ? "#8B5CF6" : "#7C3AED",  // Highlight color
+        currentIsDarkTheme ? "#9CA3AF" : "#6B7280"   // Note color
     );
 
     cvcDialog->setText(infoText);
@@ -1341,13 +1863,13 @@ void PaymentPage::setupCVCDialog()
         "   background-color: %7;"
         "}"
     ).arg(
-        isDarkTheme ? "#1F2937" : "#FFFFFF",
-        isDarkTheme ? "#374151" : "#F3F4F6",
-        isDarkTheme ? "#FFFFFF" : "#111827",
-        isDarkTheme ? "#4B5563" : "#E5E7EB",
-        isDarkTheme ? "#8B5CF6" : "#7C3AED",  // Button background
-        isDarkTheme ? "#7C3AED" : "#6D28D9",  // Button hover
-        isDarkTheme ? "#6D28D9" : "#5B21B6"   // Button pressed
+        currentIsDarkTheme ? "#1F2937" : "#FFFFFF",
+        currentIsDarkTheme ? "#374151" : "#F3F4F6",
+        currentIsDarkTheme ? "#FFFFFF" : "#111827",
+        currentIsDarkTheme ? "#4B5563" : "#E5E7EB",
+        currentIsDarkTheme ? "#8B5CF6" : "#7C3AED",  // Button background
+        currentIsDarkTheme ? "#7C3AED" : "#6D28D9",  // Button hover
+        currentIsDarkTheme ? "#6D28D9" : "#5B21B6"   // Button pressed
     ));
 }
 
@@ -1415,4 +1937,341 @@ void PaymentPage::validateExpiryDate(const QString& text)
             updateCardStyles();  // Reset to normal style
         }
     }
+}
+
+void PaymentPage::updateInputStyles()
+{
+    // Get all input fields
+    QList<QLineEdit*> inputs = findChildren<QLineEdit*>();
+    QList<QLabel*> fieldLabels = findChildren<QLabel*>("fieldLabel");
+    QList<QLabel*> helpLinks = findChildren<QLabel*>("helpLink");
+    QList<QLabel*> securityTexts = findChildren<QLabel*>("securityText");
+    
+    // Field labels
+    foreach (QLabel* label, fieldLabels) {
+        label->setStyleSheet(QString(
+            "QLabel#fieldLabel {"
+            "   color: %1;"
+            "   font-size: 14px;"
+            "   font-weight: 600;"
+            "   margin-bottom: 4px;"
+            "}"
+        ).arg(isDarkTheme ? "#E5E7EB" : "#374151"));
+    }
+    
+    // Help links
+    foreach (QLabel* link, helpLinks) {
+        link->setStyleSheet(QString(
+            "QLabel#helpLink {"
+            "   color: %1;"
+            "   text-decoration: none;"
+            "   font-size: 13px;"
+            "}"
+        ).arg(isDarkTheme ? "#60A5FA" : "#3B82F6"));
+    }
+    
+    // Security text
+    foreach (QLabel* text, securityTexts) {
+        text->setStyleSheet(QString(
+            "QLabel#securityText {"
+            "   color: %1;"
+            "   font-size: 13px;"
+            "}"
+        ).arg(isDarkTheme ? "#9CA3AF" : "#6B7280"));
+    }
+    
+    // Line edits
+    foreach (QLineEdit* input, inputs) {
+        input->setStyleSheet(QString(
+            "QLineEdit {"
+            "   background-color: %1;"
+            "   color: %2;"
+            "   border: 1px solid %3;"
+            "   border-radius: 10px;"
+            "   padding: 8px 12px;"
+            "   font-size: 15px;"
+            "}"
+            "QLineEdit:focus {"
+            "   border: 1px solid %4;"
+            "   background-color: %5;"
+            "}"
+            "QLineEdit:hover:!focus {"
+            "   border: 1px solid %6;"
+            "}"
+            "QLineEdit:disabled {"
+            "   background-color: %7;"
+            "   color: %8;"
+            "}"
+        ).arg(
+            isDarkTheme ? "#1F2937" : "#FFFFFF",
+            isDarkTheme ? "#F3F4F6" : "#1F2937",
+            isDarkTheme ? "#4B5563" : "#D1D5DB",
+            isDarkTheme ? "#60A5FA" : "#3B82F6",
+            isDarkTheme ? "#374151" : "#F9FAFB",
+            isDarkTheme ? "#6B7280" : "#9CA3AF",
+            isDarkTheme ? "#111827" : "#F3F4F6",
+            isDarkTheme ? "#9CA3AF" : "#6B7280"
+        ));
+    }
+    
+    // Apply styles to the checkbox
+    if (useSavedCardCheckbox) {
+        useSavedCardCheckbox->setStyleSheet(QString(
+            "QCheckBox {"
+            "   color: %1;"
+            "   font-size: 16px;"
+            "   font-weight: 600;"
+            "   spacing: 8px;"
+            "   padding: 4px;"
+            "}"
+            "QCheckBox::indicator {"
+            "   width: 22px;"
+            "   height: 22px;"
+            "   border: 2px solid %2;"
+            "   border-radius: 6px;"
+            "   background: %3;"
+            "}"
+            "QCheckBox::indicator:checked {"
+            "   background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #3B82F6, stop:1 #2563EB);"
+            "   border: 2px solid #3B82F6;"
+            "   image: url(:/Images/check.png);"
+            "}"
+            "QCheckBox::indicator:hover {"
+            "   border: 2px solid #3B82F6;"
+            "   background-color: rgba(59, 130, 246, 0.1);"
+            "}"
+        ).arg(
+            isDarkTheme ? "#FFFFFF" : "#1E293B",
+            isDarkTheme ? "#4B5563" : "#D1D5DB",
+            isDarkTheme ? "#1F2937" : "#FFFFFF"
+        ));
+    }
+    
+    // Update card icon if it exists
+    QLabel* cardIconLabel = findChild<QLabel*>("cardIconLabel");
+    if (cardIconLabel) {
+        QString cardIconColor = isDarkTheme ? "#60A5FA" : "#2563EB";
+        QPixmap cardIcon = UIUtils::getIconWithColor("credit-card", QColor(cardIconColor), 32);
+        cardIconLabel->setPixmap(cardIcon);
+    }
+    
+    // Saved card container styling
+    if (savedCardInfoContainer && hasSavedCard) {
+        QString bgColor = isDarkTheme ? "rgba(30, 58, 138, 0.15)" : "rgba(219, 234, 254, 0.8)";
+        QString borderColor = isDarkTheme ? "rgba(59, 130, 246, 0.5)" : "rgba(37, 99, 235, 0.3)";
+        QString textColor = isDarkTheme ? "#E2E8F0" : "#1E293B";
+        
+        savedCardInfoContainer->setStyleSheet(QString(R"(
+            QWidget#savedCardContainer {
+                background-color: %1;
+                border: 1px solid %2;
+                border-radius: 12px;
+                padding: 12px;
+                margin: 16px 0;
+            }
+            QLabel#savedCardLabel {
+                color: %3;
+                font-size: 15px;
+                margin-left: 24px;
+                line-height: 1.5;
+            }
+        )").arg(bgColor, borderColor, textColor));
+    }
+}
+
+void PaymentPage::updateTitleStyle()
+{
+    if (titleLabel) {
+        titleLabel->setStyleSheet(QString(
+            "QLabel#pageTitle {"
+            "   color: %1 !important;"
+            "   font-size: 22px;"
+            "   font-weight: 700;"
+            "   letter-spacing: -0.5px;"
+            "   padding: 10px 0 !important;"
+            "   margin: 0 !important;"
+            "}"
+        ).arg(isDarkTheme ? "#FFFFFF" : "#111827"));
+    }
+}
+
+void PaymentPage::updateButtonStyles()
+{
+    // Style for the Pay button (primary action)
+    if (payButton) {
+        payButton->setStyleSheet(QString(
+            "QPushButton#payButton {"
+            "   background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+            "       stop:0 #3B82F6, stop:1 #2563EB);"
+            "   color: white;"
+            "   border: none;"
+            "   border-radius: 12px;"
+            "   padding: 12px 24px;"
+            "   font-size: 16px;"
+            "   font-weight: 700;"
+            "   min-width: 120px;"
+            "}"
+            "QPushButton#payButton:hover {"
+            "   background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+            "       stop:0 #2563EB, stop:1 #1D4ED8);"
+            "}"
+            "QPushButton#payButton:pressed {"
+            "   background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+            "       stop:0 #1D4ED8, stop:1 #1E40AF);"
+            "}"
+        ));
+    }
+    
+    // Style for the Back button (secondary action)
+    if (backButton) {
+        backButton->setStyleSheet(QString(
+            "QPushButton#backButton {"
+            "   background-color: %1;"
+            "   color: %2;"
+            "   border: 1px solid %3;"
+            "   border-radius: 12px;"
+            "   padding: 12px 24px;"
+            "   font-size: 16px;"
+            "   font-weight: 600;"
+            "   min-width: 100px;"
+            "}"
+            "QPushButton#backButton:hover {"
+            "   background-color: %4;"
+            "   border-color: %5;"
+            "}"
+            "QPushButton#backButton:pressed {"
+            "   background-color: %6;"
+            "}"
+        ).arg(
+            isDarkTheme ? "#1F2937" : "#F9FAFB",
+            isDarkTheme ? "#F9FAFB" : "#111827",
+            isDarkTheme ? "#374151" : "#D1D5DB",
+            isDarkTheme ? "#374151" : "#F3F4F6", 
+            isDarkTheme ? "#4B5563" : "#9CA3AF",
+            isDarkTheme ? "#111827" : "#E5E7EB"
+        ));
+    }
+}
+
+// Add this method after retranslateUI()
+void PaymentPage::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::LanguageChange) {
+        qDebug() << "Language change event received in PaymentPage";
+        retranslateUI();
+    }
+    else if (event->type() == QEvent::ApplicationPaletteChange || event->type() == QEvent::PaletteChange) {
+        qDebug() << "Palette change event received in PaymentPage - simple update";
+        
+        // Avoid recursive calls
+        if (isUpdatingStyles) {
+            QWidget::changeEvent(event);
+            return;
+        }
+        
+        isUpdatingStyles = true;
+        
+        // Get theme state
+        bool isDark = ThemeManager::getInstance().isDarkTheme();
+        isDarkTheme = isDark;
+
+        if (QWidget* receiptSection = findChild<QWidget*>("receiptSection")) {
+            receiptSection->setStyleSheet(QString(
+                "QWidget#receiptSection {"
+                "   background-color: %1;"
+                "   border-radius: 16px;"
+                "   border: 1px solid %2;"
+                "}"
+            ).arg(
+                isDark ? "#1F2937" : "#FFFFFF",
+                isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)"
+            ));
+        }
+        
+        // 2. Update text colors (important labels only)
+        QList<QLabel*> receiptLabels = findChildren<QLabel*>("receiptLabel");
+        foreach (QLabel* label, receiptLabels) {
+            label->setStyleSheet(QString(
+                "QLabel#receiptLabel {"
+                "   color: %1 !important;"
+                "   font-size: 15px;"
+                "   font-weight: 500;"
+                "}"
+            ).arg(isDark ? "#FFFFFF" : "#111827"));
+        }
+        
+        // 3. Update prices directly 
+        if (planPriceLabel) {
+            planPriceLabel->setStyleSheet(QString(
+                "QLabel#receiptPrice {"
+                "   color: %1 !important;"
+                "   font-size: 15px;"
+                "   font-weight: 600;"
+                "}"
+            ).arg(isDark ? "#FFFFFF" : "#111827"));
+        }
+        
+        if (vipPriceLabel) {
+            vipPriceLabel->setStyleSheet(QString(
+                "QLabel#vipPrice {"
+                "   color: %1 !important;"
+                "   font-size: 15px;"
+                "   font-weight: 600;"
+                "}"
+            ).arg(isDark ? "#A78BFA" : "#8B5CF6"));
+        }
+        
+        if (totalPriceLabel) {
+            totalPriceLabel->setStyleSheet(QString(
+                "QLabel#totalPrice {"
+                "   color: %1 !important;"
+                "   font-size: 17px;"
+                "   font-weight: 700;"
+                "}"
+            ).arg(isDark ? "#A78BFA" : "#8B5CF6"));
+        }
+        
+        // 4. Update total label
+        QList<QLabel*> totalLabels = findChildren<QLabel*>("totalLabel");
+        foreach (QLabel* label, totalLabels) {
+            label->setStyleSheet(QString(
+                "QLabel#totalLabel {"
+                "   color: %1 !important;"
+                "   font-size: 17px;"
+                "   font-weight: 700;"
+                "}"
+            ).arg(isDark ? "#FFFFFF" : "#111827"));
+        }
+        if (savedCardInfoContainer) {
+            savedCardInfoContainer->setStyleSheet(QString(
+                "QWidget {"
+                "   background-color: %1;"
+                "   border: 1px solid %2;"
+                "   border-radius: 12px;"
+                "}"
+            ).arg(
+                isDark ? "rgba(30, 58, 138, 0.15)" : "rgba(219, 234, 254, 0.8)",
+                isDark ? "rgba(59, 130, 246, 0.5)" : "rgba(37, 99, 235, 0.3)"
+            ));
+        }
+        
+        // 6. Don't rebuild the saved card display, just update the text color
+        if (savedCardLabel) {
+            savedCardLabel->setStyleSheet(QString(
+                "QLabel {"
+                "   color: %1;"
+                "   font-size: 14px;"
+                "   font-weight: 500;"
+                "}"
+            ).arg(isDark ? "#E2E8F0" : "#1E293B"));
+        }
+        
+        // 7. Update checkbox styling without recreating it
+        if (useSavedCardCheckbox) {
+            useSavedCardCheckbox->setStyleSheet(UIUtils::getCheckboxStyle(isDark));
+        }
+        isUpdatingStyles = false;
+    }
+    
+    QWidget::changeEvent(event);
 } 

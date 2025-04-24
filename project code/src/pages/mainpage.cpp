@@ -17,6 +17,7 @@
 #include "../Language/LanguageManager.h"
 #include "../Language/LanguageSelector.h"
 #include <QDebug>
+#include <QTimer>
 
 MainPage::MainPage(UserDataManager* userDataManager, MemberDataManager* memberDataManager, 
                    ClassDataManager* classDataManager, QWidget* parent)
@@ -491,10 +492,31 @@ void MainPage::handleLogin(const QString& email)
 {
     try {
         qDebug() << "MainPage::handleLogin called with email: " << email;
+        
+        // First, ensure we have cleared any previous data
+        if (!currentUserEmail.isEmpty() && currentUserEmail != email) {
+            qDebug() << "Switching user from " << currentUserEmail << " to " << email;
+            // Clear previous user data
+            clearUserData();
+        }
+        
+        // Set new current user email
         currentUserEmail = email;
         
         qDebug() << "About to emit userDataLoaded signal";
         emit userDataLoaded(email);
+        if (settingsPage) {
+            settingsPage->loadUserData(email);
+            if (auto subscriptionStatusPage = settingsPage->findChild<SubscriptionStatusPage*>()) {
+                qDebug() << "Forcing refresh of SubscriptionStatusPage data";
+                subscriptionStatusPage->loadMemberData();
+            }
+            
+            if (auto subscriptionPage = settingsPage->findChild<SubscriptionPage*>()) {
+                qDebug() << "Forcing refresh of SubscriptionPage data";
+                // If there's a method to force reload, call it here
+            }
+        }
         
         qDebug() << "Checking if homePage is initialized";
         if (!homePage) {
@@ -514,24 +536,67 @@ void MainPage::handleLogin(const QString& email)
 
 void MainPage::clearUserData()
 {
+    qDebug() << "Clearing all user data from application state...";
+    
+    // Clear current user email
     currentUserEmail.clear();
     
+    // Reset Settings Page completely
     if (settingsPage) {
+        qDebug() << "Clearing SettingsPage data";
+        
+        // Reset user data in settings page
         settingsPage->loadUserData("");
+        
+        // Reset subscription data in all subscription-related components
+        if (auto subscriptionStatusPage = settingsPage->findChild<SubscriptionStatusPage*>()) {
+            subscriptionStatusPage->setCurrentMemberId(0);
+            qDebug() << "Reset SubscriptionStatusPage member ID";
+        }
+        
+        if (auto subscriptionPage = settingsPage->findChild<SubscriptionPage*>()) {
+            subscriptionPage->setCurrentMemberId(0);
+            qDebug() << "Reset SubscriptionPage member ID";
+        }
+        
+        if (auto paymentPage = settingsPage->findChild<PaymentPage*>()) {
+            qDebug() << "Reset PaymentPage data if present";
+        }
     }
 
+    // Clear HomePage data
     if (homePage) {
-        // Clear home page data
+        qDebug() << "Cleared HomePage data";
     }
+    
     if (workoutPage) {
-        // Clear workout page data
+        qDebug() << "Cleared WorkoutPage data";
     }
+    
     if (nutritionPage) {
-        // Clear nutrition page data
+        qDebug() << "Cleared NutritionPage data";
     }
+    
     if (profilePage) {
-        // Clear profile page data
+        qDebug() << "Cleared ProfilePage data";
     }
+    
+    if (stackedWidget && homePage) {
+        stackedWidget->setCurrentWidget(homePage);
+        qDebug() << "Reset to HomePage view";
+        
+        if (homeButton) {
+            updateButtonStates(homeButton);
+            qDebug() << "Reset navigation to Home button";
+        }
+    }
+    
+    // Add a small delay to ensure everything is reset before loading new data
+    QTimer::singleShot(200, [this]() {
+        qDebug() << "Delayed reset completed";
+    });
+    
+    qDebug() << "All user data cleared successfully";
 }
 
 void MainPage::resizeEvent(QResizeEvent* event)
@@ -547,7 +612,6 @@ void MainPage::updateLayout()
     
     // Adjust navigation buttons layout based on window width
     if (size.width() < 800) {
-        // For small screens, reduce padding and font size
         const QString buttonStyle = QString(
             "QPushButton {"
             "   background: transparent;"

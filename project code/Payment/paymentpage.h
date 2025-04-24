@@ -18,6 +18,7 @@
 #include <QDate>
 #include <QMessageBox>
 #include <QRegularExpression>
+#include <QCheckBox>
 
 #include "../../UI/UIUtils.h"
 #include "../../Theme/ThemeManager.h"
@@ -38,6 +39,7 @@ public:
     void setCurrentMemberId(int memberId);
     void setCurrentUserId(int userId) { currentUserId = userId; }
     void setUserDataManager(UserDataManager* manager) { userDataManager = manager; }
+    void loadSavedCardData();
 
 signals:
     void paymentCompleted(int planId, bool isVip);
@@ -45,12 +47,7 @@ signals:
 
 protected:
     void resizeEvent(QResizeEvent* event) override;
-    void changeEvent(QEvent* event) override {
-        if (event->type() == QEvent::LanguageChange) {
-            retranslateUI();
-        }
-        QWidget::changeEvent(event);
-    }
+    void changeEvent(QEvent* event) override;
 
 private slots:
     void onPayButtonClicked();
@@ -58,6 +55,7 @@ private slots:
     void showCVCInfo();
     void validateExpiryDate(const QString& text);
     void processPayment();
+    void toggleSavedCardUsage(bool checked);
 
 private:
     void setupUI();
@@ -69,6 +67,7 @@ private:
     void setupCVCDialog();
     bool validatePaymentDetails();
     bool createSubscription();
+    void populateFieldsWithSavedCard();
 
     QVBoxLayout* mainLayout;
     QWidget* contentContainer;
@@ -95,6 +94,13 @@ private:
     bool isUpdatingStyles;
     bool isLayoutUpdatePending;
     int currentUserId;
+
+    // Saved card data
+    QCheckBox* useSavedCardCheckbox;
+    QWidget* savedCardInfoContainer;
+    QLabel* savedCardLabel;
+    bool hasSavedCard;
+    SavedCardData savedCardData;
 };
 
 #endif // PAYMENTPAGE_H 

@@ -22,6 +22,7 @@ struct SavedCardData {
     QString fullCardNumber;  // Store the complete card number (Note: This is not secure for production)
     QString expiryDate;
     QString cardholderName;
+    QString cvc;  // Store the CVC code for verification
     int memberId;
 };
 
@@ -79,7 +80,7 @@ public:
     
     // Payment card management
     bool saveCardData(int memberId, const QString& cardNumber, const QString& expiryDate, 
-                      const QString& cardholderName, QString& errorMessage);
+                      const QString& cardholderName, const QString& cvc, QString& errorMessage);
     bool hasStoredCard(int memberId) const;
     SavedCardData getStoredCard(int memberId) const;
     

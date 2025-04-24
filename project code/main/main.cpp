@@ -16,10 +16,11 @@
 #include "mainwindow.h"
 #include "../src/pages/staffhomepage.h"
 #include <QDebug>
+#include <QTimer>
 
 int main(int argc, char* argv[])
 {
-    AppInitializer::initializeApplication();
+   // AppInitializer::initializeApplication();
     QApplication app(argc, argv);
     QApplication::setApplicationName("FitFlex Pro");
 
@@ -109,7 +110,76 @@ int main(int argc, char* argv[])
 
         try {
             qDebug() << "Starting login flow for: " << email;
+
+            // Store the email in a static variable to track account changes
+            static QString previousEmail;
+            bool isAccountSwitch = !previousEmail.isEmpty() && previousEmail != email;
             
+            if (isAccountSwitch) {
+                qDebug() << "Account switch detected! Previous: " << previousEmail << ", New: " << email;
+                
+                // Force clearing of all cached data
+                try {
+                    mainPage->clearUserData();
+                    qDebug() << "Successfully cleared user data during account switch";
+                } catch (const std::exception& e) {
+                    qDebug() << "Error clearing user data: " << e.what();
+                }
+                
+                // Longer delay to ensure all data is cleared
+                QTimer::singleShot(500, [mainPage, email, stackedWidget, staffHomePage, userDataManager, memberDataManager, isStaff=email.toLower().endsWith("@admin.com") || email.toLower().endsWith("@staff.com")]() {
+                    try {
+                        // Verify the user exists before proceeding
+                        User user;
+                        try {
+                            user = userDataManager->getUserData(email);
+                            if (user.getId() <= 0) {
+                                qDebug() << "Warning: Invalid user ID during delayed login for: " << email;
+                            } else {
+                                qDebug() << "Found valid user ID: " << user.getId() << " for email: " << email;
+                            }
+                        } catch (const std::exception& e) {
+                            qDebug() << "Exception getting user data: " << e.what();
+                        }
+                        
+                        // For regular users, explicitly check their member status
+                        if (!isStaff && user.getId() > 0 && memberDataManager) {
+                            try {
+                                bool isMember = memberDataManager->userIsMember(user.getId());
+                                qDebug() << "User membership check during account switch: " << (isMember ? "Is member" : "Not member");
+                                
+                                if (isMember) {
+                                    int memberId = memberDataManager->getMemberIdByUserId(user.getId());
+                                    qDebug() << "Found member ID during account switch: " << memberId;
+                                }
+                            } catch (const std::exception& e) {
+                                qDebug() << "Exception checking member status during account switch: " << e.what();
+                            }
+                        }
+                        
+                        // Route to appropriate page based on user type
+                        if (isStaff) {
+                            qDebug() << "Redirecting to staff page after account switch";
+                            staffHomePage->handleLogin(email);
+                            stackedWidget->setCurrentWidget(staffHomePage);
+                        } else {
+                            qDebug() << "Redirecting to main page after account switch";
+                            mainPage->handleLogin(email);
+                            stackedWidget->setCurrentWidget(mainPage);
+                        }
+                    } catch (const std::exception& e) {
+                        qDebug() << "Exception during delayed login: " << e.what();
+                    } catch (...) {
+                        qDebug() << "Unknown exception during delayed login";
+                    }
+                });
+                
+                // Update previous email
+                previousEmail = email;
+                return;
+            }
+            previousEmail = email;
+
             // Get the user data
             User user = userDataManager->getUserData(email);
             qDebug() << "User logged in: " << email << " (ID: " << user.getId() << ")";
@@ -119,7 +189,6 @@ int main(int argc, char* argv[])
             qDebug() << "User is staff: " << isStaff;
             
             if (isStaff) {
-                // For staff users, go to staff home page
                 try {
                     qDebug() << "Attempting to handle staff login";
                     staffHomePage->handleLogin(email);
@@ -147,8 +216,6 @@ int main(int argc, char* argv[])
                         } catch (...) {
                             qDebug() << "Unknown exception checking member status";
                         }
-                        
-                        // No longer automatically creating a member - users will become members when they subscribe
                         qDebug() << "Skipping automatic member creation - users become members after subscription";
                         
                         qDebug() << "Calling mainPage->handleLogin";
@@ -156,7 +223,7 @@ int main(int argc, char* argv[])
                             mainPage->handleLogin(email);
                         } catch (const std::exception& e) {
                             qDebug() << "Exception in mainPage->handleLogin: " << e.what();
-                            throw; // Rethrow to be caught by outer try-catch
+                            throw;
                         }
                         
                         qDebug() << "Setting current widget to main page";
@@ -173,16 +240,15 @@ int main(int argc, char* argv[])
                     }
                 } else {
                     qDebug() << "Warning: User has invalid ID: " << user.getId();
-                    // Try to continue anyway
                     try {
                         qDebug() << "Attempting to handle login for user with invalid ID";
-        mainPage->handleLogin(email);
+                        mainPage->handleLogin(email);
                         qDebug() << "Setting current widget to main page";
                         if (stackedWidget->indexOf(mainPage) < 0) {
                             qDebug() << "ERROR: mainPage not found in stackedWidget for invalid user! Re-adding it.";
                             stackedWidget->addWidget(mainPage);
                         }
-        stackedWidget->setCurrentWidget(mainPage);
+                        stackedWidget->setCurrentWidget(mainPage);
                     } catch (const std::exception& e) {
                         qDebug() << "Exception handling login for invalid user: " << e.what();
                     } catch (...) {
@@ -195,7 +261,7 @@ int main(int argc, char* argv[])
         } catch (...) {
             qDebug() << "Unknown exception during login flow";
         }
-        });
+    });
 
     QObject::connect(mainPage, &MainPage::logoutRequested, [stackedWidget, authPage]() {
         stackedWidget->setCurrentWidget(authPage);

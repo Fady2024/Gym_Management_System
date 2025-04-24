@@ -19,6 +19,7 @@
 #include "developerpage.h"
 #include "leftsidebar.h"
 #include "../Subscription/subscriptionpage.h"
+#include "../Subscription/subscriptionstatuspage.h"
 #include "../Payment/paymentpage.h"
 
 // Forward declaration
@@ -85,6 +86,7 @@ private:
     QPushButton* resetButton;
     QPushButton* logoutButton;
     QPushButton* deleteAccountButton;
+    SubscriptionStatusPage* subscriptionStatusPage;
     SubscriptionPage* subscriptionPage;
     PaymentPage* paymentPage;
     DeveloperPage* developerPage;

@@ -4,9 +4,9 @@
         "id": 1,
         "subscription": {
             "active": true,
-            "endDate": "2026-04-22",
+            "endDate": "2026-02-23",
             "isVIP": true,
-            "startDate": "2025-04-22",
+            "startDate": "2025-02-23",
             "type": 3
         },
         "userId": 2

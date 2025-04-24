@@ -817,8 +817,6 @@ void SubscriptionPage::updateTheme(bool isDark)
         // Update the buttons
         QList<QPushButton*> buttons = vipConfirmationDialog->findChildren<QPushButton*>();
         if (buttons.size() >= 2) {
-            // First button is upgrade button (gold gradient, doesn't need theme update)
-            // Second button is skip button (needs theme update)
             buttons[1]->setStyleSheet(QString(
                 "QPushButton {"
                 "  background: %1;"
@@ -1232,9 +1230,6 @@ void SubscriptionPage::handlePaymentCompleted(int planId, bool isVip)
 
     // Create subscription
     createSubscription(planId, isVip);
-
-    // Emit completion signal
-    emit subscriptionCompleted();
 }
 
 void SubscriptionPage::createSubscription(int planId, bool isVip)
