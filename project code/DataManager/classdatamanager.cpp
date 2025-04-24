@@ -273,12 +273,34 @@ bool ClassDataManager::enrollMember(int classId, int memberId, QString& errorMes
         return false;
     }
 
-    Class& gymClass = it->second;
-    if (gymClass.isFull()) {
-        errorMessage = "Class is full";
+    if (!memberDataManager || !memberDataManager->isSubscriptionActive(memberId)) {
+        errorMessage = "Only active members can enroll in classes";
         return false;
     }
 
+    Class& gymClass = it->second;
+    if (gymClass.isFull()) {
+        // If class is full, check if user is VIP
+        if (memberDataManager->isVIPMember(memberId)) {
+            bool foundNonVIP = false;
+            for (const auto& enrolled : gymClass.getEnrolledMembers()) {
+                if (!memberDataManager->isVIPMember(enrolled)) {
+                    gymClass.removeMember(enrolled);
+                    foundNonVIP = true;
+                    break;
+                }
+            }
+            if (!foundNonVIP) {
+                errorMessage = "Class is full (even for VIP members)";
+                return false;
+            }
+        } else {
+            errorMessage = "Class is full";
+            return false;
+        }
+    }
+
+    gymClass.addMember(memberId);
     gymClass.setNumOfEnrolled(gymClass.getNumOfEnrolled() + 1);
     dataModified = true;
     return true;
@@ -400,4 +422,307 @@ int ClassDataManager::generateClassId() const {
         }
     }
     return maxId + 1;
+}
+
+// Attendance tracking implementation
+bool ClassDataManager::recordAttendance(int classId, int memberId, const QDate& date, bool attended, double amountPaid, QString& errorMessage) {
+    if (classesById.find(classId) == classesById.end()) {
+        errorMessage = "Class not found";
+        return false;
+    }
+
+    AttendanceRecord record;
+    record.classId = classId;
+    record.memberId = memberId;
+    record.date = date;
+    record.attended = attended;
+    record.amountPaid = amountPaid;
+
+    // Add to records
+    attendanceRecords.push_back(record);
+    dataModified = true;
+
+    // Save to file
+    return saveAttendanceRecords();
+}
+
+QVector<AttendanceRecord> ClassDataManager::getAttendanceRecords(int classId, const QDate& startDate, const QDate& endDate) const {
+    QVector<AttendanceRecord> result;
+    for (const auto& record : attendanceRecords) {
+        if (record.classId == classId && 
+            record.date >= startDate && 
+            record.date <= endDate) {
+            result.append(record);
+        }
+    }
+    return result;
+}
+
+int ClassDataManager::getAttendanceCount(int classId, const QDate& date) const {
+    int count = 0;
+    for (const auto& record : attendanceRecords) {
+        if (record.classId == classId && 
+            record.date == date && 
+            record.attended) {
+            count++;
+        }
+    }
+    return count;
+}
+
+double ClassDataManager::getClassRevenue(int classId, const QDate& startDate, const QDate& endDate) const {
+    double revenue = 0.0;
+    for (const auto& record : attendanceRecords) {
+        if (record.classId == classId && 
+            record.date >= startDate && 
+            record.date <= endDate) {
+            revenue += record.amountPaid;
+        }
+    }
+    return revenue;
+}
+
+// Monthly report implementation
+MonthlyReport ClassDataManager::generateMonthlyReport(const QDate& month) const {
+    MonthlyReport report;
+    report.month = month;
+    report.totalActiveMembers = 0;
+    report.totalClassesHeld = 0;
+    report.totalAttendance = 0;
+    report.totalRevenue = 0.0;
+
+    // Calculate start and end dates for the month
+    QDate startDate(month.year(), month.month(), 1);
+    QDate endDate = startDate.addMonths(1).addDays(-1);
+
+    // Track unique members
+    std::set<int> activeMembers;
+
+    // Process each class
+    for (const auto& classPair : classesById) {
+        const Class& gymClass = classPair.second;
+        QString className = gymClass.getClassName();
+        
+        // Get attendance records for this class
+        QVector<AttendanceRecord> classRecords = getAttendanceRecords(gymClass.getId(), startDate, endDate);
+        
+        if (!classRecords.isEmpty()) {
+            report.totalClassesHeld++;
+            
+            // Calculate class attendance
+            int classAttendance = 0;
+            double classRevenue = 0.0;
+            
+            for (const auto& record : classRecords) {
+                if (record.attended) {
+                    classAttendance++;
+                    activeMembers.insert(record.memberId);
+                    classRevenue += record.amountPaid;
+                }
+            }
+            
+            report.totalAttendance += classAttendance;
+            report.totalRevenue += classRevenue;
+            
+            // Add to class-specific stats
+            report.classAttendance.append(qMakePair(className, classAttendance));
+            report.classRevenue.append(qMakePair(className, classRevenue));
+        }
+    }
+
+    report.totalActiveMembers = static_cast<int>(activeMembers.size());
+    return report;
+}
+
+bool ClassDataManager::saveMonthlyReport(const MonthlyReport& report, QString& errorMessage) const {
+    QFile file(QDir(dataDir).filePath("monthly_reports.json"));
+    if (!file.open(QIODevice::ReadWrite)) {
+        errorMessage = "Could not open monthly reports file";
+        return false;
+    }
+
+    QJsonArray reportsArray;
+    if (file.size() > 0) {
+        QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+        if (doc.isArray()) {
+            reportsArray = doc.array();
+        }
+    }
+
+    reportsArray.append(monthlyReportToJson(report));
+    
+    file.resize(0);
+    file.write(QJsonDocument(reportsArray).toJson());
+    file.close();
+    
+    return true;
+}
+
+QVector<MonthlyReport> ClassDataManager::getMonthlyReports(const QDate& startDate, const QDate& endDate) const {
+    QVector<MonthlyReport> result;
+    QFile file(QDir(dataDir).filePath("monthly_reports.json"));
+    
+    if (!file.open(QIODevice::ReadOnly)) {
+        return result;
+    }
+
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    if (!doc.isArray()) {
+        return result;
+    }
+
+    QJsonArray reportsArray = doc.array();
+    for (const QJsonValue& value : reportsArray) {
+        MonthlyReport report = jsonToMonthlyReport(value.toObject());
+        if (report.month >= startDate && report.month <= endDate) {
+            result.append(report);
+        }
+    }
+
+    return result;
+}
+
+// Private helper methods
+QJsonObject ClassDataManager::attendanceRecordToJson(const AttendanceRecord& record) const {
+    QJsonObject json;
+    json["classId"] = record.classId;
+    json["memberId"] = record.memberId;
+    json["date"] = record.date.toString(Qt::ISODate);
+    json["attended"] = record.attended;
+    json["amountPaid"] = record.amountPaid;
+    return json;
+}
+
+AttendanceRecord ClassDataManager::jsonToAttendanceRecord(const QJsonObject& json) {
+    AttendanceRecord record;
+    record.classId = json["classId"].toInt();
+    record.memberId = json["memberId"].toInt();
+    record.date = QDate::fromString(json["date"].toString(), Qt::ISODate);
+    record.attended = json["attended"].toBool();
+    record.amountPaid = json["amountPaid"].toDouble();
+    return record;
+}
+
+QJsonObject ClassDataManager::monthlyReportToJson(const MonthlyReport& report) const {
+    QJsonObject json;
+    json["month"] = report.month.toString(Qt::ISODate);
+    json["totalActiveMembers"] = report.totalActiveMembers;
+    json["totalClassesHeld"] = report.totalClassesHeld;
+    json["totalAttendance"] = report.totalAttendance;
+    json["totalRevenue"] = report.totalRevenue;
+
+    QJsonArray attendanceArray;
+    for (const auto& pair : report.classAttendance) {
+        QJsonObject attendanceObj;
+        attendanceObj["className"] = pair.first;
+        attendanceObj["count"] = pair.second;
+        attendanceArray.append(attendanceObj);
+    }
+    json["classAttendance"] = attendanceArray;
+
+    QJsonArray revenueArray;
+    for (const auto& pair : report.classRevenue) {
+        QJsonObject revenueObj;
+        revenueObj["className"] = pair.first;
+        revenueObj["amount"] = pair.second;
+        revenueArray.append(revenueObj);
+    }
+    json["classRevenue"] = revenueArray;
+
+    return json;
+}
+
+MonthlyReport ClassDataManager::jsonToMonthlyReport(const QJsonObject& json) {
+    MonthlyReport report;
+    report.month = QDate::fromString(json["month"].toString(), Qt::ISODate);
+    report.totalActiveMembers = json["totalActiveMembers"].toInt();
+    report.totalClassesHeld = json["totalClassesHeld"].toInt();
+    report.totalAttendance = json["totalAttendance"].toInt();
+    report.totalRevenue = json["totalRevenue"].toDouble();
+
+    QJsonArray attendanceArray = json["classAttendance"].toArray();
+    for (const QJsonValue& value : attendanceArray) {
+        QJsonObject obj = value.toObject();
+        report.classAttendance.append(qMakePair(obj["className"].toString(), obj["count"].toInt()));
+    }
+
+    QJsonArray revenueArray = json["classRevenue"].toArray();
+    for (const QJsonValue& value : revenueArray) {
+        QJsonObject obj = value.toObject();
+        report.classRevenue.append(qMakePair(obj["className"].toString(), obj["amount"].toDouble()));
+    }
+
+    return report;
+}
+
+bool ClassDataManager::loadAttendanceRecords() {
+    QFile file(QDir(dataDir).filePath("attendance.json"));
+    if (!file.open(QIODevice::ReadOnly)) {
+        return false;
+    }
+
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    if (!doc.isArray()) {
+        return false;
+    }
+
+    attendanceRecords.clear();
+    QJsonArray recordsArray = doc.array();
+    for (const QJsonValue& value : recordsArray) {
+        attendanceRecords.push_back(jsonToAttendanceRecord(value.toObject()));
+    }
+
+    return true;
+}
+
+bool ClassDataManager::saveAttendanceRecords() const {
+    QFile file(QDir(dataDir).filePath("attendance.json"));
+    if (!file.open(QIODevice::WriteOnly)) {
+        return false;
+    }
+
+    QJsonArray recordsArray;
+    for (const auto& record : attendanceRecords) {
+        recordsArray.append(attendanceRecordToJson(record));
+    }
+
+    file.write(QJsonDocument(recordsArray).toJson());
+    file.close();
+    return true;
+}
+
+bool ClassDataManager::loadMonthlyReports() {
+    QFile file(QDir(dataDir).filePath("monthly_reports.json"));
+    if (!file.open(QIODevice::ReadOnly)) {
+        return false;
+    }
+
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    if (!doc.isArray()) {
+        return false;
+    }
+
+    monthlyReports.clear();
+    QJsonArray reportsArray = doc.array();
+    for (const QJsonValue& value : reportsArray) {
+        monthlyReports.push_back(jsonToMonthlyReport(value.toObject()));
+    }
+
+    return true;
+}
+
+bool ClassDataManager::saveMonthlyReports() const {
+    QFile file(QDir(dataDir).filePath("monthly_reports.json"));
+    if (!file.open(QIODevice::WriteOnly)) {
+        return false;
+    }
+
+    QJsonArray reportsArray;
+    for (const auto& report : monthlyReports) {
+        reportsArray.append(monthlyReportToJson(report));
+    }
+
+    file.write(QJsonDocument(reportsArray).toJson());
+    file.close();
+    return true;
 } 

@@ -8,25 +8,21 @@
 #include <QDebug>
 #include "../Model/Padel/Court.h"
 #include "../Model/Padel/Booking.h"
+#include "../../DataManager/padeldatamanager.h"
 #include <iostream>
 using namespace std;
 
 class BookingWindow {
 public:
-    BookingWindow();
+    BookingWindow(PadelDataManager* padelManager);
 
-    bool isBooked(const Court& court, const QDate& date, const QTime& time, vector<Booking>& bookings);
-    vector<Court> searchAvailableCourts(const QDate& date, const QTime& time, const QString& location, 
-        vector<Court>& courts, vector<Booking>& bookings);
-    vector<QDateTime> suggestNextSlots(const Court& court, const QDate& date, const QTime& fromTime, vector<Booking>& bookings);
-    void cancelBooking(int bookingId, vector<Booking>& bookings);
-    void rescheduleBooking(int bookingId, const QDateTime& startTime, const QDateTime& endTime, vector<Booking>& bookings);
-    bool canCancelOrReschedule(const Booking& booking);
+    // UI display functions
+    void showAvailableCourts(const QDate& date, const QTime& time);
+    void showAvailableTimeSlots(int courtId, const QDateTime& baseTime);
+    void showSuggestions(const QVector<QDateTime>& suggestions);
 
 private:
-    void showAvailableCourts(vector<Court>& courts, const QDate& date, QTime& time, vector<Booking>& bookings);
-    void showAvailableTimeSlots(const Court& court, const QDateTime& baseTime, vector<Booking>& bookings);
-    void showSuggestions(vector<QDateTime>& suggestions);
+    PadelDataManager* m_padelManager;
 };
 
 #endif // BOOKINGWINDOW_H
