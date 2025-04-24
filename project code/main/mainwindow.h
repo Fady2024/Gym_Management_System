@@ -6,6 +6,7 @@
 #include "../DataManager/userdatamanager.h"
 #include "../DataManager/memberdatamanager.h"
 #include "../DataManager/classdatamanager.h"
+#include "../DataManager/padeldatamanager.h"
 
 class MainWindow : public QMainWindow
 {
@@ -13,7 +14,8 @@ class MainWindow : public QMainWindow
 
 public:
     MainWindow(UserDataManager* userDataManager, MemberDataManager* memberDataManager, 
-              ClassDataManager* classDataManager, QWidget* parent = nullptr);
+              ClassDataManager* classDataManager, PadelDataManager* padelDataManager,
+              QWidget* parent = nullptr);
 
 protected:
     void closeEvent(QCloseEvent* event) override;
@@ -22,6 +24,7 @@ private:
     UserDataManager* userDataManager;
     MemberDataManager* memberDataManager;
     ClassDataManager* classDataManager;
+    PadelDataManager* padelDataManager;
 };
 
 #endif // MAINWINDOW_H 

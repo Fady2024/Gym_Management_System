@@ -16,13 +16,15 @@
 #include "../Theme/ThemeManager.h"
 #include "../Language/LanguageManager.h"
 #include "../Language/LanguageSelector.h"
+#include <QDebug>
 
 StaffHomePage::StaffHomePage(UserDataManager* userDataManager, MemberDataManager* memberDataManager, 
-                         ClassDataManager* classDataManager, QWidget* parent)
+                         ClassDataManager* classDataManager, PadelDataManager* padelDataManager, QWidget* parent)
     : QMainWindow(parent)
     , userDataManager(userDataManager)
     , memberDataManager(memberDataManager)
     , classDataManager(classDataManager)
+    , padelDataManager(padelDataManager)
 {
     isDarkTheme = ThemeManager::getInstance().isDarkTheme();
     setupUI();
@@ -404,6 +406,20 @@ void StaffHomePage::clearUserData()
     }
     if (profilePage) {
         // Clear profile page data
+    }
+
+    // Clear Padel-related data
+    if (padelDataManager) {
+        qDebug() << "Clearing Padel-related data for staff view";
+        // Any specific padel data clearing for staff view can be added here
+    }
+
+    // Reset to home page
+    if (stackedWidget && homePage) {
+        stackedWidget->setCurrentWidget(homePage);
+        if (homeButton) {
+            updateButtonStates(homeButton);
+        }
     }
 }
 

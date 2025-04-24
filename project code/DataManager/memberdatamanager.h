@@ -91,6 +91,7 @@ public:
 
     // Dependency injection
     void setUserDataManager(UserDataManager* userManager);
+    UserDataManager* getUserDataManager() const { return userDataManager; }
 
 signals:
     void subscriptionNearingExpiry(int memberId, int daysLeft);

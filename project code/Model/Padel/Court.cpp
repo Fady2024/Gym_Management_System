@@ -2,39 +2,29 @@
 
 // Default constructor
 Court::Court()
-    : m_id(0), m_name(""), m_location("") {}
+    : m_courtId(0)
+    , m_name("")
+    , m_location("")
+    , m_isIndoor(false)
+    , m_pricePerHour(0.0)
+{
+}
 
 // Parameterized constructor
-Court::Court(int id, const QString& name, const QString& location)
-    : m_id(id), m_name(name), m_location(location) {}
-
-// Getters
-int Court::getId() const {
-    return m_id;
+Court::Court(int courtId, const QString& name, const QString& location, bool isIndoor, double pricePerHour)
+    : m_courtId(courtId)
+    , m_name(name)
+    , m_location(location)
+    , m_isIndoor(isIndoor)
+    , m_pricePerHour(pricePerHour)
+{
 }
 
-QString Court::getName() const {
-    return m_name;
+// Availability management
+bool Court::isAvailable(const QDateTime& time) const {
+    return m_availability.value(time, true);
 }
 
-QString Court::getLocation() const {
-    return m_location;
-}
-
-const vector<QTime>& Court::getAllTimeSlots() const {
-    return allTimeSlots;
-}
-
-// Setters
-void Court::setId(int id) {
-    m_id = id;
-}
-
-void Court::setName(const QString& name) {
-    m_name = name;
-}
-
-void Court::setLocation(const QString& location) {
-    m_location = location;
-}
-
+void Court::setTimeSlot(const QDateTime& time, bool available) {
+    m_availability[time] = available;
+} 

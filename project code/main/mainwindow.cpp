@@ -3,12 +3,16 @@
 #include <QMessageBox>
 #include <QDebug>
 
-MainWindow::MainWindow(UserDataManager* userDataManager, MemberDataManager* memberDataManager, 
-                     ClassDataManager* classDataManager, QWidget* parent)
+MainWindow::MainWindow(UserDataManager* userDataManager, 
+                      MemberDataManager* memberDataManager, 
+                      ClassDataManager* classDataManager,
+                      PadelDataManager* padelDataManager,
+                      QWidget* parent)
     : QMainWindow(parent), 
       userDataManager(userDataManager),
       memberDataManager(memberDataManager),
-      classDataManager(classDataManager)
+      classDataManager(classDataManager),
+      padelDataManager(padelDataManager)
 {
     qDebug() << "Main window created - data will be saved on application exit";
 }
@@ -40,6 +44,14 @@ void MainWindow::closeEvent(QCloseEvent* event)
         classDataManager->handleApplicationClosing();
     } else {
         qDebug() << "Warning: ClassDataManager is null, unable to save class data";
+        saveSuccess = false;
+    }
+
+    if (padelDataManager) {
+        qDebug() << "Saving padel data...";
+        padelDataManager->handleApplicationClosing();
+    } else {
+        qDebug() << "Warning: PadelDataManager is null, unable to save padel data";
         saveSuccess = false;
     }
     

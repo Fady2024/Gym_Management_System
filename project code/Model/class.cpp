@@ -6,7 +6,13 @@ void Class::setCapacity(int capacity)
 { this->capacity = capacity; }
 
 void Class::setNumOfEnrolled(int numOfEnrolled) 
-{ this->numOfEnrolled = numOfEnrolled; }
+{ 
+    if (numOfEnrolled < static_cast<int>(enrolled_members.size())) {
+        this->numOfEnrolled = static_cast<int>(enrolled_members.size());
+    } else {
+        this->numOfEnrolled = numOfEnrolled;
+    }
+}
 
 void Class::setTo(const QTime& to)
 {this->to = to;}
@@ -39,7 +45,6 @@ void Class::addSession(const QDate& date) {
 }
 
 void Class::removeSession(const QDate& date) {
-    // Can't easily remove from std::queue, so we'll create a new one
     std::queue<QDate> tempSessions;
     
     while (!sessions.empty()) {
@@ -59,7 +64,7 @@ std::queue<QDate> Class::getSessions() const {
 }
 
 bool Class::hasSessionOnDate(const QDate& date) const {
-    std::queue<QDate> tempSessions = sessions; // Create a copy
+    std::queue<QDate> tempSessions = sessions;
     
     while (!tempSessions.empty()) {
         if (tempSessions.front() == date) {
@@ -93,7 +98,7 @@ void Class::removeFromWaitlist(int memberId) {
 
 int Class::getNextWaitlistMember() const {
     if (waiting_users_ids.empty()) {
-        return -1; // Return -1 if the waitlist is empty
+        return -1; // Return -1 if no one is in the waitlist
     }
     return waiting_users_ids.front();
 }
