@@ -1,1 +1,83 @@
-[]
+[
+    {
+        "description": "Professional standard court with high-quality flooring",
+        "features": [
+            "Lighting",
+            "Spectator Seating",
+            "Water Dispenser"
+        ],
+        "id": 1,
+        "isIndoor": true,
+        "location": "Main Building",
+        "name": "Center Court",
+        "pricePerHour": 100,
+        "timeSlots": [
+            "09:00",
+            "10:00",
+            "11:00",
+            "12:00",
+            "13:00",
+            "14:00",
+            "15:00",
+            "16:00",
+            "17:00",
+            "18:00",
+            "19:00",
+            "20:00"
+        ]
+    },
+    {
+        "description": "Outdoor court with sand-based surface, perfect for casual play",
+        "features": [
+            "Natural Lighting",
+            "Open Space",
+            "Sand Surface"
+        ],
+        "id": 2,
+        "isIndoor": false,
+        "location": "Outdoor Area",
+        "name": "Beach Court",
+        "pricePerHour": 80,
+        "timeSlots": [
+            "08:00",
+            "09:00",
+            "10:00",
+            "11:00",
+            "12:00",
+            "13:00",
+            "14:00",
+            "15:00",
+            "16:00",
+            "17:00",
+            "18:00"
+        ]
+    },
+    {
+        "description": "Premium court with advanced features for professional play",
+        "features": [
+            "Professional Flooring",
+            "Video Analysis",
+            "Premium Equipment",
+            "Private Changing Room"
+        ],
+        "id": 3,
+        "isIndoor": true,
+        "location": "VIP Zone",
+        "name": "Professional Court",
+        "pricePerHour": 150,
+        "timeSlots": [
+            "10:00",
+            "11:00",
+            "12:00",
+            "13:00",
+            "14:00",
+            "15:00",
+            "16:00",
+            "17:00",
+            "18:00",
+            "19:00",
+            "20:00",
+            "21:00"
+        ]
+    }
+]

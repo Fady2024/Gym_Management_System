@@ -90,6 +90,8 @@ set(SRC_SOURCES
         "project code/src/onboarding/languageselectionpage.cpp"
         "project code/src/pages/staffhomepage.h"
         "project code/src/pages/staffhomepage.cpp"
+        "project code/src/pages/Padel/BookingWindow.cpp"
+        "project code/src/pages/Padel/BookingWindow.h"
 )
 
 set(SETTINGS_SOURCES

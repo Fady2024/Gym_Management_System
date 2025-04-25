@@ -337,7 +337,7 @@ void MainPage::setupPages()
             return;
         }
         
-        workoutPage = new QWidget;
+        workoutPage = new BookingWindow(padelDataManager, this);
         if (!workoutPage) {
             qDebug() << "Error: Failed to create workoutPage";
             return;
@@ -416,6 +416,13 @@ void MainPage::handleWorkoutPage() const
 {
     stackedWidget->setCurrentWidget(workoutPage);
     updateButtonStates(workoutButton);
+    
+    // Pass current user information to the booking window
+    if (workoutPage && !currentUserEmail.isEmpty()) {
+        workoutPage->setUserDataManager(userDataManager);
+        workoutPage->setMemberDataManager(memberDataManager);
+        workoutPage->setCurrentUserEmail(currentUserEmail);
+    }
 }
 
 void MainPage::handleNutritionPage() const
@@ -454,6 +461,7 @@ void MainPage::updateTheme(bool isDark)
     }
 
     homePage->updateTheme(isDark);
+    workoutPage->updateTheme(isDark);
     settingsPage->updateTheme(isDark);
 }
 

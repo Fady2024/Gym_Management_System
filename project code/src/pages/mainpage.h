@@ -12,6 +12,7 @@
 #include "../DataManager/padeldatamanager.h"
 #include "homepage.h"
 #include "settingspage.h"
+#include "Padel/BookingWindow.h"
 #include <QLabel>
 #include "../Language/LanguageSelector.h"
 
@@ -81,7 +82,7 @@ private:
 
     // Pages
     HomePage* homePage;
-    QWidget* workoutPage;
+    BookingWindow* workoutPage;
     QWidget* nutritionPage;
     QWidget* profilePage;
     SettingsPage* settingsPage;

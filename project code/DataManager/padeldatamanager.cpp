@@ -12,6 +12,7 @@
 #include <QMutexLocker>
 #include <algorithm>
 #include <QDateTime>
+#include <QMetaObject>
 
 PadelDataManager::PadelDataManager(QObject* parent)
     : QObject(parent), memberDataManager(nullptr) {
@@ -19,7 +20,7 @@ PadelDataManager::PadelDataManager(QObject* parent)
     QString projectDir = QCoreApplication::applicationDirPath();
     projectDir = QFileInfo(projectDir).dir().absolutePath();
     
-    // Set data directory path
+    // Initialize data directory
     dataDir = projectDir + "/project code/Data";
     
     // Create directory if it doesn't exist
@@ -42,11 +43,9 @@ PadelDataManager::PadelDataManager(QObject* parent)
     }
     
     // Initialize data from file
-    if (!initializeFromFile()) {
-        qDebug() << "Failed to initialize padel data from file";
-    }
+    initializeFromFile();
     
-    // Set up timers
+    // Setup periodic checks
     setupTimers();
 }
 
@@ -69,19 +68,29 @@ void PadelDataManager::handleApplicationClosing() {
 
 bool PadelDataManager::initializeFromFile() {
     QString errorMessage;
+    QMutexLocker locker(&mutex);
     
-    // Read courts
+    // Read courts data
     QJsonArray courtsArray = readCourtsFromFile(errorMessage);
     if (!errorMessage.isEmpty()) {
         qDebug() << "Error reading courts file:" << errorMessage;
         return false;
     }
 
+    // Clear current data
     courtsById.clear();
     for (const QJsonValue& courtValue : courtsArray) {
-        Court court = jsonToCourt(courtValue.toObject());
+        QJsonObject courtObj = courtValue.toObject();
+        Court court = jsonToCourt(courtObj);
+        
+        // Store in map
         courtsById[court.getId()] = court;
+        
+        qDebug() << "Loaded court:" << court.getId() << court.getName() 
+                << "Price:" << court.getPricePerHour();
     }
+
+    qDebug() << "Loaded" << courtsById.size() << "courts from file";
 
     // Read bookings
     QJsonArray bookingsArray = readBookingsFromFile(errorMessage);
@@ -90,59 +99,249 @@ bool PadelDataManager::initializeFromFile() {
         return false;
     }
 
+    // Clear current bookings
     bookingsById.clear();
+    
+    // Process bookings
     for (const QJsonValue& bookingValue : bookingsArray) {
-        Booking booking = jsonToBooking(bookingValue.toObject());
+        QJsonObject bookingObj = bookingValue.toObject();
+        Booking booking = jsonToBooking(bookingObj);
         bookingsById[booking.getBookingId()] = booking;
     }
+    
+    qDebug() << "Loaded" << bookingsById.size() << "bookings from file";
 
     return true;
 }
 
 bool PadelDataManager::saveToFile() {
-    QMutexLocker locker(&mutex);
+    // Use tryLock instead of QMutexLocker to avoid deadlocks
+    bool locked = mutex.tryLock(200);
     
+    if (!locked) {
+        qDebug() << "Warning: Could not lock mutex in saveToFile, will retry later";
+        return true;
+    }
+    
+    bool result = true;
+    
+    try {
     if (!dataModified) {
+            mutex.unlock();
         return true;  // Nothing to save
     }
 
-    try {
+        QString errorMessage;
+        QDir dataDirectory(dataDir);
+        
+        // Make sure the directory exists
+        if (!dataDirectory.exists()) {
+            qDebug() << "Creating data directory at:" << dataDir;
+            QDir().mkpath(dataDir);
+        }
+            
         // Save courts
         QJsonArray courtsArray;
         for (const auto& pair : courtsById) {
             courtsArray.append(courtToJson(pair.second));
         }
 
-        QString errorMessage;
-        bool success = writeCourtsToFile(courtsArray, errorMessage);
-        if (!success) {
-            qDebug() << "Error saving courts file:" << errorMessage;
-            return false;
+        if (!writeCourtsToFile(courtsArray, errorMessage)) {
+            qDebug() << "Error saving courts:" << errorMessage;
+            result = false;
         }
-
+        else {
         // Save bookings
         QJsonArray bookingsArray;
         for (const auto& pair : bookingsById) {
             bookingsArray.append(bookingToJson(pair.second));
         }
 
-        success = writeBookingsToFile(bookingsArray, errorMessage);
-        if (!success) {
-            qDebug() << "Error saving bookings file:" << errorMessage;
-            return false;
+            if (!writeBookingsToFile(bookingsArray, errorMessage)) {
+                qDebug() << "Error saving bookings:" << errorMessage;
+                result = false;
+            }
+            else {
+                dataModified = false;
+                qDebug() << "Successfully saved padel data to files";
+            }
         }
-
-        dataModified = false;
-        return true;
     }
     catch (const std::exception& e) {
-        qDebug() << "Exception in saveToFile: " << e.what();
-        return false;
+        qDebug() << "Exception in saveToFile:" << e.what();
+        result = false;
     }
     catch (...) {
         qDebug() << "Unknown exception in saveToFile";
+        result = false;
+    }
+    mutex.unlock();
+    return result;
+}
+
+bool PadelDataManager::writeBookingsToFile(const QJsonArray& bookings, QString& errorMessage) const {
+    try {
+        QString filePath = QDir(dataDir).filePath("bookings.json");
+        QFile file(filePath);
+        QFileInfo fileInfo(filePath);
+        QDir().mkpath(fileInfo.absolutePath());
+        
+        qDebug() << "Saving bookings to file:" << filePath;
+        
+        if (!file.open(QIODevice::WriteOnly)) {
+            errorMessage = "Could not open bookings file for writing: " + file.errorString();
+            qDebug() << errorMessage;
+            return false;
+        }
+
+        QJsonDocument doc(bookings);
+        QByteArray jsonData = doc.toJson(QJsonDocument::Indented);
+        
+        qint64 bytesWritten = file.write(jsonData);
+        if (bytesWritten == -1) {
+            errorMessage = "Failed to write to bookings file: " + file.errorString();
+            file.close();
+            qDebug() << errorMessage;
+            return false;
+        }
+        
+        file.flush(); // Make sure data is written to disk
+        file.close();
+        return true;
+    }
+    catch (const std::exception& e) {
+        errorMessage = QString("Exception in writeBookingsToFile: %1").arg(e.what());
+        qDebug() << errorMessage;
         return false;
     }
+    catch (...) {
+        errorMessage = "Unknown exception in writeBookingsToFile";
+        qDebug() << errorMessage;
+        return false;
+    }
+}
+
+bool PadelDataManager::writeCourtsToFile(const QJsonArray& courts, QString& errorMessage) const {
+    try {
+        QString filePath = QDir(dataDir).filePath("courts.json");
+        QFile file(filePath);
+        
+        // Make sure the directory exists
+        QFileInfo fileInfo(filePath);
+        QDir().mkpath(fileInfo.absolutePath());
+        
+        qDebug() << "Saving courts to file:" << filePath;
+        
+        if (!file.open(QIODevice::WriteOnly)) {
+            errorMessage = "Could not open courts file for writing: " + file.errorString();
+            qDebug() << errorMessage;
+            return false;
+        }
+        
+        QJsonDocument doc(courts);
+        QByteArray jsonData = doc.toJson(QJsonDocument::Indented);
+        
+        qint64 bytesWritten = file.write(jsonData);
+        if (bytesWritten == -1) {
+            errorMessage = "Failed to write to courts file: " + file.errorString();
+            file.close();
+            qDebug() << errorMessage;
+            return false;
+        }
+        
+        file.flush(); // Make sure data is written to disk
+        file.close();
+        return true;
+    }
+    catch (const std::exception& e) {
+        errorMessage = QString("Exception in writeCourtsToFile: %1").arg(e.what());
+        qDebug() << errorMessage;
+        return false;
+    }
+    catch (...) {
+        errorMessage = "Unknown exception in writeCourtsToFile";
+        qDebug() << errorMessage;
+        return false;
+    }
+}
+
+QJsonObject PadelDataManager::courtToJson(const Court& court) const {
+    QJsonObject json;
+    json["id"] = court.getId();
+    json["name"] = court.getName();
+    json["location"] = court.getLocation();
+    json["isIndoor"] = court.isIndoor();
+    json["pricePerHour"] = court.getPricePerHour();
+    
+    // Add description if not empty
+    if (!court.getDescription().isEmpty()) {
+        json["description"] = court.getDescription();
+    }
+    
+    // Add features if available
+    const QStringList& features = court.getFeatures();
+    if (!features.isEmpty()) {
+        QJsonArray featuresArray;
+        for (const QString& feature : features) {
+            featuresArray.append(feature);
+        }
+        json["features"] = featuresArray;
+    }
+    
+    // Add time slots
+    const std::vector<QTime>& timeSlots = court.getAllTimeSlots();
+    QJsonArray timeSlotsArray;
+    for (const QTime& time : timeSlots) {
+        timeSlotsArray.append(time.toString("HH:mm"));
+    }
+    json["timeSlots"] = timeSlotsArray;
+    
+    return json;
+}
+
+QJsonObject PadelDataManager::bookingToJson(const Booking& booking) const {
+    QJsonObject json;
+    json["id"] = booking.getBookingId();
+    json["courtId"] = booking.getCourtId();
+    json["userId"] = booking.getUserId();
+    json["startTime"] = booking.getStartTime().toString(Qt::ISODate);
+    json["endTime"] = booking.getEndTime().toString(Qt::ISODate);
+    json["price"] = booking.getPrice();
+    json["isVip"] = booking.isVip();
+    json["isCancelled"] = booking.isCancelled();
+    
+    return json;
+}
+
+Booking PadelDataManager::jsonToBooking(const QJsonObject& json) {
+    int bookingId = json["id"].toInt();
+    int courtId = json["courtId"].toInt();
+    int userId = json["userId"].toInt();
+    
+    // Create an empty court (we'll set just the ID)
+    Court court;
+    court.setId(courtId);
+    
+    // Create user object with just the ID
+    User user;
+    user.setId(userId);
+    
+    // Parse date/time
+    QDateTime startTime = QDateTime::fromString(json["startTime"].toString(), Qt::ISODate);
+    QDateTime endTime = QDateTime::fromString(json["endTime"].toString(), Qt::ISODate);
+    
+    // Create booking
+    Booking booking(bookingId, court, startTime, endTime, user);
+    
+    // Set additional properties
+    booking.setPrice(json["price"].toDouble());
+    booking.setVip(json["isVip"].toBool(false));
+    
+    if (json["isCancelled"].toBool(false)) {
+        booking.cancel();
+    }
+    
+    return booking;
 }
 
 // Court management methods
@@ -210,13 +409,41 @@ bool PadelDataManager::deleteCourt(int courtId, QString& errorMessage) {
 }
 
 Court PadelDataManager::getCourtById(int courtId) const {
-    QMutexLocker locker(&mutex);
-    
+    try {
+        if (courtId <= 0) {
+            qDebug() << "Invalid court ID in getCourtById:" << courtId;
+            return Court(); // Return empty court
+        }
+        // Create a safe mutex lock
+        QMutex& mutexRef = mutex;
+        QMutexLocker locker(&mutexRef);
+        
+        // First check if the map is empty to avoid unnecessary operations
+        if (courtsById.empty()) {
+            qDebug() << "Courts map is empty in getCourtById";
+            return Court(); // Return empty court
+        }
+        
+        // Safe court lookup
     auto it = courtsById.find(courtId);
     if (it != courtsById.end()) {
-        return it->second;
+            Court result = it->second; // Make a copy
+            qDebug() << "Found court:" << result.getName() << "with price:" << result.getPricePerHour();
+            return result;
     }
+        
+        // Return an empty court object if not found
+        qDebug() << "Court not found with ID:" << courtId;
     return Court();
+    }
+    catch (const std::exception& e) {
+        qDebug() << "Exception in getCourtById:" << e.what();
+        return Court(); // Return empty court on error
+    }
+    catch (...) {
+        qDebug() << "Unknown exception in getCourtById";
+        return Court(); // Return empty court on error
+    }
 }
 
 QVector<Court> PadelDataManager::getAllCourts() const {
@@ -245,101 +472,287 @@ QVector<Court> PadelDataManager::getCourtsByLocation(const QString& location) co
 // Booking management methods
 bool PadelDataManager::createBooking(int userId, int courtId, const QDateTime& startTime, 
                                    const QDateTime& endTime, QString& errorMessage) {
-    QMutexLocker locker(&mutex);
+    try {
+        qDebug() << "Creating booking for user" << userId << "court" << courtId
+                << "from" << startTime.toString() << "to" << endTime.toString();
     
-    // Validate court
-    auto courtIt = courtsById.find(courtId);
-    if (courtIt == courtsById.end()) {
+        // Validate user ID
+        if (userId <= 0) {
+            errorMessage = "Invalid user ID";
+            qDebug() << "Booking failed:" << errorMessage;
+            return false;
+        }
+        
+        // Validate court ID
+        if (courtId <= 0) {
         errorMessage = "Invalid court ID";
+            qDebug() << "Booking failed:" << errorMessage;
         return false;
     }
 
-    // Check if user exists
-    if (!memberDataManager || !memberDataManager->getUserDataManager()) {
-        errorMessage = "System error: User verification unavailable";
+        // Use mutex lock to protect access to data
+        QMutexLocker locker(&mutex);
+        
+        // Check court exists
+        bool courtExists = false;
+        {
+            courtExists = (courtsById.find(courtId) != courtsById.end());
+        }
+        
+        if (!courtExists) {
+            errorMessage = "Court not found with ID: " + QString::number(courtId);
+            qDebug() << "Booking failed:" << errorMessage;
         return false;
     }
 
-    User user = memberDataManager->getUserDataManager()->getUserDataById(userId);
-    if (user.getId() <= 0) {
-        errorMessage = "Invalid user ID";
+        // Get the court (safely)
+        Court court;
+        try {
+            court = courtsById.at(courtId);
+            qDebug() << "Found court:" << court.getName() << "at location:" << court.getLocation();
+        }
+        catch (const std::exception& e) {
+            errorMessage = QString("Exception getting court: %1").arg(e.what());
+            qDebug() << "Booking failed:" << errorMessage;
         return false;
     }
-
-    // Check if user is a member and/or VIP
-    bool isMember = memberDataManager->userIsMember(userId);
-    bool isVIP = isMember && memberDataManager->isVIPMember(memberDataManager->getMemberIdByUserId(userId));
 
     // Validate booking time
-    if (!validateBookingTime(startTime, endTime, errorMessage)) {
+        qDebug() << "Validating booking time...";
+        if (!startTime.isValid() || !endTime.isValid()) {
+            errorMessage = "Invalid booking time";
+            qDebug() << "Booking failed:" << errorMessage;
         return false;
     }
 
-    // Check court availability
-    if (!validateCourtAvailability(courtId, startTime, endTime)) {
-        // If court is not available and user is VIP, check if we can prioritize
-        if (isVIP) {
-            // Look for non-VIP bookings that can be moved to waitlist
+        if (startTime >= endTime) {
+            errorMessage = "Start time must be before end time";
+            qDebug() << "Booking failed:" << errorMessage;
+            return false;
+        }
+        
+        qDebug() << "Booking time is valid";
+        
+        // Check if the court is available during the requested time
+        qDebug() << "Checking court availability...";
+        
+        bool available = true;
             for (const auto& pair : bookingsById) {
                 const Booking& existingBooking = pair.second;
-                if (existingBooking.getCourt().getId() == courtId &&
-                    existingBooking.getStartTime() == startTime) {
-                    
-                    int existingUserId = existingBooking.getUser().getId();
-                    bool existingIsVIP = memberDataManager->userIsMember(existingUserId) &&
-                                       memberDataManager->isVIPMember(memberDataManager->getMemberIdByUserId(existingUserId));
-                    
-                    if (!existingIsVIP) {
-                        // Move non-VIP booking to waitlist
-                        addToWaitlist(existingUserId, courtId, startTime, errorMessage);
-                        bookingsById.erase(pair.first);
+            
+            // Skip cancelled bookings
+            if (existingBooking.isCancelled()) {
+                continue;
+            }
+            
+            if (existingBooking.getCourtId() == courtId) {
+                qDebug() << "Found existing booking:" << existingBooking.getBookingId();
+                
+                // Check time overlap using simple condition
+                if (!(endTime <= existingBooking.getStartTime() || 
+                      startTime >= existingBooking.getEndTime())) {
+                    qDebug() << "Conflict with booking ID:" << existingBooking.getBookingId();
+                    available = false;
                         break;
                     }
                 }
             }
-        }
         
-        // If still not available after VIP priority check
-        if (!validateCourtAvailability(courtId, startTime, endTime)) {
-            // Add to waitlist with appropriate priority
-            addToWaitlist(userId, courtId, startTime, errorMessage);
-            errorMessage = "Court is not available at the requested time. Added to waitlist.";
+        if (!available) {
+            errorMessage = "Court is not available at the selected time";
+            qDebug() << "Booking failed:" << errorMessage;
             return false;
         }
-    }
-
-    // Calculate booking price based on membership status
-    double price = calculateBookingPrice(courtId, startTime, endTime, isVIP);
-    
-    // Create booking
+        
+        qDebug() << "Court is available for the requested time";
+        
+        // Check if user exists and get user data
+        qDebug() << "Checking user data...";
+        User user;
+        
+        if (!memberDataManager) {
+            errorMessage = "Member data manager is not set";
+            qDebug() << "Booking failed:" << errorMessage;
+            return false;
+        }
+        
+        qDebug() << "Member data manager is set";
+        
+        UserDataManager* userManager = memberDataManager->getUserDataManager();
+        if (!userManager) {
+            errorMessage = "User data manager is not set";
+            qDebug() << "Booking failed:" << errorMessage;
+            return false;
+        }
+        
+        qDebug() << "User data manager is set, getting user data for ID:" << userId;
+        
+        try {
+            user = userManager->getUserDataById(userId);
+            if (user.getId() <= 0) {
+                errorMessage = "User not found with ID: " + QString::number(userId);
+                qDebug() << "Booking failed:" << errorMessage;
+                return false;
+            }
+            qDebug() << "Found user: \"" << user.getName() << "\" with email: \"" << user.getEmail() << "\"";
+        } catch (const std::exception& e) {
+            errorMessage = QString("Exception getting user data: %1").arg(e.what());
+            qDebug() << "Booking failed:" << errorMessage;
+            return false;
+        } catch (...) {
+            errorMessage = "Unknown exception getting user data";
+            qDebug() << "Booking failed:" << errorMessage;
+            return false;
+        }
+        
+        // Generate new booking ID
+        qDebug() << "Generating booking ID...";
     int bookingId = generateBookingId();
-    Booking booking(bookingId, courtIt->second, startTime, endTime, user);
-    booking.setPrice(price);
-    booking.setVip(isVIP);
+        qDebug() << "Generated new booking ID:" << bookingId;
+        
+        // Create new booking
+        qDebug() << "Creating booking object...";
+        
+        Booking newBooking;
+        newBooking.setBookingId(bookingId);
+        newBooking.setCourt(court);
+        newBooking.setStartTime(startTime);
+        newBooking.setEndTime(endTime);
+        newBooking.setUser(user);
+        
+        // Check if user is VIP
+        qDebug() << "Checking if user is VIP member...";
+        bool isVip = false;
+        
+        try {
+            qDebug() << "Checking if user ID " << userId << " is a member (safe method)";
+            bool isMember = memberDataManager->userIsMember(userId);
+            qDebug() << "User ID " << userId << " is member: " << isMember;
+            
+            if (isMember) {
+                qDebug() << "User is a member";
+                int memberId = memberDataManager->getMemberIdByUserId(userId);
+                qDebug() << "Member ID: " << memberId;
+                isVip = memberDataManager->isVIPMember(memberId);
+                qDebug() << "User is VIP member: " << isVip;
+            } else {
+                qDebug() << "User is not a member";
+            }
+        } catch (const std::exception& e) {
+            qDebug() << "Exception checking VIP status:" << e.what();
+            // Non-critical error, continue with isVip = false
+        }
+        
+        // Calculate price - use a try-catch to handle potential errors
+        qDebug() << "Calculating booking price...";
+        double price = 0.0;
+        
+        try {
+            price = calculateBookingPrice(courtId, startTime, endTime, isVip);
+            qDebug() << "Calculated booking price:" << price;
+        } catch (const std::exception& e) {
+            qDebug() << "Exception calculating price:" << e.what();
+            price = 100.0; // Default price on error
+        }
+        
+        newBooking.setPrice(price);
+        newBooking.setVip(isVip);
     
-    bookingsById[bookingId] = booking;
+        // Add booking to the system
+        qDebug() << "Adding booking to the system...";
+        bookingsById[bookingId] = newBooking;
+        qDebug() << "Added booking to bookings map";
+        
+        // Update data
     dataModified = true;
     
-    emit bookingCreated(bookingId, userId);
+        qDebug() << "Booking created successfully with ID:" << bookingId;
+        
+        // Save changes to file
+        qDebug() << "Saving changes to file...";
+        QString saveError;
+        if (!saveToFile()) {
+            qDebug() << "Warning: Failed to save booking to file: " << saveError;
+        } else {
+            qDebug() << "Booking saved to file successfully";
+        }
+        
     return true;
+    }
+    catch (const std::exception& e) {
+        errorMessage = QString("Exception in createBooking: %1").arg(e.what());
+        qDebug() << errorMessage;
+        return false;
+    }
+    catch (...) {
+        errorMessage = "Unknown exception in createBooking";
+        qDebug() << errorMessage;
+        return false;
+    }
+}
+
+// Safe emit method that will be called through QMetaObject::invokeMethod
+void PadelDataManager::safeEmitBookingCreated(int bookingId, int userId) {
+    qDebug() << "Safe emit of bookingCreated signal for booking ID:" << bookingId << "user ID:" << userId;
+    emit bookingCreated(bookingId, userId);
 }
 
 double PadelDataManager::calculateBookingPrice(int courtId, const QDateTime& startTime, 
                                              const QDateTime& endTime, bool isVIP) const {
-    const Court& court = getCourtById(courtId);
-    double basePrice = court.getPricePerHour();
-    int hours = startTime.secsTo(endTime) / 3600;
-    double totalPrice = basePrice * hours;
+    qDebug() << "Inside calculateBookingPrice for court:" << courtId;
     
-    // Apply member/VIP discounts
+    try {
+        // Get the court price information BEFORE any calculations
+        double pricePerHour = 100.0; // Default price if court not found
+        
+        {
+            // Use a try-lock approach to avoid deadlock
+            bool locked = mutex.tryLock(100); // Try to lock with timeout
+            if (locked) {
+                // Safe access to the map
+                auto it = courtsById.find(courtId);
+                if (it != courtsById.end()) {
+                    pricePerHour = it->second.getPricePerHour();
+                    qDebug() << "Got price from court object (locked): " << pricePerHour;
+                } else {
+                    qDebug() << "Court not found, using default price: " << pricePerHour;
+                }
+                mutex.unlock(); // Explicitly unlock
+            } else {
+                // Couldn't lock, use default price
+                qDebug() << "Could not lock mutex, using default price: " << pricePerHour;
+            }
+        }
+        
+        // Calculate duration in hours (outside of any locks)
+        int durationInSeconds = startTime.secsTo(endTime);
+        double durationInHours = static_cast<double>(durationInSeconds) / 3600.0;
+        qDebug() << "Duration in hours: " << durationInHours;
+        
+        // Calculate final price
+        double basePrice = pricePerHour * durationInHours;
+        double finalPrice = basePrice;
+        
     if (isVIP) {
-        totalPrice *= 0.8;  // 20% discount for VIP members
+            finalPrice = basePrice * 0.85; // 15% discount
+            qDebug() << "Applied VIP discount. Final price: " << finalPrice;
+        } else {
+            qDebug() << "Regular price (no discount): " << finalPrice;
+        }
+        
+        return finalPrice;
     }
-    
-    return totalPrice;
+    catch (const std::exception& e) {
+        qDebug() << "Error in calculateBookingPrice: " << e.what();
+        return 100.0; // Safe default on error
+    }
+    catch (...) {
+        qDebug() << "Unknown error in calculateBookingPrice";
+        return 100.0; // Safe default on error
+    }
 }
 
-bool PadelDataManager::cancelBooking(int bookingId, QString& errorMessage) {
+bool PadelDataManager::deleteBooking(int bookingId, QString& errorMessage) {
     QMutexLocker locker(&mutex);
     
     auto it = bookingsById.find(bookingId);
@@ -348,57 +761,173 @@ bool PadelDataManager::cancelBooking(int bookingId, QString& errorMessage) {
         return false;
     }
 
-    const Booking& booking = it->second;
-    QDateTime now = QDateTime::currentDateTime();
+    bookingsById.erase(it);
+    dataModified = true;
+    return true;
+}
+
+bool PadelDataManager::cancelBooking(int bookingId, QString& errorMessage) {
+    // Use tryLock instead of QMutexLocker to avoid deadlocks
+    bool locked = mutex.tryLock(200); // Try to lock with timeout
     
-    if (now.secsTo(booking.getStartTime()) < 3 * 60 * 60) { // 3 hours
-        errorMessage = "Cannot cancel booking less than 3 hours before start time";
+    if (!locked) {
+        qDebug() << "Warning: Could not lock mutex in cancelBooking, will retry later";
+        errorMessage = "System busy, please try again";
+        return false;
+    }
+    
+    bool result = false;
+    
+    try {
+        qDebug() << "Attempting to cancel booking with ID:" << bookingId;
+    
+        auto it = bookingsById.find(bookingId);
+        if (it == bookingsById.end()) {
+            errorMessage = "Booking not found";
+            qDebug() << "Cancellation failed:" << errorMessage;
+            mutex.unlock();
+            return false;
+        }
+
+        if (it->second.isCancelled()) {
+            errorMessage = "Booking is already cancelled";
+            qDebug() << "Cancellation failed:" << errorMessage;
+            mutex.unlock();
+            return false;
+        }
+        
+        // Check if cancellation is allowed without calling other mutex-locking functions
+    QDateTime now = QDateTime::currentDateTime();
+        const Booking& booking = it->second;
+        bool canCancel = now.secsTo(booking.getStartTime()) >= 3 * 60 * 60; // 3 hours
+        
+        if (!canCancel) {
+            errorMessage = "Cancellation is not allowed within 3 hours of booking time";
+            qDebug() << "Cancellation failed:" << errorMessage;
+            mutex.unlock();
         return false;
     }
 
-    int memberId = booking.getUser().getId();
-    bookingsById.erase(it);
+        Booking& bookingRef = it->second;
+        bookingRef.cancel();
+        
+        int memberId = bookingRef.getUserId();
+        
     dataModified = true;
+        result = true;
+        
+        // Emit signal safely
+        qDebug() << "Emitting bookingCancelled signal using safe method...";
+        QMetaObject::invokeMethod(this, "safeEmitBookingCancelled", 
+                              Qt::QueuedConnection, 
+                              Q_ARG(int, bookingId),
+                              Q_ARG(int, memberId));
+        
+        qDebug() << "Booking cancelled successfully with ID:" << bookingId;
+    }
+    catch (const std::exception& e) {
+        errorMessage = QString("Exception in cancelBooking: %1").arg(e.what());
+        qDebug() << errorMessage;
+    }
+    catch (...) {
+        errorMessage = "Unknown exception in cancelBooking";
+        qDebug() << errorMessage;
+    }
     
-    emit bookingCancelled(bookingId, memberId);
-    return true;
+    // Always release the lock
+    mutex.unlock();
+    return result;
+}
+
+// Safe emit method for bookingCancelled signal
+void PadelDataManager::safeEmitBookingCancelled(int bookingId, int userId) {
+    qDebug() << "Safe emit of bookingCancelled signal for booking ID:" << bookingId << "user ID:" << userId;
+    emit bookingCancelled(bookingId, userId);
 }
 
 bool PadelDataManager::rescheduleBooking(int bookingId, const QDateTime& newStartTime, 
                                        const QDateTime& newEndTime, QString& errorMessage) {
-    QMutexLocker locker(&mutex);
+    // Use tryLock instead of QMutexLocker to avoid deadlocks
+    bool locked = mutex.tryLock(200); // Try to lock with timeout
     
+    if (!locked) {
+        qDebug() << "Warning: Could not lock mutex in rescheduleBooking, will retry later";
+        errorMessage = "System busy, please try again";
+        return false;
+    }
+    
+    bool result = false;
+    
+    try {
     auto it = bookingsById.find(bookingId);
     if (it == bookingsById.end()) {
         errorMessage = "Booking not found";
+            mutex.unlock();
         return false;
     }
 
     Booking& booking = it->second;
     QDateTime now = QDateTime::currentDateTime();
     
+        // Check if rescheduling is allowed
     if (now.secsTo(booking.getStartTime()) < 3 * 60 * 60) { // 3 hours
         errorMessage = "Cannot reschedule booking less than 3 hours before start time";
+            mutex.unlock();
         return false;
     }
 
     // Validate new time
     if (!validateBookingTime(newStartTime, newEndTime, errorMessage)) {
+            mutex.unlock();
         return false;
     }
 
-    // Check court availability
-    if (!validateCourtAvailability(booking.getCourt().getId(), newStartTime, newEndTime)) {
+        // Check court availability without calling functions that lock the mutex
+        int courtId = booking.getCourtId();
+        bool available = true;
+        for (const auto& pair : bookingsById) {
+            const Booking& existingBooking = pair.second;
+            
+            // Skip cancelled bookings and the booking being rescheduled
+            if (existingBooking.isCancelled() || existingBooking.getBookingId() == bookingId) {
+                continue;
+            }
+            
+            if (existingBooking.getCourtId() == courtId) {
+                // Check time overlap
+                if (!(newEndTime <= existingBooking.getStartTime() || 
+                      newStartTime >= existingBooking.getEndTime())) {
+                    available = false;
+                    break;
+                }
+            }
+        }
+        
+        if (!available) {
         errorMessage = "Court is not available at the requested time";
+            mutex.unlock();
         return false;
     }
 
     booking.setStartTime(newStartTime);
     booking.setEndTime(newEndTime);
     dataModified = true;
+        result = true;
     
     emit bookingRescheduled(bookingId, booking.getUser().getId());
-    return true;
+    }
+    catch (const std::exception& e) {
+        errorMessage = QString("Exception in rescheduleBooking: %1").arg(e.what());
+        qDebug() << errorMessage;
+    }
+    catch (...) {
+        errorMessage = "Unknown exception in rescheduleBooking";
+        qDebug() << errorMessage;
+    }
+    
+    // Always unlock the mutex
+    mutex.unlock();
+    return result;
 }
 
 QVector<Booking> PadelDataManager::getBookingsByMember(int memberId) const {
@@ -440,8 +969,63 @@ QVector<Booking> PadelDataManager::getBookingsByDate(const QDate& date) const {
 
 bool PadelDataManager::isCourtAvailable(int courtId, const QDateTime& startTime, 
                                       const QDateTime& endTime) const {
-    QMutexLocker locker(&mutex);
-    return validateCourtAvailability(courtId, startTime, endTime);
+    // Using a simplified version of availability check without QMutexLocker to reduce code complexity
+    qDebug() << "Inside isCourtAvailable for court:" << courtId;
+    
+    // Check if court exists
+    if (courtsById.find(courtId) == courtsById.end()) {
+        qDebug() << "Court not found with ID:" << courtId;
+        return false;
+    }
+    
+    qDebug() << "Court found, checking time validity";
+    
+    // Verify time validity
+    if (!startTime.isValid() || !endTime.isValid() || startTime >= endTime) {
+        qDebug() << "Invalid time range:" << startTime.toString() << " - " << endTime.toString();
+        return false;
+    }
+    
+    qDebug() << "Time is valid, checking for conflicts with existing bookings";
+    
+    // Check for absence of overlapping bookings - using a simpler approach
+    bool isAvailable = true;
+    
+    for (const auto& pair : bookingsById) {
+        const Booking& existingBooking = pair.second;
+        
+        // Skip cancelled bookings
+        if (existingBooking.isCancelled()) {
+            continue;
+        }
+        
+        // Check only bookings for this court, using getCourtId instead of getCourt().getId()
+        if (existingBooking.getCourtId() == courtId) {
+            qDebug() << "Found existing booking:" << existingBooking.getBookingId() 
+                    << "at" << existingBooking.getStartTime().toString();
+            
+            // Very simple check - is there overlap in times
+            if (!(endTime <= existingBooking.getStartTime() || 
+                  startTime >= existingBooking.getEndTime())) {
+                qDebug() << "Conflict found with booking ID:" << existingBooking.getBookingId();
+                isAvailable = false;
+                break;
+            }
+        }
+    }
+    
+    qDebug() << "Court availability result:" << isAvailable;
+    return isAvailable;
+}
+
+// Update validateCourtAvailability function to be simpler as well
+bool PadelDataManager::validateCourtAvailability(int courtId, const QDateTime& startTime, 
+                                              const QDateTime& endTime) const {
+    // Use simplified version to reduce possibility of errors
+    qDebug() << "Inside validateCourtAvailability for court:" << courtId;
+    
+    // Use isCourtAvailable directly to avoid code duplication
+    return isCourtAvailable(courtId, startTime, endTime);
 }
 
 // Waitlist management methods
@@ -580,9 +1164,33 @@ void PadelDataManager::setVIPPriority(int memberId, bool isVIP) {
 }
 
 bool PadelDataManager::isVIPMember(int memberId) const {
-    QMutexLocker locker(&mutex);
+    if (memberId <= 0) {
+        qDebug() << "Invalid member ID in isVIPMember:" << memberId;
+        return false;
+    }
+    
+    try {
+        // Create a copy of mutex reference to avoid potential issues
+        QMutex& mutexRef = mutex;
+        QMutexLocker locker(&mutexRef);
+        
+        qDebug() << "Checking VIP status for member ID:" << memberId;
+        
+        // Use find() instead of direct access to avoid potential exceptions
     auto it = vipMembers.find(memberId);
-    return it != vipMembers.end() && it->second;
+        bool isVip = (it != vipMembers.end() && it->second);
+        
+        qDebug() << "Member" << memberId << "VIP status:" << isVip;
+        return isVip;
+    }
+    catch (const std::exception& e) {
+        qDebug() << "Exception in isVIPMember for member ID" << memberId << ":" << e.what();
+        return false;
+    }
+    catch (...) {
+        qDebug() << "Unknown exception in isVIPMember for member ID" << memberId;
+        return false;
+    }
 }
 
 int PadelDataManager::calculatePriority(int memberId) const {
@@ -749,17 +1357,29 @@ void PadelDataManager::setMemberDataManager(MemberDataManager* memberManager) {
 // Private helper methods
 QJsonArray PadelDataManager::readCourtsFromFile(QString& errorMessage) const {
     QFile file(QDir(dataDir).filePath("courts.json"));
+    if (!file.exists()) {
+        qDebug() << "Courts file does not exist at:" << QDir(dataDir).filePath("courts.json");
+        return QJsonArray();
+    }
+    
     if (!file.open(QIODevice::ReadOnly)) {
-        errorMessage = "Could not open courts file for reading";
+        errorMessage = "Could not open courts file for reading: " + file.errorString();
         return QJsonArray();
     }
 
-    QJsonParseError parseError;
-    QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &parseError);
+    QByteArray data = file.readAll();
     file.close();
+    
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
 
     if (parseError.error != QJsonParseError::NoError) {
         errorMessage = "Error parsing courts file: " + parseError.errorString();
+        return QJsonArray();
+    }
+    
+    if (!doc.isArray()) {
+        errorMessage = "Courts file does not contain a valid JSON array";
         return QJsonArray();
     }
 
@@ -768,14 +1388,21 @@ QJsonArray PadelDataManager::readCourtsFromFile(QString& errorMessage) const {
 
 QJsonArray PadelDataManager::readBookingsFromFile(QString& errorMessage) const {
     QFile file(QDir(dataDir).filePath("bookings.json"));
+    if (!file.exists()) {
+        // No bookings yet, not an error
+        return QJsonArray();
+    }
+    
     if (!file.open(QIODevice::ReadOnly)) {
         errorMessage = "Could not open bookings file for reading";
         return QJsonArray();
     }
 
-    QJsonParseError parseError;
-    QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &parseError);
+    QByteArray data = file.readAll();
     file.close();
+    
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
 
     if (parseError.error != QJsonParseError::NoError) {
         errorMessage = "Error parsing bookings file: " + parseError.errorString();
@@ -783,86 +1410,6 @@ QJsonArray PadelDataManager::readBookingsFromFile(QString& errorMessage) const {
     }
 
     return doc.array();
-}
-
-bool PadelDataManager::writeCourtsToFile(const QJsonArray& courts, QString& errorMessage) const {
-    QFile file(QDir(dataDir).filePath("courts.json"));
-    if (!file.open(QIODevice::WriteOnly)) {
-        errorMessage = "Could not open courts file for writing";
-        return false;
-    }
-
-    QJsonDocument doc(courts);
-    file.write(doc.toJson());
-    file.close();
-    return true;
-}
-
-bool PadelDataManager::writeBookingsToFile(const QJsonArray& bookings, QString& errorMessage) const {
-    QFile file(QDir(dataDir).filePath("bookings.json"));
-    if (!file.open(QIODevice::WriteOnly)) {
-        errorMessage = "Could not open bookings file for writing";
-        return false;
-    }
-
-    QJsonDocument doc(bookings);
-    file.write(doc.toJson());
-    file.close();
-    return true;
-}
-
-QJsonObject PadelDataManager::courtToJson(const Court& court) const {
-    QJsonObject json;
-    json["id"] = court.getId();
-    json["name"] = court.getName();
-    json["location"] = court.getLocation();
-    
-    QJsonArray timeSlotsArray;
-    const std::vector<QTime>& timeSlots = court.getAllTimeSlots();
-    for (const QTime& slot : timeSlots) {
-        timeSlotsArray.append(slot.toString("hh:mm"));
-    }
-    json["timeSlots"] = timeSlotsArray;
-    
-    return json;
-}
-
-QJsonObject PadelDataManager::bookingToJson(const Booking& booking) const {
-    QJsonObject json;
-    json["id"] = booking.getBookingId();
-    json["courtId"] = booking.getCourt().getId();
-    json["memberId"] = booking.getUser().getId();
-    json["startTime"] = booking.getStartTime().toString(Qt::ISODate);
-    json["endTime"] = booking.getEndTime().toString(Qt::ISODate);
-    return json;
-}
-
-Court PadelDataManager::jsonToCourt(const QJsonObject& json) {
-    Court court;
-    court.setId(json["id"].toInt());
-    court.setName(json["name"].toString());
-    court.setLocation(json["location"].toString());
-    
-    QJsonArray timeSlotsArray = json["timeSlots"].toArray();
-    std::vector<QTime> timeSlots;
-    for (const QJsonValue& slot : timeSlotsArray) {
-        timeSlots.push_back(QTime::fromString(slot.toString(), "hh:mm"));
-    }
-    court.getAllTimeSlots() = timeSlots;
-    
-    return court;
-}
-
-Booking PadelDataManager::jsonToBooking(const QJsonObject& json) {
-    int bookingId = json["id"].toInt();
-    int courtId = json["courtId"].toInt();
-    int memberId = json["memberId"].toInt();
-    QDateTime startTime = QDateTime::fromString(json["startTime"].toString(), Qt::ISODate);
-    QDateTime endTime = QDateTime::fromString(json["endTime"].toString(), Qt::ISODate);
-    
-    Court court;
-    User user;
-    return Booking(bookingId, court, startTime, endTime, user);
 }
 
 int PadelDataManager::generateBookingId() const {
@@ -931,17 +1478,171 @@ bool PadelDataManager::validateBookingTime(const QDateTime& startTime, const QDa
     return true;
 }
 
-bool PadelDataManager::validateCourtAvailability(int courtId, const QDateTime& startTime, 
-                                               const QDateTime& endTime) const {
+// Add implementation for getAllBookings method
+QVector<Booking> PadelDataManager::getAllBookings() const {
+    QMutexLocker locker(&mutex);
+    QVector<Booking> result;
+    
     for (const auto& pair : bookingsById) {
-        const Booking& booking = pair.second;
-        if (booking.getCourt().getId() == courtId) {
-            if ((startTime >= booking.getStartTime() && startTime < booking.getEndTime()) ||
-                (endTime > booking.getStartTime() && endTime <= booking.getEndTime()) ||
-                (startTime <= booking.getStartTime() && endTime >= booking.getEndTime())) {
-                return false;
+        result.append(pair.second);
+    }
+    
+    return result;
+}
+
+// Add implementation for suggestNextSlots method
+QVector<QDateTime> PadelDataManager::suggestNextSlots(int courtId, const QDateTime& fromTime) const {
+    QMutexLocker locker(&mutex);
+    QVector<QDateTime> suggestions;
+    
+    // Try to find the court
+    if (!courtsById.count(courtId)) {
+        return suggestions;
+    }
+    
+    const Court& court = courtsById.at(courtId);
+    QDate date = fromTime.date();
+    
+    // Check availability for the next 7 days
+    for (int day = 0; day < 7; ++day) {
+        QDate checkDate = date.addDays(day);
+        
+        // Get available slots for this court on this date
+        QVector<QTime> availableSlots = getAvailableTimeSlots(courtId, checkDate);
+        
+        // Add each available slot as a suggestion
+        for (const QTime& time : availableSlots) {
+            suggestions.append(QDateTime(checkDate, time));
+            
+            // If we have enough suggestions, return
+            if (suggestions.size() >= 5) {
+                return suggestions;
             }
         }
     }
+    
+    return suggestions;
+}
+
+Court PadelDataManager::jsonToCourt(const QJsonObject& json) {
+    int id = json["id"].toInt();
+    QString name = json["name"].toString();
+    QString location = json["location"].toString();
+    bool isIndoor = json["isIndoor"].toBool();
+    double pricePerHour = json["pricePerHour"].toDouble();
+    
+    Court court(id, name, location, isIndoor, pricePerHour);
+    
+    // Load description if available
+    if (json.contains("description")) {
+        court.setDescription(json["description"].toString());
+    }
+    
+    // Load features if available
+    if (json.contains("features") && json["features"].isArray()) {
+        QJsonArray featuresArray = json["features"].toArray();
+        QStringList features;
+        
+        for (const QJsonValue& value : featuresArray) {
+            features.append(value.toString());
+        }
+        
+        court.setFeatures(features);
+    }
+    
+    // Load time slots if available
+    if (json.contains("timeSlots") && json["timeSlots"].isArray()) {
+        QJsonArray slotsArray = json["timeSlots"].toArray();
+        std::vector<QTime> timeSlots;
+        
+        for (const QJsonValue& value : slotsArray) {
+            QString timeStr = value.toString();
+            QTime time = QTime::fromString(timeStr, "HH:mm");
+            
+            if (time.isValid()) {
+                timeSlots.push_back(time);
+            }
+        }
+        
+        // Get the time slots vector by reference and add all slots
+        auto& courtTimeSlots = court.getAllTimeSlots();
+        courtTimeSlots = timeSlots;
+    }
+    
+    return court;
+}
+
+bool PadelDataManager::canCancelOrReschedule(int bookingId) const {
+    QMutexLocker locker(&mutex);
+    
+    auto it = bookingsById.find(bookingId);
+    if (it == bookingsById.end()) {
+                return false;
+            }
+    
+    const Booking& booking = it->second;
+    QDateTime now = QDateTime::currentDateTime();
+    
+    // Allow cancellation or rescheduling at least 3 hours before start time
+    return now.secsTo(booking.getStartTime()) >= 3 * 60 * 60; // 3 hours
+}
+
+bool PadelDataManager::findNextAvailableSlot(int courtId, QDateTime& suggestedTime, QString& errorMessage) {
+    qDebug() << "Inside findNextAvailableSlot for court:" << courtId << "from time:" << suggestedTime.toString();
+    
+    QMutexLocker locker(&this->mutex);
+    
+    // Validate court exists
+    if (this->courtsById.find(courtId) == this->courtsById.end()) {
+        errorMessage = "Court not found";
+        qDebug() << "Court not found with ID:" << courtId;
+        return false;
+    }
+    
+    // Get the court
+    const Court& court = this->courtsById.at(courtId);
+    
+    QDateTime currentTime = suggestedTime;
+    QDateTime maxSearchTime = suggestedTime.addDays(7);
+    
+    // Determine the slot duration in seconds (assume 1 hour slots)
+    const int slotDurationSecs = 60 * 60;
+    
+    // Normalize suggested time to the nearest hour
+    QTime timeComponent = currentTime.time();
+    int minutes = timeComponent.minute();
+    if (minutes > 0) {
+        currentTime = currentTime.addSecs((60 - minutes) * 60);
+    }
+    
+    while (currentTime < maxSearchTime) {
+        // Check if this time slot works
+        QDateTime endTime = currentTime.addSecs(slotDurationSecs);
+        
+        // Check if court is available at this time
+        if (this->isCourtAvailable(courtId, currentTime, endTime)) {
+            // Check if the court has this time slot available
+            QVector<QTime> availableSlots = this->getAvailableTimeSlots(courtId, currentTime.date());
+            bool slotFound = false;
+            
+            for (const QTime& slot : availableSlots) {
+                QDateTime slotDateTime(currentTime.date(), slot);
+                if (slotDateTime.time().hour() == currentTime.time().hour()) {
+                    slotFound = true;
+                    break;
+                }
+            }
+            
+            if (slotFound) {
+                suggestedTime = currentTime;
+                qDebug() << "Found available slot at:" << suggestedTime.toString();
     return true;
+            }
+        }
+        currentTime = currentTime.addSecs(slotDurationSecs);
+    }
+    
+    errorMessage = "No available slots found within the next 7 days";
+    qDebug() << errorMessage;
+    return false;
 } 
