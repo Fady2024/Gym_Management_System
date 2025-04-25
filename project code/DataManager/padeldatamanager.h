@@ -71,6 +71,7 @@ public:
     bool isBooked(int courtId, const QDateTime& time) const;
     QVector<Court> searchAvailableCourts(const QDateTime& time, const QString& location) const;
     QVector<QDateTime> suggestNextSlots(int courtId, const QDateTime& fromTime) const;
+    bool findNextAvailableSlot(int courtId, QDateTime& suggestedTime, QString& errorMessage);
     bool canCancelOrReschedule(int bookingId) const;
 
     // VIP management
@@ -112,6 +113,10 @@ signals:
     void waitlistUpdated(int courtId);
     void courtAvailabilityChanged(int courtId);
     void vipStatusChanged(int memberId, bool isVIP);
+
+private slots:
+    void safeEmitBookingCreated(int bookingId, int userId);
+    void safeEmitBookingCancelled(int bookingId, int userId);
 
 private:
     QString dataDir;

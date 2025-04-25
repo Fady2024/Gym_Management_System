@@ -1,1 +1,32 @@
-[]
+[
+    {
+        "courtId": 1,
+        "endTime": "2025-04-25T20:00:00",
+        "id": 1,
+        "isCancelled": false,
+        "isVip": true,
+        "price": 85,
+        "startTime": "2025-04-25T19:00:00",
+        "userId": 2
+    },
+    {
+        "courtId": 1,
+        "endTime": "2025-04-25T17:00:00",
+        "id": 2,
+        "isCancelled": true,
+        "isVip": true,
+        "price": 85,
+        "startTime": "2025-04-25T16:00:00",
+        "userId": 2
+    },
+    {
+        "courtId": 2,
+        "endTime": "2025-04-25T13:00:00",
+        "id": 3,
+        "isCancelled": false,
+        "isVip": true,
+        "price": 85,
+        "startTime": "2025-04-25T12:00:00",
+        "userId": 2
+    }
+]

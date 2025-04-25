@@ -6,6 +6,7 @@
 #include <QMap>
 #include <vector>
 #include <QTime>
+#include <QStringList>
 
 class Court {
 public:
@@ -19,6 +20,8 @@ public:
     const QString& getLocation() const { return m_location; }
     bool isIndoor() const { return m_isIndoor; }
     double getPricePerHour() const { return m_pricePerHour; }
+    const QString& getDescription() const { return m_description; }
+    const QStringList& getFeatures() const { return m_features; }
     const QMap<QDateTime, bool>& getAvailability() const { return m_availability; }
     std::vector<QTime>& getAllTimeSlots() { return m_timeSlots; }
     const std::vector<QTime>& getAllTimeSlots() const { return m_timeSlots; }
@@ -29,6 +32,8 @@ public:
     void setLocation(const QString& location) { m_location = location; }
     void setIndoor(bool indoor) { m_isIndoor = indoor; }
     void setPricePerHour(double price) { m_pricePerHour = price; }
+    void setDescription(const QString& description) { m_description = description; }
+    void setFeatures(const QStringList& features) { m_features = features; }
     void setAvailability(const QMap<QDateTime, bool>& availability) { m_availability = availability; }
 
     // Availability management
@@ -41,6 +46,8 @@ private:
     QString m_location;
     bool m_isIndoor;
     double m_pricePerHour;
+    QString m_description;
+    QStringList m_features;
     QMap<QDateTime, bool> m_availability;
     std::vector<QTime> m_timeSlots;
 };

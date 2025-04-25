@@ -7,6 +7,7 @@ Court::Court()
     , m_location("")
     , m_isIndoor(false)
     , m_pricePerHour(0.0)
+    , m_description("")
 {
 }
 
@@ -17,6 +18,7 @@ Court::Court(int courtId, const QString& name, const QString& location, bool isI
     , m_location(location)
     , m_isIndoor(isIndoor)
     , m_pricePerHour(pricePerHour)
+    , m_description("")
 {
 }
 
