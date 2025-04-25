@@ -5,21 +5,19 @@ using namespace std;
 // Constructor: starts the background thread to increment time  
 TimeLogic::TimeLogic() {  
    currentTime = QDateTime::currentDateTime();
-   keepRunning.store(true);
    multiplier = 1.0;  
    timeThread = thread(&TimeLogic::incrementTime, this); // Creates a thread running incrementTime in this object  
 }
 
 TimeLogic::~TimeLogic() {
-    keepRunning = false; // Signal the thread to stop
     if (timeThread.joinable()) {
         timeThread.join(); // Ensure clean shutdown
     }
 }
 void TimeLogic::incrementTime() {
-    while (keepRunning) {
+    while (true) {
         this_thread::sleep_for(chrono::milliseconds(int(1000 / multiplier))); // Sleep based on speed multiplier
-		currentTime = currentTime.addSecs(1);
+		currentTime = currentTime.addDays(1);
         cout << currentTime.toString().toStdString() << endl; // Print formatted time
     }
 }

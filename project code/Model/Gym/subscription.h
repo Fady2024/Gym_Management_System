@@ -15,9 +15,11 @@ enum class SubscriptionType {
 
 class Subscription {
 public:
+    QDate currentDate;
     Subscription();
     Subscription(SubscriptionType type, const QDate& startDate);
-    
+
+    [[nodiscard]] static QDate current_date();
     [[nodiscard]] SubscriptionType getType() const;
     [[nodiscard]] QDate getStartDate() const;
     [[nodiscard]] QDate getEndDate() const;

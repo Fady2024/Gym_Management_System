@@ -11,7 +11,6 @@ class TimeLogic {
 private:
     QDateTime currentTime;
     float multiplier;
-    atomic<bool> keepRunning;
     thread timeThread;
     void incrementTime();
 public:
