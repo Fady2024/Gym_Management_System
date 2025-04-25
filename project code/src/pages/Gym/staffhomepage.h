@@ -10,7 +10,7 @@
 #include "../DataManager/memberdatamanager.h"
 #include "../DataManager/classdatamanager.h"
 #include "../DataManager/padeldatamanager.h"
-#include "homepage.h"
+#include "../homepage.h"
 #include "settingspage.h"
 #include <QLabel>
 #include "../Language/LanguageSelector.h"

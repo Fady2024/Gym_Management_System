@@ -3,6 +3,7 @@
 
 #include <QDate>
 #include <QString>
+#include "../System/timeLogic.h"
 #include <QDebug>
 
 enum class SubscriptionType {

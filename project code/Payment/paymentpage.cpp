@@ -27,7 +27,7 @@
 #include "../../Theme/ThemeManager.h"
 #include "../DataManager/memberdatamanager.h"
 #include "../DataManager/userdatamanager.h"
-#include "../Model/subscription.h"
+#include "../Model/Gym/subscription.h"
 #include "../Language/LanguageManager.h"
 
 PaymentPage::PaymentPage(QWidget *parent, MemberDataManager* memberManager, UserDataManager* userDataManager)

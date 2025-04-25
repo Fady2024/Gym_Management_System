@@ -13,7 +13,7 @@
 #include <QDir>
 #include "../Model/Padel/Court.h"
 #include "../Model/Padel/Booking.h"
-#include "../Model/member.h"
+#include "../Model/Gym/member.h"
 #include "../DataManager/memberdatamanager.h"
 #include <QString>
 #include <QVector>

@@ -56,3 +56,4 @@ ipch/
 *.pdb
 *.idb
 *.ilk
+/.env (2).example

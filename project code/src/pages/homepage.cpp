@@ -1,5 +1,7 @@
 #include "homepage.h"
 #include <QResizeEvent>
+#include <qtimer.h>
+#include "../../Model/System/timeLogic.h"
 
 HomePage::HomePage(QWidget *parent)
     : QWidget(parent)
@@ -9,6 +11,7 @@ HomePage::HomePage(QWidget *parent)
 
 void HomePage::setupUI()
 {
+    clockWidget = new ClockWidget(this);
     mainLayout = new QVBoxLayout(this);
     mainLayout->setSpacing(20);
     mainLayout->setContentsMargins(40, 40, 40, 40);
@@ -31,14 +34,37 @@ void HomePage::setupUI()
     descriptionLabel->setAlignment(Qt::AlignCenter);
     descriptionLabel->setWordWrap(true);
 
+    // Create buttons
+    addTimeMultiplier = new QPushButton(tr(">>"));
+    subTimeMultiplier = new QPushButton(tr("<<"));
+
+    addTimeMultiplier->setStyleSheet("font-size: 32px; padding: 10px; background-color: #6B7280");
+    subTimeMultiplier->setStyleSheet("font-size: 32px; padding: 10px; background-color: #fffff0");
+
+    // Connect buttons to slots
+    connect(addTimeMultiplier, &QPushButton::clicked, this, [=]() {timeLogicInstance.setMultiplier(timeLogicInstance.getMultiplier() + 1);});
+    connect(subTimeMultiplier, &QPushButton::clicked, this, [=]() {timeLogicInstance.setMultiplier(timeLogicInstance.getMultiplier() - 1);});
+
+
+    buttonLayout = new QHBoxLayout(this);
+	buttonLayout->addWidget(subTimeMultiplier);
+    buttonLayout->addSpacing(15);
+	buttonLayout->addWidget(addTimeMultiplier);
+
+
     // Add widgets to layout with proper spacing
     mainLayout->addStretch();
     mainLayout->addWidget(welcomeLabel);
+    mainLayout->addSpacing(10);
+	mainLayout->addLayout(buttonLayout);
     mainLayout->addSpacing(10);
     mainLayout->addWidget(subtitleLabel);
     mainLayout->addSpacing(20);
     mainLayout->addWidget(descriptionLabel);
     mainLayout->addStretch();
+
+    clockWidget->raise();
+    clockWidget->show();
 
     // Set minimum size
     setMinimumSize(800, 600);
@@ -110,7 +136,18 @@ void HomePage::updateLayout()
 
 void HomePage::retranslateUI()
 {
-    welcomeLabel->setText(tr("Welcome to FitFlexPro!"));
+    //welcomeLabel->setText(tr("Welcome to FitFlexPro!"));
+
+    QTimer* timer = new QTimer(welcomeLabel); // parented to the label for memory management
+    QObject::connect(timer, &QTimer::timeout, [=]() {
+        welcomeLabel->setText(timeLogicInstance.getFormattedTime() +
+            "   x" +
+            QString::number(timeLogicInstance.getMultiplier())
+            );
+        });
+    timer->start(100); //updates every one second
+
+    //welcomeLabel->setText(tr(timeLogicInstance.getFormattedTime().c_str()));
     subtitleLabel->setText(tr("Your Personal Fitness Journey Starts Here"));
     descriptionLabel->setText(tr("Track your workouts, monitor your nutrition, and achieve your fitness goals with our comprehensive fitness management system."));
 } 

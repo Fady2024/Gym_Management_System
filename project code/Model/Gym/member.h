@@ -1,7 +1,7 @@
 #ifndef MEMBER_H
 #define MEMBER_H
 
-#include "user.h"
+#include "../System/user.h"
 #include <QList>
 #include <QPair>
 #include "subscription.h"

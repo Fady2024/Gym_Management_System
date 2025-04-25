@@ -14,6 +14,7 @@
 #include "settingspage.h"
 #include <QLabel>
 #include "../Language/LanguageSelector.h"
+//#include "../../UI/Widgets/Clock.h"
 
 class MainPage : public QMainWindow
 {
@@ -89,6 +90,8 @@ private:
     QLabel* titleLabel;
     QScrollArea* scrollArea;
     LanguageSelector* languageSelector;
+
+
 };
 
 #endif // MAINPAGE_H 

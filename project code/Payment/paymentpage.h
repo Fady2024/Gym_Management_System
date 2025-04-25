@@ -24,7 +24,7 @@
 #include "../../Theme/ThemeManager.h"
 #include "../DataManager/memberdatamanager.h"
 #include "../DataManager/userdatamanager.h"
-#include "../Model/subscription.h"
+#include "../Model/Gym/subscription.h"
 
 class PaymentPage : public QWidget
 {

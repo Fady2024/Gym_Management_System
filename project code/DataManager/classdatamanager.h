@@ -6,7 +6,7 @@
 #include <QJsonArray>
 #include <QFile>
 #include <QJsonParseError>
-#include "../Model/class.h"
+#include "../Model/Gym/class.h"
 #include "../DataManager/memberdatamanager.h"
 #include <QString>
 #include <QVector>

@@ -20,7 +20,7 @@
 
 #include "../UI/UIUtils.h"
 #include "../DataManager/memberdatamanager.h"
-#include "../Model/subscription.h"
+#include "../Model/Gym/subscription.h"
 
 class SubscriptionPage : public QWidget
 {

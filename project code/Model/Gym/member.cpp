@@ -1,4 +1,4 @@
-#include "member.h"
+#include "../Gym/member.h"
 #include <QDebug>
 
 // Constructor with member-specific data

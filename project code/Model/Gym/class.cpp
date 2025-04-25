@@ -1,7 +1,8 @@
-#include "class.h"
+#include "../class.h"
 #include <algorithm>
 
 //setters
+
 void Class::setCapacity(int capacity) 
 { this->capacity = capacity; }
 

@@ -7,8 +7,8 @@
 #include <QFile>
 #include <QJsonParseError>
 #include <QMutex>
-#include "../Model/member.h"
-#include "../Model/subscription.h"
+#include "../Model/Gym/member.h"
+#include "../Model/Gym/subscription.h"
 #include "../DataManager/userdatamanager.h"
 #include <QString>
 #include <QVector>
