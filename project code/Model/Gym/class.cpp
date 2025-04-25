@@ -1,4 +1,4 @@
-#include "../class.h"
+#include "../Gym/class.h"
 #include <algorithm>
 
 //setters

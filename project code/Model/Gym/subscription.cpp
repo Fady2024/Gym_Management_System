@@ -1,4 +1,4 @@
-#include "../subscription.h"
+#include "../Gym/subscription.h"
 #include <QDebug>
 
 Subscription::Subscription() 
