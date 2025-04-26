@@ -175,7 +175,10 @@ set(PAYMENT_SOURCES
         "project code/Payment/paymentpage.cpp"
         "project code/Payment/paymentpage.h"
 )
-
+set(STAFF_SOURCES
+        "project code/staff/addmemberpage.cpp"
+        "project code/staff/addmemberpage.h"
+)
 # Define project sources
 set(PROJECT_SOURCES
         ${MAIN_SOURCES}
@@ -189,6 +192,7 @@ set(PROJECT_SOURCES
         ${LANGUAGE_SOURCES}
         ${SUBSCRIPTION_SOURCES}
         ${PAYMENT_SOURCES}
+        ${STAFF_SOURCES}
         ${RESOURCE_FILES}
         ${QM_FILES}
         "project code/UI/Stylesheets/Gym/staffHomePageStyle.h"
@@ -244,6 +248,7 @@ target_include_directories(DS_Project PRIVATE
         "${CMAKE_SOURCE_DIR}/project code/Language"
         "${CMAKE_SOURCE_DIR}/project code/Subscription"
         "${CMAKE_SOURCE_DIR}/project code/Payment"
+        "${CMAKE_SOURCE_DIR}/project code/staff"
 )
 
 # Link Qt libraries

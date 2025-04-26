@@ -10,9 +10,9 @@
 #include "../DataManager/memberdatamanager.h"
 #include "../DataManager/classdatamanager.h"
 #include "../DataManager/padeldatamanager.h"
-#include "../homepage.h"
+#include "homepage.h"
 #include "settingspage.h"
-#include "../Padel/addcourtpage.h"
+#include "../staff/addmemberpage.h"
 #include <QLabel>
 #include "../Language/LanguageSelector.h"
 
@@ -21,6 +21,8 @@ class StaffHomePage : public QMainWindow
     Q_OBJECT
 
 public:
+    explicit StaffHomePage(UserDataManager* userDataManager, MemberDataManager* memberDataManager,
+        ClassDataManager* classDataManager, QWidget* parent = nullptr);
     explicit StaffHomePage(UserDataManager* userDataManager, MemberDataManager* memberDataManager, 
                           ClassDataManager* classDataManager, PadelDataManager* padelDataManager,
                           QWidget* parent = nullptr);
@@ -29,7 +31,6 @@ public:
     void clearUserData();
     void handleLogin(const QString& email);
     QString getCurrentUserEmail() const { return currentUserEmail; }
-
 signals:
     void logoutRequested();
     void userDataLoaded(const QString& email);
@@ -46,11 +47,10 @@ protected:
     }
 
 private slots:
-    void handleWorkoutPage() const;
+    void handleAddMemberPage() const;
     void handleNutritionPage() const;
     void handleProfilePage() const;
     void handleSettingsPage() const;
-    void handleAddCourtPage() const;
     void toggleTheme();
     void onLanguageChanged(const QString& language);
 
@@ -74,19 +74,17 @@ private:
 
     // Navigation buttons
     QPushButton* homeButton;
-    QPushButton* workoutButton;
+    QPushButton* addMemberButton;
     QPushButton* nutritionButton;
     QPushButton* profileButton;
     QPushButton* settingsButton;
-    QPushButton* addCourtButton;
 
     // Pages
     HomePage* homePage;
-    QWidget* workoutPage;
+    QWidget* addMemberPage;
     QWidget* nutritionPage;
     QWidget* profilePage;
     SettingsPage* settingsPage;
-    AddCourtPage* addCourtPage;
 
     QLabel* titleLabel;
     QScrollArea* scrollArea;

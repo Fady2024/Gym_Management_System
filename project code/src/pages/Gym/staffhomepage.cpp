@@ -16,30 +16,55 @@
 #include "../Theme/ThemeManager.h"
 #include "../Language/LanguageManager.h"
 #include "../Language/LanguageSelector.h"
+#include "../staff/addmemberpage.h"
 #include <QDebug>
 
 StaffHomePage::StaffHomePage(UserDataManager* userDataManager, MemberDataManager* memberDataManager,
-                         ClassDataManager* classDataManager, PadelDataManager* padelDataManager, QWidget* parent)
+    ClassDataManager* classDataManager, PadelDataManager* padelDataManager, QWidget* parent)
     : QMainWindow(parent)
     , userDataManager(userDataManager)
     , memberDataManager(memberDataManager)
     , classDataManager(classDataManager)
     , padelDataManager(padelDataManager)
 {
-    isDarkTheme = ThemeManager::getInstance().isDarkTheme();
-    setupUI();
-    updateTheme(isDarkTheme);
+    try {
+        qDebug() << "StaffHomePage constructor started";
 
-    // Connect to ThemeManager
-    connect(&ThemeManager::getInstance(), &ThemeManager::themeChanged,
+        if (!userDataManager) {
+            qDebug() << "Warning: userDataManager is null in StaffHomePage constructor";
+        }
+
+        if (!memberDataManager) {
+            qDebug() << "Warning: memberDataManager is null in StaffHomePage constructor";
+        }
+
+        if (!classDataManager) {
+            qDebug() << "Warning: classDataManager is null in StaffHomePage constructor";
+        }
+
+        isDarkTheme = ThemeManager::getInstance().isDarkTheme();
+        setupUI();
+        updateTheme(isDarkTheme);
+
+        // Connect to ThemeManager
+        connect(&ThemeManager::getInstance(), &ThemeManager::themeChanged,
             this, [this](bool isDark) {
                 isDarkTheme = isDark;
                 updateTheme(isDark);
             });
 
-    // Connect to LanguageManager
-    connect(&LanguageManager::getInstance(), &LanguageManager::languageChanged,
+        // Connect to LanguageManager
+        connect(&LanguageManager::getInstance(), &LanguageManager::languageChanged,
             this, &StaffHomePage::onLanguageChanged);
+
+        qDebug() << "StaffHomePage constructor completed successfully";
+    }
+    catch (const std::exception& e) {
+        qDebug() << "Exception in StaffHomePage constructor: " << e.what();
+    }
+    catch (...) {
+        qDebug() << "Unknown exception in StaffHomePage constructor";
+    }
 }
 
 StaffHomePage::~StaffHomePage()
@@ -151,24 +176,21 @@ void StaffHomePage::setupUI()
         };
 
     homeButton = createNavButton(tr("Home"), "🏠");
-    workoutButton = createNavButton(tr("Members"), "💪");
-    nutritionButton = createNavButton(tr("Add Member"), "🥗");
-    profileButton = createNavButton(tr("Search Member"), "👤");
-    addCourtButton = createNavButton(tr("Add Court"), "🎾");
+    addMemberButton = createNavButton(tr("Add Member"), "💪");
+    nutritionButton = createNavButton(tr("Nutrition"), "🥗");
+    profileButton = createNavButton(tr("Profile"), "👤");
     settingsButton = createNavButton(tr("Settings"), "⚙️");
 
     homeButton->setCheckable(true);
-    workoutButton->setCheckable(true);
+    addMemberButton->setCheckable(true);
     nutritionButton->setCheckable(true);
     profileButton->setCheckable(true);
-    addCourtButton->setCheckable(true);
     settingsButton->setCheckable(true);
 
     navButtonsLayout->addWidget(homeButton);
-    navButtonsLayout->addWidget(workoutButton);
+    navButtonsLayout->addWidget(addMemberButton);
     navButtonsLayout->addWidget(nutritionButton);
     navButtonsLayout->addWidget(profileButton);
-    navButtonsLayout->addWidget(addCourtButton);
     navButtonsLayout->addWidget(settingsButton);
 
     scrollArea->setWidget(navButtonsContainer);
@@ -224,10 +246,9 @@ void StaffHomePage::setupUI()
     scrollArea->viewport()->setMouseTracking(true);
 
     connect(homeButton, &QPushButton::clicked, this, &StaffHomePage::handleHomePage);
-    connect(workoutButton, &QPushButton::clicked, this, &StaffHomePage::handleWorkoutPage);
+    connect(addMemberButton, &QPushButton::clicked, this, &StaffHomePage::handleAddMemberPage);
     connect(nutritionButton, &QPushButton::clicked, this, &StaffHomePage::handleNutritionPage);
     connect(profileButton, &QPushButton::clicked, this, &StaffHomePage::handleProfilePage);
-    connect(addCourtButton, &QPushButton::clicked, this, &StaffHomePage::handleAddCourtPage);
     connect(settingsButton, &QPushButton::clicked, this, &StaffHomePage::handleSettingsPage);
 
     // Initialize with home page
@@ -255,6 +276,7 @@ void StaffHomePage::updateNavBarStyle()
         blurIntensity,
         shadowOpacity
     );
+
     if (const auto navBar = findChild<QWidget*>("navBar")) {
         navBar->setStyleSheet(navBarStyle);
     }
@@ -299,34 +321,103 @@ bool StaffHomePage::eventFilter(QObject* obj, QEvent* event)
 
 void StaffHomePage::setupPages()
 {
-    homePage = new HomePage(this);
-    workoutPage = new QWidget;
-    nutritionPage = new QWidget;
-    profilePage = new QWidget;
-    settingsPage = new SettingsPage(userDataManager, memberDataManager, this);
-    addCourtPage = new AddCourtPage(padelDataManager, this);
+    try {
+        qDebug() << "StaffHomePage::setupPages called";
 
-    connect(settingsPage, &SettingsPage::logoutRequested, this, &StaffHomePage::logoutRequested);
-    connect(this, &StaffHomePage::userDataLoaded, settingsPage, &SettingsPage::onUserDataLoaded);
+        if (!stackedWidget) {
+            qDebug() << "Error: stackedWidget is null in setupPages";
+            return;
+        }
 
-    stackedWidget->addWidget(homePage);
-    stackedWidget->addWidget(workoutPage);
-    stackedWidget->addWidget(nutritionPage);
-    stackedWidget->addWidget(profilePage);
-    stackedWidget->addWidget(settingsPage);
-    stackedWidget->addWidget(addCourtPage);
+        homePage = new HomePage(this);
+        if (!homePage) {
+            qDebug() << "Error: Failed to create HomePage";
+            return;
+        }
+
+        addMemberPage = new AddMemberPage(userDataManager, memberDataManager, this);
+        if (!addMemberPage) {
+            qDebug() << "Error: Failed to create addMemberPage";
+            return;
+        }
+
+        nutritionPage = new QWidget;
+        if (!nutritionPage) {
+            qDebug() << "Error: Failed to create nutritionPage";
+            return;
+        }
+
+        profilePage = new QWidget;
+        if (!profilePage) {
+            qDebug() << "Error: Failed to create profilePage";
+            return;
+        }
+
+        settingsPage = new SettingsPage(userDataManager, memberDataManager, this);
+        if (!settingsPage) {
+            qDebug() << "Error: Failed to create settingsPage";
+            return;
+        }
+
+        qDebug() << "Connecting settingsPage signals";
+        connect(settingsPage, &SettingsPage::logoutRequested, this, &StaffHomePage::logoutRequested);
+        connect(this, &StaffHomePage::userDataLoaded, settingsPage, &SettingsPage::onUserDataLoaded);
+
+        qDebug() << "Adding widgets to stackedWidget";
+        stackedWidget->addWidget(homePage);
+        stackedWidget->addWidget(addMemberPage);
+        stackedWidget->addWidget(nutritionPage);
+        stackedWidget->addWidget(profilePage);
+        stackedWidget->addWidget(settingsPage);
+        qDebug() << "Pages setup completed successfully";
+    }
+    catch (const std::exception& e) {
+        qDebug() << "Exception in StaffHomePage::setupPages: " << e.what();
+    }
+    catch (...) {
+        qDebug() << "Unknown exception in StaffHomePage::setupPages";
+    }
 }
 
 void StaffHomePage::handleHomePage() const
 {
-    stackedWidget->setCurrentWidget(homePage);
-    updateButtonStates(homeButton);
+    try {
+        qDebug() << "StaffHomePage::handleHomePage called";
+
+        if (!stackedWidget) {
+            qDebug() << "Error: stackedWidget is null in handleHomePage";
+            return;
+        }
+
+        if (!homePage) {
+            qDebug() << "Error: homePage is null in handleHomePage";
+            return;
+        }
+
+        qDebug() << "Setting current widget to homePage";
+        stackedWidget->setCurrentWidget(homePage);
+
+        if (!homeButton) {
+            qDebug() << "Error: homeButton is null in handleHomePage";
+            return;
+        }
+
+        qDebug() << "Updating button states";
+        updateButtonStates(homeButton);
+        qDebug() << "StaffHomePage::handleHomePage completed successfully";
+    }
+    catch (const std::exception& e) {
+        qDebug() << "Exception in StaffHomePage::handleHomePage: " << e.what();
+    }
+    catch (...) {
+        qDebug() << "Unknown exception in StaffHomePage::handleHomePage";
+    }
 }
 
-void StaffHomePage::handleWorkoutPage() const
+void StaffHomePage::handleAddMemberPage() const
 {
-    stackedWidget->setCurrentWidget(workoutPage);
-    updateButtonStates(workoutButton);
+    stackedWidget->setCurrentWidget(addMemberPage);
+    updateButtonStates(addMemberButton);
 }
 
 void StaffHomePage::handleNutritionPage() const
@@ -345,12 +436,6 @@ void StaffHomePage::handleSettingsPage() const
 {
     stackedWidget->setCurrentWidget(settingsPage);
     updateButtonStates(settingsButton);
-}
-
-void StaffHomePage::handleAddCourtPage() const
-{
-    stackedWidget->setCurrentWidget(addCourtPage);
-    updateButtonStates(addCourtButton);
 }
 
 void StaffHomePage::toggleTheme()
@@ -372,7 +457,6 @@ void StaffHomePage::updateTheme(bool isDark)
 
     homePage->updateTheme(isDark);
     settingsPage->updateTheme(isDark);
-    addCourtPage->updateTheme(isDark);
 }
 
 void StaffHomePage::updateAllTextColors()
@@ -383,21 +467,61 @@ void StaffHomePage::updateAllTextColors()
 
 void StaffHomePage::updateButtonStates(QPushButton* activeButton) const
 {
-    homeButton->setChecked(false);
-    workoutButton->setChecked(false);
-    nutritionButton->setChecked(false);
-    profileButton->setChecked(false);
-    settingsButton->setChecked(false);
-    addCourtButton->setChecked(false);
+    try {
+        qDebug() << "StaffHomePage::updateButtonStates called";
 
-    activeButton->setChecked(true);
+        if (!homeButton || !addMemberButton || !nutritionButton || !profileButton || !settingsButton) {
+            qDebug() << "Error: One or more navigation buttons are null";
+            return;
+        }
+
+        if (!activeButton) {
+            qDebug() << "Error: activeButton is null";
+            return;
+        }
+
+        homeButton->setChecked(false);
+        addMemberButton->setChecked(false);
+        nutritionButton->setChecked(false);
+        profileButton->setChecked(false);
+        settingsButton->setChecked(false);
+
+        activeButton->setChecked(true);
+        qDebug() << "Button states updated successfully";
+    }
+    catch (const std::exception& e) {
+        qDebug() << "Exception in StaffHomePage::updateButtonStates: " << e.what();
+    }
+    catch (...) {
+        qDebug() << "Unknown exception in StaffHomePage::updateButtonStates";
+    }
 }
 
 void StaffHomePage::handleLogin(const QString& email)
 {
-    currentUserEmail = email;
-    emit userDataLoaded(email);
-    handleHomePage();
+    try {
+        qDebug() << "StaffHomePage::handleLogin called with email: " << email;
+        currentUserEmail = email;
+
+        qDebug() << "About to emit userDataLoaded signal";
+        emit userDataLoaded(email);
+
+        qDebug() << "Checking if homePage is initialized";
+        if (!homePage) {
+            qDebug() << "Error: homePage is null in StaffHomePage::handleLogin";
+            return;
+        }
+
+        qDebug() << "Calling handleHomePage()";
+        handleHomePage();
+        qDebug() << "StaffHomePage::handleLogin completed successfully";
+    }
+    catch (const std::exception& e) {
+        qDebug() << "Exception in StaffHomePage::handleLogin: " << e.what();
+    }
+    catch (...) {
+        qDebug() << "Unknown exception in StaffHomePage::handleLogin";
+    }
 }
 
 void StaffHomePage::clearUserData()
@@ -411,8 +535,8 @@ void StaffHomePage::clearUserData()
     if (homePage) {
         // Clear home page data
     }
-    if (workoutPage) {
-        // Clear workout page data
+    if (addMemberPage) {
+        // Clear addMember page data
     }
     if (nutritionPage) {
         // Clear nutrition page data
@@ -420,14 +544,6 @@ void StaffHomePage::clearUserData()
     if (profilePage) {
         // Clear profile page data
     }
-
-    // Clear Padel-related data
-    if (padelDataManager) {
-        qDebug() << "Clearing Padel-related data for staff view";
-        // Any specific padel data clearing for staff view can be added here
-    }
-
-    // Reset to home page
     if (stackedWidget && homePage) {
         stackedWidget->setCurrentWidget(homePage);
         if (homeButton) {
@@ -435,7 +551,6 @@ void StaffHomePage::clearUserData()
         }
     }
 }
-
 void StaffHomePage::resizeEvent(QResizeEvent* event)
 {
     QMainWindow::resizeEvent(event);
@@ -472,27 +587,24 @@ void StaffHomePage::updateLayout()
         );
 
         homeButton->setStyleSheet(buttonStyle);
-        workoutButton->setStyleSheet(buttonStyle);
+        addMemberButton->setStyleSheet(buttonStyle);
         nutritionButton->setStyleSheet(buttonStyle);
         profileButton->setStyleSheet(buttonStyle);
-        addCourtButton->setStyleSheet(buttonStyle);
         settingsButton->setStyleSheet(buttonStyle);
 
         // Hide button text if very small, keep emoji
         if (size.width() < 600) {
             homeButton->setText("🏠");
-            workoutButton->setText("💪");
+            addMemberButton->setText("💪");
             nutritionButton->setText("🥗");
             profileButton->setText("👤");
-            addCourtButton->setText("🎾");
             settingsButton->setText("⚙️");
         }
         else {
             homeButton->setText(QString("🏠 %1").arg(tr("Home")));
-            workoutButton->setText(QString("💪 %1").arg(tr("Members")));
-            nutritionButton->setText(QString("🥗 %1").arg(tr("Add Member")));
-            profileButton->setText(QString("👤 %1").arg(tr("Search Member")));
-            addCourtButton->setText(QString("🎾 %1").arg(tr("Add Court")));
+            addMemberButton->setText(QString("💪 %1").arg(tr("Add Member")));
+            nutritionButton->setText(QString("🥗 %1").arg(tr("Nutrition")));
+            profileButton->setText(QString("👤 %1").arg(tr("Profile")));
             settingsButton->setText(QString("⚙️ %1").arg(tr("Settings")));
         }
     }
@@ -520,24 +632,21 @@ void StaffHomePage::updateLayout()
         );
 
         homeButton->setStyleSheet(buttonStyle);
-        workoutButton->setStyleSheet(buttonStyle);
+        addMemberButton->setStyleSheet(buttonStyle);
         nutritionButton->setStyleSheet(buttonStyle);
         profileButton->setStyleSheet(buttonStyle);
-        addCourtButton->setStyleSheet(buttonStyle);
         settingsButton->setStyleSheet(buttonStyle);
 
         homeButton->setText(QString("🏠 %1").arg(tr("Home")));
-        workoutButton->setText(QString("💪 %1").arg(tr("Members")));
-        nutritionButton->setText(QString("🥗 %1").arg(tr("Add Member")));
-        profileButton->setText(QString("👤 %1").arg(tr("Search Member")));
-        addCourtButton->setText(QString("🎾 %1").arg(tr("Add Court")));
+        addMemberButton->setText(QString("💪 %1").arg(tr("Add Member")));
+        nutritionButton->setText(QString("🥗 %1").arg(tr("Nutrition")));
+        profileButton->setText(QString("👤 %1").arg(tr("Profile")));
         settingsButton->setText(QString("⚙️ %1").arg(tr("Settings")));
     }
 
     // Update pages layout
     if (homePage) homePage->updateLayout();
     if (settingsPage) settingsPage->updateLayout();
-    if (addCourtPage) addCourtPage->updateLayout();
 }
 
 void StaffHomePage::onLanguageChanged(const QString& language)
@@ -547,7 +656,6 @@ void StaffHomePage::onLanguageChanged(const QString& language)
     // Update all pages
     if (homePage) homePage->retranslateUI();
     if (settingsPage) settingsPage->retranslateUI();
-    if (addCourtPage) addCourtPage->retranslateUI();
 
     // Update window title
     window()->setWindowTitle(tr("FitFlex Pro"));
@@ -559,12 +667,11 @@ void StaffHomePage::retranslateUI()
     window()->setWindowTitle(tr("FitFlex Pro"));
 
     // Update navigation buttons
-    if (homeButton) homeButton->setText(QString("🏠 %1").arg(tr("Home")));
-    if (workoutButton) workoutButton->setText(QString("💪 %1").arg(tr("Members")));
-    if (nutritionButton) nutritionButton->setText(QString("🥗 %1").arg(tr("Add Member")));
-    if (profileButton) profileButton->setText(QString("👤 %1").arg(tr("Search Member")));
-    if (addCourtButton) addCourtButton->setText(QString("🎾 %1").arg(tr("Add Court")));
-    if (settingsButton) settingsButton->setText(QString("⚙️ %1").arg(tr("Settings")));
+    if (homeButton) homeButton->setText(tr("Home"));
+    if (addMemberButton) addMemberButton->setText(tr("Add Member"));
+    if (nutritionButton) nutritionButton->setText(tr("Nutrition"));
+    if (profileButton) profileButton->setText(tr("Profile"));
+    if (settingsButton) settingsButton->setText(tr("Settings"));
 
     // Update title
     if (titleLabel) {
@@ -574,7 +681,6 @@ void StaffHomePage::retranslateUI()
     // Update pages
     if (homePage) homePage->retranslateUI();
     if (settingsPage) settingsPage->retranslateUI();
-    if (addCourtPage) addCourtPage->retranslateUI();
 
     // Force layout update
     updateLayout();
