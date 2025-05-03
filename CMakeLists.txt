@@ -142,6 +142,8 @@ set(UI_SOURCES
         "project code/UI/UIUtils.h"
         "project code/UI/leftsidebar.cpp"
         "project code/UI/leftsidebar.h"
+        "project code/UI/Widgets/Notifications/Notifications.cpp"
+        "project code/UI/Widgets/Notifications/Notifications.h"
 )
 
 set(LANGUAGE_SOURCES
@@ -182,7 +184,7 @@ set(PROJECT_SOURCES
 )
 
 # Create executable
-add_executable(DS_Project ${PROJECT_SOURCES} "project code/Model/System/timeLogic.cpp" "project code/Model/System/timeLogic.h" "project code/UI/Widgets/Clock.cpp" "project code/UI/Widgets/Clock.h")
+add_executable(DS_Project ${PROJECT_SOURCES} "project code/Model/System/timeLogic.cpp" "project code/Model/System/timeLogic.h" "project code/UI/Widgets/Clock/Clock.cpp" "project code/UI/Widgets/Clock/Clock.h")
 
 # Create required directories only once during configure time rather than build time
 file(MAKE_DIRECTORY 

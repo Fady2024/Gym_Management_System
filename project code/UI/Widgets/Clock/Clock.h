@@ -6,7 +6,7 @@
 #include <QTimer>
 #include <QEvent>
 #include <QPropertyAnimation>
-#include "../../Model/System/timeLogic.h"
+#include "../../../Model/System/timeLogic.h"
 #include <QVBoxLayout>
 #include <QDebug>
 #include <QMouseEvent> 

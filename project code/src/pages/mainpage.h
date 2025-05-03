@@ -15,14 +15,15 @@
 #include <QLabel>
 #include "../Language/LanguageSelector.h"
 //#include "../../UI/Widgets/Clock.h"
+#include "../../UI/Widgets/Notifications/Notifications.h"
 
 class MainPage : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    explicit MainPage(UserDataManager* userDataManager, 
-                     MemberDataManager* memberDataManager, 
+    explicit MainPage(UserDataManager* userDataManager,
+                     MemberDataManager* memberDataManager,
                      ClassDataManager* classDataManager,
                      PadelDataManager* padelDataManager,
                      QWidget *parent = nullptr);
@@ -30,6 +31,7 @@ public:
     void handleHomePage() const;
     void clearUserData();
     void handleLogin(const QString& email);
+    void showNotification(const QString& title, const QString& message, int duration) const;
     QString getCurrentUserEmail() const { return currentUserEmail; }
 
 signals:
@@ -90,6 +92,9 @@ private:
     QLabel* titleLabel;
     QScrollArea* scrollArea;
     LanguageSelector* languageSelector;
+
+    NotificationWidget* notificationWidget;
+
 
 
 };

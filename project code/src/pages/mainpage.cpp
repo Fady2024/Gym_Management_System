@@ -19,7 +19,7 @@
 #include <QDebug>
 #include <QTimer>
 
-MainPage::MainPage(UserDataManager* userDataManager, MemberDataManager* memberDataManager, 
+MainPage::MainPage(UserDataManager* userDataManager, MemberDataManager* memberDataManager,
                    ClassDataManager* classDataManager, PadelDataManager* padelDataManager, QWidget* parent)
     : QMainWindow(parent)
     , userDataManager(userDataManager)
@@ -29,15 +29,15 @@ MainPage::MainPage(UserDataManager* userDataManager, MemberDataManager* memberDa
 {
     try {
         qDebug() << "MainPage constructor started";
-        
+
         if (!userDataManager) {
             qDebug() << "Warning: userDataManager is null in MainPage constructor";
         }
-        
+
         if (!memberDataManager) {
             qDebug() << "Warning: memberDataManager is null in MainPage constructor";
         }
-        
+
         if (!classDataManager) {
             qDebug() << "Warning: classDataManager is null in MainPage constructor";
         }
@@ -45,7 +45,7 @@ MainPage::MainPage(UserDataManager* userDataManager, MemberDataManager* memberDa
         if (!padelDataManager) {
             qDebug() << "Warning: padelDataManager is null in MainPage constructor";
         }
-        
+
         isDarkTheme = ThemeManager::getInstance().isDarkTheme();
         setupUI();
         updateTheme(isDarkTheme);
@@ -60,7 +60,7 @@ MainPage::MainPage(UserDataManager* userDataManager, MemberDataManager* memberDa
         // Connect to LanguageManager
         connect(&LanguageManager::getInstance(), &LanguageManager::languageChanged,
                 this, &MainPage::onLanguageChanged);
-        
+
         qDebug() << "MainPage constructor completed successfully";
     } catch (const std::exception& e) {
         qDebug() << "Exception in MainPage constructor: " << e.what();
@@ -76,9 +76,11 @@ MainPage::~MainPage()
 
 void MainPage::setupUI()
 {
+    notificationWidget = new NotificationWidget(this);
+
     // Set minimum size to prevent UI elements from being cut off
     setMinimumSize(800, 600);
-    
+
     const auto centralWidget = new QWidget(this);
     setCentralWidget(centralWidget);
 
@@ -237,7 +239,7 @@ void MainPage::setupUI()
 
     // Add nav bar and stacked widget to main layout
     mainVLayout->addWidget(navBar);
-    
+
     stackedWidget = new QStackedWidget;
     stackedWidget->setStyleSheet("QStackedWidget { background: transparent; }");
     setupPages();
@@ -248,14 +250,16 @@ void MainPage::setupUI()
     scrollArea->viewport()->setMouseTracking(true);
 
     connect(homeButton, &QPushButton::clicked, this, &MainPage::handleHomePage);
-    connect(workoutButton, &QPushButton::clicked, this, &MainPage::handleWorkoutPage);
+    connect(workoutButton, &QPushButton::clicked, this, [this]() {
+    showNotification("Hello", "TEST", 3000);
+    });
     connect(nutritionButton, &QPushButton::clicked, this, &MainPage::handleNutritionPage);
     connect(profileButton, &QPushButton::clicked, this, &MainPage::handleProfilePage);
     connect(settingsButton, &QPushButton::clicked, this, &MainPage::handleSettingsPage);
 
     // Initialize with home page
     handleHomePage();
-    
+
     // Initialize with English text
     retranslateUI();
 }
@@ -265,7 +269,7 @@ void MainPage::updateNavBarStyle()
     const QSize size = this->size();
     QString blurIntensity = size.width() < 800 ? "8px" : "12px";
     QString shadowOpacity = size.width() < 800 ? "0.03" : "0.05";
-    
+
     QString navBarStyle = QString(
         "QWidget#navBar {"
         "   background: %1;"
@@ -325,36 +329,36 @@ void MainPage::setupPages()
 {
     try {
         qDebug() << "MainPage::setupPages called";
-        
+
         if (!stackedWidget) {
             qDebug() << "Error: stackedWidget is null in setupPages";
             return;
         }
-        
+
         homePage = new HomePage(this);
         if (!homePage) {
             qDebug() << "Error: Failed to create HomePage";
             return;
         }
-        
+
         workoutPage = new QWidget;
         if (!workoutPage) {
             qDebug() << "Error: Failed to create workoutPage";
             return;
         }
-        
+
         nutritionPage = new QWidget;
         if (!nutritionPage) {
             qDebug() << "Error: Failed to create nutritionPage";
             return;
         }
-        
+
         profilePage = new QWidget;
         if (!profilePage) {
             qDebug() << "Error: Failed to create profilePage";
             return;
         }
-        
+
         settingsPage = new SettingsPage(userDataManager, memberDataManager, this);
         if (!settingsPage) {
             qDebug() << "Error: Failed to create settingsPage";
@@ -383,25 +387,25 @@ void MainPage::handleHomePage() const
 {
     try {
         qDebug() << "MainPage::handleHomePage called";
-        
+
         if (!stackedWidget) {
             qDebug() << "Error: stackedWidget is null in handleHomePage";
             return;
         }
-        
+
         if (!homePage) {
             qDebug() << "Error: homePage is null in handleHomePage";
             return;
         }
-        
+
         qDebug() << "Setting current widget to homePage";
         stackedWidget->setCurrentWidget(homePage);
-        
+
         if (!homeButton) {
             qDebug() << "Error: homeButton is null in handleHomePage";
             return;
         }
-        
+
         qDebug() << "Updating button states";
         updateButtonStates(homeButton);
         qDebug() << "MainPage::handleHomePage completed successfully";
@@ -467,17 +471,17 @@ void MainPage::updateButtonStates(QPushButton* activeButton) const
 {
     try {
         qDebug() << "MainPage::updateButtonStates called";
-        
+
         if (!homeButton || !workoutButton || !nutritionButton || !profileButton || !settingsButton) {
             qDebug() << "Error: One or more navigation buttons are null";
             return;
         }
-        
+
         if (!activeButton) {
             qDebug() << "Error: activeButton is null";
             return;
         }
-        
+
         homeButton->setChecked(false);
         workoutButton->setChecked(false);
         nutritionButton->setChecked(false);
@@ -497,17 +501,17 @@ void MainPage::handleLogin(const QString& email)
 {
     try {
         qDebug() << "MainPage::handleLogin called with email: " << email;
-        
+
         // First, ensure we have cleared any previous data
         if (!currentUserEmail.isEmpty() && currentUserEmail != email) {
             qDebug() << "Switching user from " << currentUserEmail << " to " << email;
             // Clear previous user data
             clearUserData();
         }
-        
+
         // Set new current user email
         currentUserEmail = email;
-        
+
         qDebug() << "About to emit userDataLoaded signal";
         emit userDataLoaded(email);
         if (settingsPage) {
@@ -516,19 +520,19 @@ void MainPage::handleLogin(const QString& email)
                 qDebug() << "Forcing refresh of SubscriptionStatusPage data";
                 subscriptionStatusPage->loadMemberData();
             }
-            
+
             if (auto subscriptionPage = settingsPage->findChild<SubscriptionPage*>()) {
                 qDebug() << "Forcing refresh of SubscriptionPage data";
                 // If there's a method to force reload, call it here
             }
         }
-        
+
         qDebug() << "Checking if homePage is initialized";
         if (!homePage) {
             qDebug() << "Error: homePage is null in MainPage::handleLogin";
             return;
         }
-        
+
         qDebug() << "Calling handleHomePage()";
         handleHomePage();
         qDebug() << "MainPage::handleLogin completed successfully";
@@ -542,28 +546,28 @@ void MainPage::handleLogin(const QString& email)
 void MainPage::clearUserData()
 {
     qDebug() << "Clearing all user data from application state...";
-    
+
     // Clear current user email
     currentUserEmail.clear();
-    
+
     // Reset Settings Page completely
     if (settingsPage) {
         qDebug() << "Clearing SettingsPage data";
-        
+
         // Reset user data in settings page
         settingsPage->loadUserData("");
-        
+
         // Reset subscription data in all subscription-related components
         if (auto subscriptionStatusPage = settingsPage->findChild<SubscriptionStatusPage*>()) {
             subscriptionStatusPage->setCurrentMemberId(0);
             qDebug() << "Reset SubscriptionStatusPage member ID";
         }
-        
+
         if (auto subscriptionPage = settingsPage->findChild<SubscriptionPage*>()) {
             subscriptionPage->setCurrentMemberId(0);
             qDebug() << "Reset SubscriptionPage member ID";
         }
-        
+
         if (auto paymentPage = settingsPage->findChild<PaymentPage*>()) {
             qDebug() << "Reset PaymentPage data if present";
         }
@@ -573,15 +577,15 @@ void MainPage::clearUserData()
     if (homePage) {
         qDebug() << "Cleared HomePage data";
     }
-    
+
     if (workoutPage) {
         qDebug() << "Cleared WorkoutPage data";
     }
-    
+
     if (nutritionPage) {
         qDebug() << "Cleared NutritionPage data";
     }
-    
+
     if (profilePage) {
         qDebug() << "Cleared ProfilePage data";
     }
@@ -591,22 +595,22 @@ void MainPage::clearUserData()
         qDebug() << "Clearing Padel-related data";
         // Any specific padel data clearing can be added here
     }
-    
+
     if (stackedWidget && homePage) {
         stackedWidget->setCurrentWidget(homePage);
         qDebug() << "Reset to HomePage view";
-        
+
         if (homeButton) {
             updateButtonStates(homeButton);
             qDebug() << "Reset navigation to Home button";
         }
     }
-    
+
     // Add a small delay to ensure everything is reset before loading new data
     QTimer::singleShot(200, [this]() {
         qDebug() << "Delayed reset completed";
     });
-    
+
     qDebug() << "All user data cleared successfully";
 }
 
@@ -620,7 +624,7 @@ void MainPage::resizeEvent(QResizeEvent* event)
 void MainPage::updateLayout()
 {
     const QSize size = this->size();
-    
+
     // Adjust navigation buttons layout based on window width
     if (size.width() < 800) {
         const QString buttonStyle = QString(
@@ -643,13 +647,13 @@ void MainPage::updateLayout()
             "   color: white;"
             "}"
         );
-        
+
         homeButton->setStyleSheet(buttonStyle);
         workoutButton->setStyleSheet(buttonStyle);
         nutritionButton->setStyleSheet(buttonStyle);
         profileButton->setStyleSheet(buttonStyle);
         settingsButton->setStyleSheet(buttonStyle);
-        
+
         // Hide button text if very small, keep emoji
         if (size.width() < 600) {
             homeButton->setText("🏠");
@@ -686,20 +690,20 @@ void MainPage::updateLayout()
             "   color: white;"
             "}"
         );
-        
+
         homeButton->setStyleSheet(buttonStyle);
         workoutButton->setStyleSheet(buttonStyle);
         nutritionButton->setStyleSheet(buttonStyle);
         profileButton->setStyleSheet(buttonStyle);
         settingsButton->setStyleSheet(buttonStyle);
-        
+
         homeButton->setText(QString("🏠 %1").arg(tr("Home")));
         workoutButton->setText(QString("💪 %1").arg(tr("Workout")));
         nutritionButton->setText(QString("🥗 %1").arg(tr("Nutrition")));
         profileButton->setText(QString("👤 %1").arg(tr("Profile")));
         settingsButton->setText(QString("⚙️ %1").arg(tr("Settings")));
     }
-    
+
     // Update pages layout
     if (homePage) homePage->updateLayout();
     if (settingsPage) settingsPage->updateLayout();
@@ -708,11 +712,11 @@ void MainPage::updateLayout()
 void MainPage::onLanguageChanged(const QString& language)
 {
     retranslateUI();
-    
+
     // Update all pages
     if (homePage) homePage->retranslateUI();
     if (settingsPage) settingsPage->retranslateUI();
-    
+
     // Update window title
     window()->setWindowTitle(tr("FitFlex Pro"));
 }
@@ -728,7 +732,7 @@ void MainPage::retranslateUI()
     if (nutritionButton) nutritionButton->setText(tr("Nutrition"));
     if (profileButton) profileButton->setText(tr("Profile"));
     if (settingsButton) settingsButton->setText(tr("Settings"));
-    
+
     // Update title
     if (titleLabel) {
         titleLabel->setText(QString("FitFlex<span style='color: #7E69AB;'>Pro</span>"));
@@ -740,4 +744,10 @@ void MainPage::retranslateUI()
 
     // Force layout update
     updateLayout();
-} 
+}
+//Shows the notification in the main application window takes (title, message, lifetime)
+void MainPage::showNotification(const QString& title, const QString& message, int duration) const {
+    if (notificationWidget) {
+        notificationWidget->showNotification(title, message, duration);
+    }
+}
