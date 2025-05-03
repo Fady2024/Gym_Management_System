@@ -15,11 +15,13 @@ void Class::setNumOfEnrolled(int numOfEnrolled)
     }
 }
 
-void Class::setTo(const QTime& to)
-{this->to = to;}
+void Class::setFromDate(const QDate& fromDate) {
+    this->fromDate = fromDate;
+}
 
-void Class::setFrom(const QTime& from)
-{this->from = from;}
+void Class::setToDate(const QDate& toDate) {
+    this->toDate = toDate;
+}
 
 void Class::setCoachName(const QString& coachName) 
 {this->coachName = coachName;}
@@ -34,8 +36,13 @@ void Class::setId(int id)
 
 QString Class::getClassName() const { return className; }
 QString Class::getCoachName() const { return coachName; }
-QTime Class::getFrom() const { return from; }
-QTime Class::getTo() const { return to; }
+QDate Class::getFromDate() const {
+    return fromDate;
+}
+
+QDate Class::getToDate() const {
+    return toDate;
+}
 int Class::getCapacity() const { return capacity; }
 int Class::getNumOfEnrolled() const { return numOfEnrolled; }
 int Class::getId() const {return id;}

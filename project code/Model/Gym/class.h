@@ -16,8 +16,8 @@ public:
 	//setters
 	void setClassName(const QString& className);
 	void setCoachName(const QString& coachName);
-	void setFrom(const QTime& from);
-	void setTo(const QTime& to);
+	void setFromDate(const QDate& fromDate);
+	void setToDate(const QDate& toDate);
 	void setCapacity(int capacity);
 	void setNumOfEnrolled(int numOfEnrolled);
 	void setId(int id);
@@ -26,20 +26,20 @@ public:
 	[[nodiscard]] int getCapacity() const;
 	[[nodiscard]] int getNumOfEnrolled() const;
 	[[nodiscard]] int getId() const;
-	[[nodiscard]] QTime getTo() const;
-	[[nodiscard]] QTime getFrom() const;
+	[[nodiscard]] QDate getToDate() const;
+	[[nodiscard]] QDate getFromDate() const; //kant time we heya bel shohor .-.
 	[[nodiscard]] QString getClassName() const;
 	[[nodiscard]] QString getCoachName() const;
-	
+
 	// Session management
 	void addSession(const QDate& date);
 	void removeSession(const QDate& date);
 	[[nodiscard]] std::queue<QDate> getSessions() const;
 	[[nodiscard]] bool hasSessionOnDate(const QDate& date) const;
-	
+
 	// Capacity management
 	[[nodiscard]] bool isFull() const;
-	
+
 	// Waitlist management
 	void addToWaitlist(int memberId);
 	void removeFromWaitlist(int memberId);
@@ -58,8 +58,8 @@ private:
 	QString className;
 	QString coachName;
 	std::queue<QDate> sessions;
-	QTime from;
-	QTime to;
+	QDate fromDate;
+	QDate toDate;
 	int capacity;
 	int numOfEnrolled;
 	std::deque<int> waiting_users_ids;

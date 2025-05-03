@@ -389,8 +389,8 @@ QJsonObject ClassDataManager::classToJson(const Class& gymClass) {
     json["id"] = gymClass.getId();
     json["className"] = gymClass.getClassName();
     json["coachName"] = gymClass.getCoachName();
-    json["from"] = gymClass.getFrom().toString();
-    json["to"] = gymClass.getTo().toString();
+    json["from"] = gymClass.getFromDate().toString();
+    json["to"] = gymClass.getToDate().toString();
     json["capacity"] = gymClass.getCapacity();
     json["numOfEnrolled"] = gymClass.getNumOfEnrolled();
 
@@ -413,8 +413,8 @@ Class ClassDataManager::jsonToClass(const QJsonObject& json) {
     gymClass.setId(json["id"].toInt());
     gymClass.setClassName(json["className"].toString());
     gymClass.setCoachName(json["coachName"].toString());
-    gymClass.setFrom(QTime::fromString(json["from"].toString()));
-    gymClass.setTo(QTime::fromString(json["to"].toString()));
+    gymClass.setFromDate(QDate::fromString(json["from"].toString()));
+    gymClass.setToDate(QDate::fromString(json["to"].toString()));
     gymClass.setCapacity(json["capacity"].toInt());
     gymClass.setNumOfEnrolled(json["numOfEnrolled"].toInt());
 
