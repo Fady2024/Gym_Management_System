@@ -16,6 +16,7 @@
 #include "../Language/LanguageSelector.h"
 //#include "../../UI/Widgets/Clock.h"
 #include "../../UI/Widgets/Notifications/Notifications.h"
+#include "Stylesheets/System/mainpageStyle.h"
 
 class MainPage : public QMainWindow
 {
@@ -31,7 +32,6 @@ public:
     void handleHomePage() const;
     void clearUserData();
     void handleLogin(const QString& email);
-    void showNotification(const QString& title, const QString& message, int duration) const;
     QString getCurrentUserEmail() const { return currentUserEmail; }
 
 signals:
@@ -92,11 +92,7 @@ private:
     QLabel* titleLabel;
     QScrollArea* scrollArea;
     LanguageSelector* languageSelector;
-
     NotificationWidget* notificationWidget;
-
-
-
 };
 
 #endif // MAINPAGE_H 

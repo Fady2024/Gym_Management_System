@@ -181,6 +181,12 @@ set(PROJECT_SOURCES
         ${PAYMENT_SOURCES}
         ${RESOURCE_FILES}
         ${QM_FILES}
+        "project code/UI/Stylesheets/Gym/staffHomePageStyle.h"
+        "project code/UI/Stylesheets/System/clockStyle.h"
+        "project code/UI/Stylesheets/System/notificationStyle.h"
+        "project code/UI/Widgets/Notifications/NotificationManager.h"
+        "project code/UI/Widgets/Notifications/NotificationManager.cpp"
+        "project code/UI/Stylesheets/System/mainpageStyle.h"
 )
 
 # Create executable

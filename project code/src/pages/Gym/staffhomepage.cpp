@@ -18,7 +18,7 @@
 #include "../Language/LanguageSelector.h"
 #include <QDebug>
 
-StaffHomePage::StaffHomePage(UserDataManager* userDataManager, MemberDataManager* memberDataManager, 
+StaffHomePage::StaffHomePage(UserDataManager* userDataManager, MemberDataManager* memberDataManager,
                          ClassDataManager* classDataManager, PadelDataManager* padelDataManager, QWidget* parent)
     : QMainWindow(parent)
     , userDataManager(userDataManager)
@@ -251,7 +251,6 @@ void StaffHomePage::updateNavBarStyle()
         blurIntensity,
         shadowOpacity
     );
-
     if (const auto navBar = findChild<QWidget*>("navBar")) {
         navBar->setStyleSheet(navBarStyle);
     }

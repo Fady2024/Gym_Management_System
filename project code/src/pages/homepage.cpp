@@ -2,6 +2,7 @@
 #include <QResizeEvent>
 #include <qtimer.h>
 #include "../../Model/System/timeLogic.h"
+#include "Widgets/Notifications/NotificationManager.h"
 
 HomePage::HomePage(QWidget *parent)
     : QWidget(parent)
@@ -39,11 +40,23 @@ void HomePage::setupUI()
     subTimeMultiplier = new QPushButton(tr("<<"));
 
     addTimeMultiplier->setStyleSheet("font-size: 32px; padding: 10px; background-color: #6B7280");
-    subTimeMultiplier->setStyleSheet("font-size: 32px; padding: 10px; background-color: #fffff0");
+    subTimeMultiplier->setStyleSheet("font-size: 32px; padding: 10px; background-color: #6B7280");
 
     // Connect buttons to slots
-    connect(addTimeMultiplier, &QPushButton::clicked, this, [=]() {timeLogicInstance.setMultiplier(timeLogicInstance.getMultiplier() + 1);});
-    connect(subTimeMultiplier, &QPushButton::clicked, this, [=]() {timeLogicInstance.setMultiplier(timeLogicInstance.getMultiplier() - 1);});
+    connect(addTimeMultiplier, &QPushButton::clicked, this, [=]() {
+        timeLogicInstance.setMultiplier(timeLogicInstance.getMultiplier() + 1);
+        NotificationManager::instance().showNotification("Multiplier", "Increase multiplier speed by x1",
+            []() {
+                timeLogicInstance.setMultiplier(timeLogicInstance.getMultiplier() + 1);
+            },NotificationType::Success);
+    });
+    connect(subTimeMultiplier, &QPushButton::clicked, this, [=]() {
+        timeLogicInstance.setMultiplier(timeLogicInstance.getMultiplier() - 1);
+        NotificationManager::instance().showNotification("Multiplier", "Decrease multiplier speed by x1",
+            []() {
+                timeLogicInstance.setMultiplier(timeLogicInstance.getMultiplier() + 1);
+            },NotificationType::Error);
+    });
 
 
     buttonLayout = new QHBoxLayout(this);

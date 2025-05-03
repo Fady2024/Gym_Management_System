@@ -27,6 +27,7 @@ MainPage::MainPage(UserDataManager* userDataManager, MemberDataManager* memberDa
     , classDataManager(classDataManager)
     , padelDataManager(padelDataManager)
 {
+
     try {
         qDebug() << "MainPage constructor started";
 
@@ -76,8 +77,6 @@ MainPage::~MainPage()
 
 void MainPage::setupUI()
 {
-    notificationWidget = new NotificationWidget(this);
-
     // Set minimum size to prevent UI elements from being cut off
     setMinimumSize(800, 600);
 
@@ -117,8 +116,7 @@ void MainPage::setupUI()
     logoLabel->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
     titleLabel = new QLabel("FitFlex<span style='color: #7E69AB;'>Pro</span>");
-    titleLabel->setStyleSheet(QString("QLabel { font-size: 20px; font-weight: 600; color: %1; background: transparent; }")
-        .arg(isDarkTheme ? "#FFFFFF" : "#111827"));
+    titleLabel->setStyleSheet(titleLabelStyle.arg(isDarkTheme ? "#FFFFFF" : "#111827"));
     titleLabel->setTextFormat(Qt::RichText);
 
     logoLayout->addWidget(logoLabel);
@@ -156,26 +154,7 @@ void MainPage::setupUI()
         button->setText(QString("%1 %2").arg(emoji, text));
         button->setFixedHeight(40);
         button->setCursor(Qt::PointingHandCursor);
-        button->setStyleSheet(
-            "QPushButton {"
-            "   background: transparent;"
-            "   border: none;"
-            "   color: #64748b;"
-            "   font-size: 14px;"
-            "   font-weight: 500;"
-            "   padding: 8px 16px;"
-            "   border-radius: 8px;"
-            "   min-width: 100px;"
-            "}"
-            "QPushButton:hover {"
-            "   background: rgba(139, 92, 246, 0.1);"
-            "   color: #8B5CF6;"
-            "}"
-            "QPushButton:checked {"
-            "   background: #8B5CF6;"
-            "   color: white;"
-            "}"
-        );
+        button->setStyleSheet(buttonStyle);
         return button;
     };
 
@@ -250,9 +229,7 @@ void MainPage::setupUI()
     scrollArea->viewport()->setMouseTracking(true);
 
     connect(homeButton, &QPushButton::clicked, this, &MainPage::handleHomePage);
-    connect(workoutButton, &QPushButton::clicked, this, [this]() {
-    showNotification("Hello", "TEST", 3000);
-    });
+    connect(workoutButton, &QPushButton::clicked, this, &MainPage::handleWorkoutPage);
     connect(nutritionButton, &QPushButton::clicked, this, &MainPage::handleNutritionPage);
     connect(profileButton, &QPushButton::clicked, this, &MainPage::handleProfilePage);
     connect(settingsButton, &QPushButton::clicked, this, &MainPage::handleSettingsPage);
@@ -270,14 +247,7 @@ void MainPage::updateNavBarStyle()
     QString blurIntensity = size.width() < 800 ? "8px" : "12px";
     QString shadowOpacity = size.width() < 800 ? "0.03" : "0.05";
 
-    QString navBarStyle = QString(
-        "QWidget#navBar {"
-        "   background: %1;"
-        "   backdrop-filter: blur(%2);"
-        "   border-bottom: 1px solid rgba(255, 255, 255, 0.1);"
-        "   box-shadow: 0 1px 2px rgba(0, 0, 0, %3);"
-        "}"
-    ).arg(
+    QString navBarStyle = navBarStyler.arg(
         isDarkTheme ? "rgba(31, 41, 55, 0.7)" : "rgba(255, 255, 255, 0.7)",
         blurIntensity,
         shadowOpacity
@@ -627,32 +597,11 @@ void MainPage::updateLayout()
 
     // Adjust navigation buttons layout based on window width
     if (size.width() < 800) {
-        const QString buttonStyle = QString(
-            "QPushButton {"
-            "   background: transparent;"
-            "   border: none;"
-            "   color: #64748b;"
-            "   font-size: 12px;"
-            "   font-weight: 500;"
-            "   padding: 6px 12px;"
-            "   border-radius: 6px;"
-            "   min-width: 80px;"
-            "}"
-            "QPushButton:hover {"
-            "   background: rgba(139, 92, 246, 0.1);"
-            "   color: #8B5CF6;"
-            "}"
-            "QPushButton:checked {"
-            "   background: #8B5CF6;"
-            "   color: white;"
-            "}"
-        );
-
-        homeButton->setStyleSheet(buttonStyle);
-        workoutButton->setStyleSheet(buttonStyle);
-        nutritionButton->setStyleSheet(buttonStyle);
-        profileButton->setStyleSheet(buttonStyle);
-        settingsButton->setStyleSheet(buttonStyle);
+        homeButton->setStyleSheet(smallButtonStyle);
+        workoutButton->setStyleSheet(smallButtonStyle);
+        nutritionButton->setStyleSheet(smallButtonStyle);
+        profileButton->setStyleSheet(smallButtonStyle);
+        settingsButton->setStyleSheet(smallButtonStyle);
 
         // Hide button text if very small, keep emoji
         if (size.width() < 600) {
@@ -670,27 +619,6 @@ void MainPage::updateLayout()
         }
     } else {
         // For larger screens, use normal styling
-        const QString buttonStyle = QString(
-            "QPushButton {"
-            "   background: transparent;"
-            "   border: none;"
-            "   color: #64748b;"
-            "   font-size: 14px;"
-            "   font-weight: 500;"
-            "   padding: 8px 16px;"
-            "   border-radius: 8px;"
-            "   min-width: 100px;"
-            "}"
-            "QPushButton:hover {"
-            "   background: rgba(139, 92, 246, 0.1);"
-            "   color: #8B5CF6;"
-            "}"
-            "QPushButton:checked {"
-            "   background: #8B5CF6;"
-            "   color: white;"
-            "}"
-        );
-
         homeButton->setStyleSheet(buttonStyle);
         workoutButton->setStyleSheet(buttonStyle);
         nutritionButton->setStyleSheet(buttonStyle);
@@ -744,10 +672,4 @@ void MainPage::retranslateUI()
 
     // Force layout update
     updateLayout();
-}
-//Shows the notification in the main application window takes (title, message, lifetime)
-void MainPage::showNotification(const QString& title, const QString& message, int duration) const {
-    if (notificationWidget) {
-        notificationWidget->showNotification(title, message, duration);
-    }
 }

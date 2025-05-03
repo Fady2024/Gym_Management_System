@@ -1,6 +1,6 @@
 
 #include "Clock.h"
-
+#include "./Stylesheets/System/clockStyle.h"
 
 int hide_offset = 280;
 int show_offset = 150;
@@ -13,7 +13,7 @@ ClockWidget::ClockWidget(QWidget* parent)
     setAttribute(Qt::WA_Hover);
     setAttribute(Qt::WA_AlwaysStackOnTop);
     setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
-    setStyleSheet("background-color: rgba(0, 0, 0, 0.7); color: white; border-radius: 10px");
+    setStyleSheet(clockStyle);
     
     clockLabel = new QLabel(this);
     clockLabel->setAlignment(Qt::AlignCenter);

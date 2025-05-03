@@ -1,8 +1,4 @@
 #include "Notifications.h"
-#include <QPainter>
-#include <QVBoxLayout>
-#include <QScreen>
-#include <QApplication>
 
 NotificationWidget::NotificationWidget(QWidget* parent)
     : QWidget(parent)
@@ -27,11 +23,11 @@ void NotificationWidget::setupUI()
 
     // Create title label
     titleLabel = new QLabel(this);
-    titleLabel->setStyleSheet("QLabel { color: white; font-weight: bold; font-size: 14px; }");
+    titleLabel->setStyleSheet(notificationLabelStyle);
     
     // Create message label
     messageLabel = new QLabel(this);
-    messageLabel->setStyleSheet("QLabel { color: white; font-size: 12px; }");
+    messageLabel->setStyleSheet(messageLabelStyle);
     messageLabel->setWordWrap(true);
 
     layout->addWidget(titleLabel);
@@ -66,8 +62,12 @@ void NotificationWidget::initializeAnimations()
     });
 }
 
-void NotificationWidget::showNotification(const QString& title, const QString& message, int duration)
+void NotificationWidget::showNotification(const QString& title, const QString& message, std::function<void()> onClick,NotificationType type , int duration)
 {
+    m_clickCallback = onClick; //reference to the function call we want to execute
+    m_isClickable = (onClick != nullptr);
+    m_type = type;
+    setCursor(m_isClickable? Qt::PointingHandCursor : Qt::ArrowCursor); //sets hand cursor if its clickable
     titleLabel->setText(title);
     messageLabel->setText(message);
 
@@ -93,7 +93,6 @@ void NotificationWidget::showNotification(const QString& title, const QString& m
     startAnimations();
     timer->start(duration);
 }
-
 void NotificationWidget::startAnimations()
 {
     slideAnimation->start();
@@ -117,11 +116,32 @@ void NotificationWidget::paintEvent(QPaintEvent* event)
 
     // Create gradient background
     QLinearGradient gradient(0, 0, width(), height());
-    gradient.setColorAt(0, QColor(88, 101, 242, 230));    // Discord-like blue
-    gradient.setColorAt(1, QColor(73, 84, 201, 230));     // Slightly darker blue
+
+    switch (m_type) {
+        case NotificationType::Success:
+            gradient.setColorAt(0, QColor(successLight));    // Discord-like blue
+            gradient.setColorAt(1, QColor(successDark));     // Slightly darker blue
+            break;
+        case NotificationType::Error:
+            gradient.setColorAt(0, QColor(errorLight));    // Discord-like blue
+            gradient.setColorAt(1, QColor(errorDark));     // Slightly darker blue
+            break;
+        case NotificationType::Info:
+        default:
+            gradient.setColorAt(0, QColor(infoLight));    // Discord-like blue
+            gradient.setColorAt(1, QColor(infoDark));     // Slightly darker blue
+            break;
+    }
+
 
     // Draw rounded rectangle with gradient
     painter.setPen(Qt::NoPen);
     painter.setBrush(gradient);
     painter.drawRoundedRect(rect(), 10, 10);
+}
+void NotificationWidget::mousePressEvent(QMouseEvent* event)
+{
+    if (event->button() == Qt::LeftButton && m_isClickable && m_clickCallback) {
+        m_clickCallback(); //execute function in the lambda showNotification call
+    }
 }
