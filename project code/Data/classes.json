@@ -1,1 +1,35 @@
-[]
+[
+    {
+        "capacity": 20,
+        "className": "molamola",
+        "coachName": "larry",
+        "from": "Sat May 3 2025",
+        "id": 1,
+        "numOfEnrolled": 0,
+        "sessions": [
+        ],
+        "to": "Sat May 10 2025"
+    },
+    {
+        "capacity": 23,
+        "className": "class lary",
+        "coachName": "fadfood",
+        "from": "Sat May 3 2025",
+        "id": 2,
+        "numOfEnrolled": 0,
+        "sessions": [
+        ],
+        "to": "Fri May 23 2025"
+    },
+    {
+        "capacity": 50,
+        "className": "Class 3",
+        "coachName": "Khyat",
+        "from": "Sat May 3 2025",
+        "id": 3,
+        "numOfEnrolled": 0,
+        "sessions": [
+        ],
+        "to": "Fri May 23 2025"
+    }
+]

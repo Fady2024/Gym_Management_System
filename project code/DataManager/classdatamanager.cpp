@@ -100,20 +100,23 @@ bool ClassDataManager::saveToFile() {
 }
 
 bool ClassDataManager::addClass(const Class& gymClass, QString& errorMessage) {
+    qDebug() << "Attempting to add class with ID:" << gymClass.getId();
+
     if (gymClass.getId() != 0) {
-        errorMessage = "Class already has an ID";
+        errorMessage = "Class already has an ID (" + QString::number(gymClass.getId()) + ")";
+        qDebug() << errorMessage;
         return false;
     }
 
     Class newClass = gymClass;
     int newId = generateClassId();
+    qDebug() << "Generated new ID:" << newId;
     newClass.setId(newId);
     classesById[newId] = newClass;
     dataModified = true;
-    qDebug() << "Class added and marked for saving at application exit";
+    qDebug() << "Class added successfully with ID:" << newId;
     return true;
 }
-
 bool ClassDataManager::updateClass(const Class& gymClass, QString& errorMessage) {
     if (gymClass.getId() == 0) {
         errorMessage = "Invalid class ID";

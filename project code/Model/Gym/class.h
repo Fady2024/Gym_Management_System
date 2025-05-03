@@ -13,6 +13,7 @@
 class Class
 {
 public:
+	Class() : id(0), capacity(0), numOfEnrolled(0) {}
 	//setters
 	void setClassName(const QString& className);
 	void setCoachName(const QString& coachName);

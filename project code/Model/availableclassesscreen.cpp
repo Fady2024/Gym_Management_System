@@ -13,10 +13,16 @@
 #include <QMessageBox>
 #include <QProgressBar>
 
-AvailableClassesScreen::AvailableClassesScreen(QWidget *parent)
-    : QWidget(parent)
+AvailableClassesScreen::AvailableClassesScreen(ClassDataManager* dataManager, QWidget *parent)
+    : QWidget(parent), classDataManager(dataManager)
 {
     setupUI();
+    refreshClasses();
+}
+
+AvailableClassesScreen::~AvailableClassesScreen()
+{
+
 }
 
 void AvailableClassesScreen::setupUI()
@@ -35,10 +41,7 @@ void AvailableClassesScreen::setupUI()
         "border-radius: 5px;"
     );
 
-    // Connect using lambda instead of slot
-    connect(addClassButton, &QPushButton::clicked, [this]() {
-        showAddClassDialog();
-    });
+    connect(addClassButton, &QPushButton::clicked, this, &AvailableClassesScreen::showAddClassDialog);
 
     mainLayout->addWidget(addClassButton, 0, Qt::AlignRight);
 
@@ -57,10 +60,25 @@ void AvailableClassesScreen::setupUI()
 
     setLayout(mainLayout);
 }
-void AvailableClassesScreen::addClass(const Class &gymClass)
+
+void AvailableClassesScreen::refreshClasses()
 {
-    classes.append(gymClass);
-    updateClassesDisplay();
+
+    QLayoutItem *item;
+    while ((item = classesGridLayout->takeAt(0)) != nullptr) {
+        delete item->widget();
+        delete item;
+    }
+
+    QVector<Class> classes = classDataManager->getAllClasses();
+
+    for (const Class &gymClass : classes) {
+        createClassCard(gymClass);
+    }
+
+    for (int i = 0; i < 3; ++i) {
+        classesGridLayout->setColumnStretch(i, 1);
+    }
 }
 
 void AvailableClassesScreen::createClassCard(const Class &gymClass)
@@ -157,37 +175,26 @@ void AvailableClassesScreen::createClassCard(const Class &gymClass)
     classesGridLayout->addWidget(card, classesGridLayout->count() / 3, classesGridLayout->count() % 3);
 }
 
-void AvailableClassesScreen::updateClassesDisplay()
-{
-    QLayoutItem *item;
-    while ((item = classesGridLayout->takeAt(0)) != nullptr) {
-        delete item->widget();
-        delete item;
-    }
-
-    for (const Class &gymClass : classes) {
-        createClassCard(gymClass);
-    }
-
-    for (int i = 0; i < 3; ++i) {
-        classesGridLayout->setColumnStretch(i, 1);
-    }
-}
 void AvailableClassesScreen::showAddClassDialog()
 {
     QDialog dialog(this);
     dialog.setWindowTitle(tr("Add New Class"));
+    dialog.setMinimumWidth(400);
 
     QFormLayout form(&dialog);
-
     QLineEdit *classNameEdit = new QLineEdit;
     QLineEdit *coachNameEdit = new QLineEdit;
+
     QDateEdit *fromDateEdit = new QDateEdit;
     fromDateEdit->setCalendarPopup(true);
     fromDateEdit->setDate(QDate::currentDate());
+    fromDateEdit->setDisplayFormat("dd/MM/yyyy");
+
     QDateEdit *toDateEdit = new QDateEdit;
     toDateEdit->setCalendarPopup(true);
-    toDateEdit->setDate(QDate::currentDate());
+    toDateEdit->setDate(QDate::currentDate().addDays(7));
+    toDateEdit->setDisplayFormat("dd/MM/yyyy");
+
     QSpinBox *capacitySpinBox = new QSpinBox;
     capacitySpinBox->setRange(1, 100);
     capacitySpinBox->setValue(20);
@@ -196,33 +203,57 @@ void AvailableClassesScreen::showAddClassDialog()
     form.addRow(tr("Start Date:"), fromDateEdit);
     form.addRow(tr("End Date:"), toDateEdit);
     form.addRow(tr("Capacity:"), capacitySpinBox);
-
     QDialogButtonBox buttonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel,
-                               Qt::Horizontal, &dialog);
+                             Qt::Horizontal, &dialog);
     form.addRow(&buttonBox);
-    QObject::connect(&buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
-    QObject::connect(&buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+
+    connect(&buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    connect(&buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
 
     if (dialog.exec() == QDialog::Accepted) {
         if (classNameEdit->text().isEmpty() || coachNameEdit->text().isEmpty()) {
-            QMessageBox::warning(this, tr("Error"), tr("why empty :((("));
+            QMessageBox::warning(this, tr("Error"), tr("EMLAHA"));
             return;
         }
 
         if (fromDateEdit->date() > toDateEdit->date()) {
-            QMessageBox::warning(this, tr("Error"), tr("Ezay el nehaya abl el bedaya ._. "));
+            QMessageBox::warning(this, tr("Error"), tr("EZAY END BEFORE BEGINGNINGINIGG"));
             return;
         }
 
         Class newClass;
-        newClass.setClassName(classNameEdit->text());
-        newClass.setCoachName(coachNameEdit->text());
+
+        newClass.setClassName(classNameEdit->text().trimmed());
+        newClass.setCoachName(coachNameEdit->text().trimmed());
         newClass.setFromDate(fromDateEdit->date());
         newClass.setToDate(toDateEdit->date());
         newClass.setCapacity(capacitySpinBox->value());
         newClass.setNumOfEnrolled(0);
-        newClass.setId(classes.size() + 1);
 
-        addClass(newClass);
+        qDebug() << "adding rn new class with ID:" << newClass.getId()
+                 << "Name:" << newClass.getClassName();
+
+        QString errorMessage;
+        if (!classDataManager->addClass(newClass, errorMessage)) {
+            QMessageBox::warning(this, tr("Error"),
+                tr("Failed to add class: %1").arg(errorMessage));
+            return;
+        }
+
+        refreshClasses();
+        QMessageBox::information(this, tr("Success"),
+            tr("Class '%1' added successfully!").arg(newClass.getClassName()));
     }
+}
+
+void AvailableClassesScreen::handleEnrollment(int classId)
+{
+    QMessageBox::information(this, tr("Enrollment"),
+        tr("Enrollment for class ID %1 will be implemented").arg(classId));
+}
+
+void AvailableClassesScreen::handleWaitlist(int classId)
+{
+    QMessageBox::information(this, tr("Waitlist"),
+        tr("Waitlist for class ID %1 will be implemented").arg(classId));
 }
