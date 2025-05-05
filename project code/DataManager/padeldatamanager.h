@@ -50,27 +50,20 @@ public:
     Court getCourtById(int courtId) const;
     QVector<Court> getAllCourts() const;
     QVector<Court> getCourtsByLocation(const QString& location) const;
-    
-    // New search and filter methods
-    QVector<Court> searchCourtsByName(const QString& nameQuery) const;
-    QVector<Court> filterCourtsByTimeAndLocation(const QTime& time, const QDate& date, 
-                                              const QString& location = QString()) const;
+
     QVector<Court> getAvailableCourts(const QDateTime& startTime, const QDateTime& endTime, 
                                     const QString& location = QString()) const;
     int getCurrentAttendees(int courtId, const QDateTime& startTime, const QDateTime& endTime) const;
-    QVector<Court> searchCourts(const QString& nameQuery, const QTime& time, const QDate& date, 
-                            const QString& location = QString()) const;
+
+    Court findClosestAvailableCourt(int originalCourtId, const QDateTime& startTime, const QDateTime& endTime) const;
 
     // Booking management
-    bool addBooking(const Booking& booking, QString& errorMessage);
-    bool updateBooking(const Booking& booking, QString& errorMessage);
     bool deleteBooking(int bookingId, QString& errorMessage);
     bool createBooking(int userId, int courtId, const QDateTime& startTime, 
                      const QDateTime& endTime, QString& errorMessage, bool isFromWaitlist = false);
     bool cancelBooking(int bookingId, QString& errorMessage);
     bool rescheduleBooking(int bookingId, const QDateTime& newStartTime, 
                          const QDateTime& newEndTime, QString& errorMessage);
-    Booking getBookingById(int bookingId) const;
     QVector<Booking> getAllBookings() const;
     QVector<Booking> getBookingsByMember(int memberId) const;
     QVector<Booking> getBookingsByCourt(int courtId) const;
@@ -79,16 +72,8 @@ public:
     bool isCourtAvailable(int courtId, const QDateTime& startTime, 
                          const QDateTime& endTime) const;
 
-    // Availability and search
-    bool isBooked(int courtId, const QDateTime& time) const;
-    QVector<Court> searchAvailableCourts(const QDateTime& time, const QString& location) const;
-    QVector<QDateTime> suggestNextSlots(int courtId, const QDateTime& fromTime) const;
-    bool findNextAvailableSlot(int courtId, QDateTime& suggestedTime, QString& errorMessage);
-    bool canCancelOrReschedule(int bookingId) const;
-
     // VIP management
-    bool isVIPBooking(int bookingId) const;
-    double calculateBookingPrice(int courtId, const QDateTime& startTime, 
+    double calculateBookingPrice(int courtId, const QDateTime& startTime,
                                const QDateTime& endTime, bool isVIP) const;
     void setVIPPriority(int memberId, bool isVIP);
     bool isVIPMember(int memberId) const;

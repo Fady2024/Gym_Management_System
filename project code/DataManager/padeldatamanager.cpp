@@ -2664,11 +2664,23 @@ QJsonArray PadelDataManager::getAvailableTimeSlots(int courtId, const QDate& dat
         }
 
         qDebug() << "Retrieved" << timeSlotsCopy.size() << "time slots for court" << courtId;
+        
+        QDate currentDate = QDate::currentDate();
+        QTime currentTime = QTime::currentTime();
+        bool isToday = (date == currentDate);
+        
+        qDebug() << "Current date:" << currentDate.toString() << ", Selected date:" << date.toString() 
+                 << ", Is today:" << isToday << ", Current time:" << currentTime.toString();
 
         for (const QTime& time : timeSlotsCopy) {
 
             if (!time.isValid()) {
                 qDebug() << "Skipping invalid time slot for court" << courtId;
+                continue;
+            }
+            
+            if (isToday && time <= currentTime) {
+                qDebug() << "Skipping past time slot:" << time.toString("HH:mm") << " (current time:" << currentTime.toString("HH:mm") << ")";
                 continue;
             }
 
@@ -3064,5 +3076,61 @@ void PadelDataManager::processWaitlistForDate(int courtId, const QDate& date) {
     }
     catch (...) {
         qDebug() << "Unknown exception in processWaitlistForDate";
+    }
+}
+
+Court PadelDataManager::findClosestAvailableCourt(int originalCourtId, const QDateTime& startTime, const QDateTime& endTime) const {
+    try {
+        qDebug() << "Finding closest available court to court ID:" << originalCourtId 
+                 << "at time" << startTime.toString();
+        
+        if (originalCourtId <= 0 || !startTime.isValid() || !endTime.isValid()) {
+            qDebug() << "Invalid parameters in findClosestAvailableCourt";
+            return Court();
+        }
+        
+        auto originalCourtIt = courtsById.find(originalCourtId);
+        if (originalCourtIt == courtsById.end()) {
+            qDebug() << "Original court not found in findClosestAvailableCourt:" << originalCourtId;
+            return Court();
+        }
+        
+        const Court& originalCourt = originalCourtIt->second;
+        QString originalLocation = originalCourt.getLocation();
+        
+        QVector<Court> availableCourts = getAvailableCourts(startTime, endTime, originalLocation);
+        qDebug() << "Found" << availableCourts.size() << "available courts at same location:" << originalLocation;
+        
+        for (const Court& court : availableCourts) {
+            if (court.getId() != originalCourtId) {
+                qDebug() << "Found available court at same location:" << court.getName() << "(ID:" << court.getId() << ")";
+                return court;
+            }
+        }
+        
+        if (availableCourts.isEmpty()) {
+            availableCourts = getAvailableCourts(startTime, endTime);
+            qDebug() << "Found" << availableCourts.size() << "available courts at any location";
+            
+            for (const Court& court : availableCourts) {
+                if (court.getId() != originalCourtId) {
+                    qDebug() << "Found available court at different location:" 
+                             << court.getName() << "(ID:" << court.getId() 
+                             << ") at " << court.getLocation();
+                    return court;
+                }
+            }
+        }
+        
+        qDebug() << "No available alternative courts found";
+        return Court();
+    }
+    catch (const std::exception& e) {
+        qDebug() << "Exception in findClosestAvailableCourt:" << e.what();
+        return Court();
+    }
+    catch (...) {
+        qDebug() << "Unknown exception in findClosestAvailableCourt";
+        return Court();
     }
 }
