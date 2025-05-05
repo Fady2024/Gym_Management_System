@@ -33,7 +33,7 @@ public:
     explicit SettingsPage(UserDataManager* userDataManager, MemberDataManager* memberManager, QWidget *parent = nullptr);
     void updateTheme(bool isDark);
     void updateLayout();
-    void loadUserData(const QString& email = QString());
+    void loadUserData(const QString& email);
     void retranslateUI();
 
 public slots:
@@ -56,10 +56,10 @@ protected:
 
 private slots:
     void changeProfilePicture();
-    void saveChanges();
+    bool saveChanges();
+    bool resetChanges();
     void handleLogout();
     void handleDeleteAccount();
-    void resetChanges();
     void handlePageChange(const QString& pageId);
 
 private:
