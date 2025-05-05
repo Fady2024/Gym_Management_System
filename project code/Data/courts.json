@@ -9,6 +9,7 @@
         "id": 1,
         "isIndoor": true,
         "location": "Main Building",
+        "maxAttendees": 4,
         "name": "Center Court",
         "pricePerHour": 100,
         "timeSlots": [
@@ -36,6 +37,7 @@
         "id": 2,
         "isIndoor": false,
         "location": "Outdoor Area",
+        "maxAttendees": 6,
         "name": "Beach Court",
         "pricePerHour": 80,
         "timeSlots": [
@@ -63,6 +65,7 @@
         "id": 3,
         "isIndoor": true,
         "location": "VIP Zone",
+        "maxAttendees": 2,
         "name": "Professional Court",
         "pricePerHour": 150,
         "timeSlots": [
@@ -78,6 +81,38 @@
             "19:00",
             "20:00",
             "21:00"
+        ]
+    },
+    {
+        "description": "الجو جميل والدنيا ربيع",
+        "features": [
+            "Locker Room",
+            "Glass Walls",
+            "Coaching",
+            "Lighting"
+        ],
+        "id": 4,
+        "isIndoor": true,
+        "location": "Cairo",
+        "maxAttendees": 8,
+        "name": "Room Court",
+        "pricePerHour": 200,
+        "timeSlots": [
+            "08:00",
+            "09:00",
+            "10:00",
+            "11:00",
+            "16:00",
+            "15:00",
+            "14:00",
+            "13:00",
+            "12:00",
+            "17:00",
+            "18:00",
+            "20:00",
+            "19:00",
+            "21:00",
+            "22:00"
         ]
     }
 ]
