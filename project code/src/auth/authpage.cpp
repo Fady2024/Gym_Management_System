@@ -1179,9 +1179,21 @@ void AuthPage::selectProfileImage()
         lastCircularPhoto = circularPhoto;
 
         // Get the project directory path
-        QString projectDir = QCoreApplication::applicationDirPath();
+        QString projectDir;
+        
+#ifdef FORCE_SOURCE_DIR
+        // Use the source directory path defined in CMake
+        projectDir = QString::fromUtf8(SOURCE_DATA_DIR);
+        qDebug() << "Auth - Using source directory path:" << projectDir;
+#else
+        // Fallback to application directory
+        projectDir = QCoreApplication::applicationDirPath();
         projectDir = QFileInfo(projectDir).dir().absolutePath(); // Go up to project root
+        qDebug() << "Auth - Using application directory path:" << projectDir;
+#endif
+        
         QString usersPhotoDir = projectDir + "/project code/UsersPhoto";
+        qDebug() << "Auth - Users photo directory path:" << usersPhotoDir;
 
         // Create UsersPhoto directory if it doesn't exist
         QDir dir(usersPhotoDir);

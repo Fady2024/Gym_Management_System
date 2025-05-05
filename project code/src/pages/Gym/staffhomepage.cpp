@@ -154,18 +154,21 @@ void StaffHomePage::setupUI()
     workoutButton = createNavButton(tr("Members"), "💪");
     nutritionButton = createNavButton(tr("Add Member"), "🥗");
     profileButton = createNavButton(tr("Search Member"), "👤");
+    addCourtButton = createNavButton(tr("Add Court"), "🎾");
     settingsButton = createNavButton(tr("Settings"), "⚙️");
 
     homeButton->setCheckable(true);
     workoutButton->setCheckable(true);
     nutritionButton->setCheckable(true);
     profileButton->setCheckable(true);
+    addCourtButton->setCheckable(true);
     settingsButton->setCheckable(true);
 
     navButtonsLayout->addWidget(homeButton);
     navButtonsLayout->addWidget(workoutButton);
     navButtonsLayout->addWidget(nutritionButton);
     navButtonsLayout->addWidget(profileButton);
+    navButtonsLayout->addWidget(addCourtButton);
     navButtonsLayout->addWidget(settingsButton);
 
     scrollArea->setWidget(navButtonsContainer);
@@ -224,6 +227,7 @@ void StaffHomePage::setupUI()
     connect(workoutButton, &QPushButton::clicked, this, &StaffHomePage::handleWorkoutPage);
     connect(nutritionButton, &QPushButton::clicked, this, &StaffHomePage::handleNutritionPage);
     connect(profileButton, &QPushButton::clicked, this, &StaffHomePage::handleProfilePage);
+    connect(addCourtButton, &QPushButton::clicked, this, &StaffHomePage::handleAddCourtPage);
     connect(settingsButton, &QPushButton::clicked, this, &StaffHomePage::handleSettingsPage);
 
     // Initialize with home page
@@ -300,6 +304,7 @@ void StaffHomePage::setupPages()
     nutritionPage = new QWidget;
     profilePage = new QWidget;
     settingsPage = new SettingsPage(userDataManager, memberDataManager, this);
+    addCourtPage = new AddCourtPage(padelDataManager, this);
 
     connect(settingsPage, &SettingsPage::logoutRequested, this, &StaffHomePage::logoutRequested);
     connect(this, &StaffHomePage::userDataLoaded, settingsPage, &SettingsPage::onUserDataLoaded);
@@ -309,6 +314,7 @@ void StaffHomePage::setupPages()
     stackedWidget->addWidget(nutritionPage);
     stackedWidget->addWidget(profilePage);
     stackedWidget->addWidget(settingsPage);
+    stackedWidget->addWidget(addCourtPage);
 }
 
 void StaffHomePage::handleHomePage() const
@@ -341,6 +347,12 @@ void StaffHomePage::handleSettingsPage() const
     updateButtonStates(settingsButton);
 }
 
+void StaffHomePage::handleAddCourtPage() const
+{
+    stackedWidget->setCurrentWidget(addCourtPage);
+    updateButtonStates(addCourtButton);
+}
+
 void StaffHomePage::toggleTheme()
 {
     isDarkTheme = !isDarkTheme;
@@ -360,6 +372,7 @@ void StaffHomePage::updateTheme(bool isDark)
 
     homePage->updateTheme(isDark);
     settingsPage->updateTheme(isDark);
+    addCourtPage->updateTheme(isDark);
 }
 
 void StaffHomePage::updateAllTextColors()
@@ -375,6 +388,7 @@ void StaffHomePage::updateButtonStates(QPushButton* activeButton) const
     nutritionButton->setChecked(false);
     profileButton->setChecked(false);
     settingsButton->setChecked(false);
+    addCourtButton->setChecked(false);
 
     activeButton->setChecked(true);
 }
@@ -461,22 +475,25 @@ void StaffHomePage::updateLayout()
         workoutButton->setStyleSheet(buttonStyle);
         nutritionButton->setStyleSheet(buttonStyle);
         profileButton->setStyleSheet(buttonStyle);
+        addCourtButton->setStyleSheet(buttonStyle);
         settingsButton->setStyleSheet(buttonStyle);
 
         // Hide button text if very small, keep emoji
         if (size.width() < 600) {
-            homeButton->setText("??");
-            workoutButton->setText("??");
-            nutritionButton->setText("??");
-            profileButton->setText("??");
-            settingsButton->setText("??");
+            homeButton->setText("🏠");
+            workoutButton->setText("💪");
+            nutritionButton->setText("🥗");
+            profileButton->setText("👤");
+            addCourtButton->setText("🎾");
+            settingsButton->setText("⚙️");
         }
         else {
-            homeButton->setText(QString("?? %1").arg(tr("Home")));
-            workoutButton->setText(QString("?? %1").arg(tr("Members")));
-            nutritionButton->setText(QString("?? %1").arg(tr("Add Member")));
-            profileButton->setText(QString("?? %1").arg(tr("Search Member")));
-            settingsButton->setText(QString("?? %1").arg(tr("Settings")));
+            homeButton->setText(QString("🏠 %1").arg(tr("Home")));
+            workoutButton->setText(QString("💪 %1").arg(tr("Members")));
+            nutritionButton->setText(QString("🥗 %1").arg(tr("Add Member")));
+            profileButton->setText(QString("👤 %1").arg(tr("Search Member")));
+            addCourtButton->setText(QString("🎾 %1").arg(tr("Add Court")));
+            settingsButton->setText(QString("⚙️ %1").arg(tr("Settings")));
         }
     }
     else {
@@ -506,18 +523,21 @@ void StaffHomePage::updateLayout()
         workoutButton->setStyleSheet(buttonStyle);
         nutritionButton->setStyleSheet(buttonStyle);
         profileButton->setStyleSheet(buttonStyle);
+        addCourtButton->setStyleSheet(buttonStyle);
         settingsButton->setStyleSheet(buttonStyle);
 
-        homeButton->setText(QString("?? %1").arg(tr("Home")));
-        workoutButton->setText(QString("?? %1").arg(tr("Members")));
-        nutritionButton->setText(QString("?? %1").arg(tr("Add Member")));
-        profileButton->setText(QString("?? %1").arg(tr("Search Member")));
-        settingsButton->setText(QString("?? %1").arg(tr("Settings")));
+        homeButton->setText(QString("🏠 %1").arg(tr("Home")));
+        workoutButton->setText(QString("💪 %1").arg(tr("Members")));
+        nutritionButton->setText(QString("🥗 %1").arg(tr("Add Member")));
+        profileButton->setText(QString("👤 %1").arg(tr("Search Member")));
+        addCourtButton->setText(QString("🎾 %1").arg(tr("Add Court")));
+        settingsButton->setText(QString("⚙️ %1").arg(tr("Settings")));
     }
 
     // Update pages layout
     if (homePage) homePage->updateLayout();
     if (settingsPage) settingsPage->updateLayout();
+    if (addCourtPage) addCourtPage->updateLayout();
 }
 
 void StaffHomePage::onLanguageChanged(const QString& language)
@@ -527,6 +547,7 @@ void StaffHomePage::onLanguageChanged(const QString& language)
     // Update all pages
     if (homePage) homePage->retranslateUI();
     if (settingsPage) settingsPage->retranslateUI();
+    if (addCourtPage) addCourtPage->retranslateUI();
 
     // Update window title
     window()->setWindowTitle(tr("FitFlex Pro"));
@@ -538,11 +559,12 @@ void StaffHomePage::retranslateUI()
     window()->setWindowTitle(tr("FitFlex Pro"));
 
     // Update navigation buttons
-    if (homeButton) homeButton->setText(tr("Home"));
-    if (workoutButton) workoutButton->setText(tr("Members"));
-    if (nutritionButton) nutritionButton->setText(tr("Add Member"));
-    if (profileButton) profileButton->setText(tr("Search Member"));
-    if (settingsButton) settingsButton->setText(tr("Settings"));
+    if (homeButton) homeButton->setText(QString("🏠 %1").arg(tr("Home")));
+    if (workoutButton) workoutButton->setText(QString("💪 %1").arg(tr("Members")));
+    if (nutritionButton) nutritionButton->setText(QString("🥗 %1").arg(tr("Add Member")));
+    if (profileButton) profileButton->setText(QString("👤 %1").arg(tr("Search Member")));
+    if (addCourtButton) addCourtButton->setText(QString("🎾 %1").arg(tr("Add Court")));
+    if (settingsButton) settingsButton->setText(QString("⚙️ %1").arg(tr("Settings")));
 
     // Update title
     if (titleLabel) {
@@ -552,6 +574,7 @@ void StaffHomePage::retranslateUI()
     // Update pages
     if (homePage) homePage->retranslateUI();
     if (settingsPage) settingsPage->retranslateUI();
+    if (addCourtPage) addCourtPage->retranslateUI();
 
     // Force layout update
     updateLayout();

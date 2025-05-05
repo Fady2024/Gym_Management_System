@@ -13,13 +13,25 @@
 MemberDataManager::MemberDataManager(QObject* parent)
     : QObject(parent), userDataManager(nullptr) {
     // Get the project directory path
-    QString projectDir = QCoreApplication::applicationDirPath();
-    projectDir = QFileInfo(projectDir).dir().absolutePath();
+    QString projectDir;
     
-    // Set data directory path
+#ifdef FORCE_SOURCE_DIR
+    // Use the source directory path defined in CMake
+    projectDir = QString::fromUtf8(SOURCE_DATA_DIR);
+    qDebug() << "Member - Using source directory path:" << projectDir;
+#else
+    // Fallback to application directory
+    projectDir = QCoreApplication::applicationDirPath();
+    projectDir = QFileInfo(projectDir).dir().absolutePath();
+    qDebug() << "Member - Using application directory path:" << projectDir;
+#endif
+    
+    // Set data directory paths
     dataDir = projectDir + "/project code/Data";
     
-    // Create directory if it doesn't exist
+    qDebug() << "Member - Data directory path:" << dataDir;
+    
+    // Create directories if they don't exist
     QDir().mkpath(dataDir);
     
     // Initialize empty members.json if it doesn't exist

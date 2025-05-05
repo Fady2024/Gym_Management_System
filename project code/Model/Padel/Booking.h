@@ -25,6 +25,7 @@ public:
     double getPrice() const;
     bool isVip() const;
     bool isCancelled() const;
+    bool isFromWaitlist() const;
     int getMemberId() const;
     int getCourtId() const;
     int getUserId() const;
@@ -38,6 +39,7 @@ public:
     void setPrice(double price);
     void setVip(bool vip);
     void setCancelled(bool cancelled);
+    void setIsFromWaitlist(bool fromWaitlist);
     void setCourtId(int id);
     void setUserId(int id);
 
@@ -54,6 +56,7 @@ private:
     double m_price;
     bool m_isVip;
     bool m_isCancelled;
+    bool m_isFromWaitlist;
 };
 
 #endif // BOOKING_H
