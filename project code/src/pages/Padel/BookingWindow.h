@@ -55,6 +55,7 @@ private slots:
     void onJoinWaitlistClicked();
     void onCheckWaitlistClicked();
     void onBookButtonClicked(int courtId, const QDate& date, const QTime& startTime, const QTime& endTime);
+    void onAlternativeCourtButtonClicked(int courtId, const QString& timeSlot);
 
 private:
     PadelDataManager* m_padelManager;
@@ -85,6 +86,12 @@ private:
     QLabel* m_statusLabel;
     QLabel* m_userInfoLabel;
     
+    // Alternative court suggestions
+    QWidget* m_alternativeCourtsWidget;
+    QVBoxLayout* m_alternativeCourtsLayout;
+    QLabel* m_alternativesLabel;
+    QGridLayout* m_alternativeCourtsList;
+    
     // Search and Filter UI
     QLineEdit* m_searchBox;
     QPushButton* m_searchButton;
@@ -108,6 +115,7 @@ private:
     void setupUI();
     void setupSearchUI(QWidget* parent, QVBoxLayout* parentLayout);
     QLayout* setupWaitlistUI(QWidget* parent);
+    QWidget* setupAlternativeCourtsUI(QWidget* parent);
     void setupConnections();
     void loadCourts();
     void updateCourtDetails(int courtId);
@@ -147,6 +155,9 @@ private:
     void joinWaitlist(int courtId);
     void updateWaitlistStatus(int courtId);
     int getMyWaitlistPosition(int courtId);
+    
+    // Alternative courts helpers
+    void updateAlternativeCourts();
 };
 
 #endif // BOOKINGWINDOW_H

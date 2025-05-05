@@ -12,6 +12,8 @@ BookingWindow::BookingWindow(PadelDataManager* padelManager, QWidget* parent)
     setupUI();
     setupConnections();
     loadCourts();
+    
+    QTimer::singleShot(100, this, &BookingWindow::updateAlternativeCourts);
 }
 
 void BookingWindow::setCurrentUserEmail(const QString& email)
@@ -198,6 +200,9 @@ void BookingWindow::setupUI()
     m_noSlotsLabel->hide(); 
     m_timeSlotGrid->addWidget(m_noSlotsLabel, 1, 0);
     
+    QWidget* alternativeCourtsWidget = setupAlternativeCourtsUI(contentWidget);
+    selectionLayout->addWidget(alternativeCourtsWidget);
+    
     QHBoxLayout* timeLayout = new QHBoxLayout();
     QLabel* timeLabel = new QLabel(tr("Select Time:"), contentWidget);
     m_timeSlotSelector = new QComboBox(contentWidget);
@@ -329,6 +334,8 @@ void BookingWindow::setupConnections()
     connect(m_searchButton, &QPushButton::clicked, this, &BookingWindow::performSearch);
     connect(m_clearSearchButton, &QPushButton::clicked, this, &BookingWindow::clearSearch);
     connect(m_searchBox, &QLineEdit::returnPressed, this, &BookingWindow::performSearch);
+    connect(m_locationFilter, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &BookingWindow::updateAlternativeCourts);
+    connect(m_showAvailableOnly, &QCheckBox::stateChanged, this, &BookingWindow::updateAlternativeCourts);
 
     connect(m_joinWaitlistButton, &QPushButton::clicked, this, &BookingWindow::onJoinWaitlistClicked);
     connect(m_checkWaitlistButton, &QPushButton::clicked, this, &BookingWindow::onCheckWaitlistClicked);
@@ -387,6 +394,8 @@ void BookingWindow::performSearch()
     bool availableOnly = m_showAvailableOnly->isChecked();
     
     loadCourtsByFilter(nameQuery, location, availableOnly);
+    
+    updateAlternativeCourts();
 }
 
 void BookingWindow::clearSearch()
@@ -396,6 +405,8 @@ void BookingWindow::clearSearch()
     m_showAvailableOnly->setChecked(false);
 
     loadCourts();
+    
+    updateAlternativeCourts();
 }
 
 void BookingWindow::loadCourtsByFilter(const QString& nameQuery, const QString& location, bool availableOnly)
@@ -1321,6 +1332,16 @@ void BookingWindow::refreshTimeSlots() {
                     QString startTime = timeSlot["startTime"].toString();
                     QString endTime = timeSlot["endTime"].toString();
                     
+                    if (date == QDate::currentDate()) {
+                        QTime slotTime = QTime::fromString(startTime, "HH:mm");
+                        QTime currentTime = QTime::currentTime();
+                        if (slotTime.isValid() && slotTime <= currentTime) {
+                            qDebug() << "Skipping past time slot:" << startTime 
+                                   << "(current time:" << currentTime.toString("HH:mm") << ")";
+                            continue;
+                        }
+                    }
+                    
                     if (availableSlotsMap.contains(startTime)) {
                         timeSlots.append(availableSlotsMap[startTime]);
                     } else {
@@ -1811,68 +1832,27 @@ void BookingWindow::clearTimeSlotGrid()
 
 void BookingWindow::onCourtSelectionChanged(int index)
 {
-    static bool isChangingCourt = false;
-    
-    if (isChangingCourt) {
-        qDebug() << "Preventing recursive call to onCourtSelectionChanged";
-        return;
-    }
-    
-    isChangingCourt = true;
-    
     try {
-        if (index < 0 || !m_courtSelector || m_courtSelector->count() <= 0) {
-            qDebug() << "Invalid court selection index or null selector";
-            isChangingCourt = false;
+        if (index < 0 || m_courtSelector->count() <= index) {
             return;
         }
         
-        QVariant courtIdVariant = m_courtSelector->itemData(index);
-        if (!courtIdVariant.isValid()) {
-            qDebug() << "Invalid court ID variant in selection changed";
-            isChangingCourt = false;
-            return;
-        }
-        
-        int courtId = courtIdVariant.toInt();
+        int courtId = m_courtSelector->itemData(index).toInt();
         if (courtId <= 0) {
-            qDebug() << "Invalid court ID in selection changed:" << courtId;
-            isChangingCourt = false;
+            qDebug() << "WARNING: Invalid court ID at index" << index;
             return;
         }
         
-        qDebug() << "Court selection changed to ID:" << courtId;
-        
-        int selectedCourtId = courtId;
-        
-                QTimer::singleShot(100, this, [this, selectedCourtId]() {
-                    try {
-                
-                updateCourtDetails(selectedCourtId);
-
-                clearTimeSlotGrid();
-
-                refreshTimeSlots();
-
-                if (m_currentUserId > 0) {
-                        updateWaitlistStatus(selectedCourtId);
-                    }
-            } catch (const std::exception& e) {
-                qDebug() << "Exception in court selection update process:" << e.what();
-            } catch (...) {
-                qDebug() << "Unknown exception in court selection update process";
-            }
-        });
-        
-        isChangingCourt = false;
+        updateCourtDetails(courtId);
+        refreshTimeSlots();
+        updateWaitlistStatus(courtId);
+        updateAlternativeCourts();
     }
     catch (const std::exception& e) {
-        qDebug() << "Exception in onCourtSelectionChanged:" << e.what();
-        isChangingCourt = false;
+        qDebug() << "ERROR in onCourtSelectionChanged:" << e.what();
     }
     catch (...) {
-        qDebug() << "Unknown exception in onCourtSelectionChanged";
-        isChangingCourt = false;
+        qDebug() << "UNKNOWN ERROR in onCourtSelectionChanged";
     }
 }
 
@@ -1884,6 +1864,8 @@ void BookingWindow::onDateChanged(const QDate& date)
         int courtId = m_courtSelector->currentData().toInt();
         updateCourtDetails(courtId);
     }
+    
+    updateAlternativeCourts();
 }
 
 void BookingWindow::bookCourt()
@@ -1937,16 +1919,73 @@ void BookingWindow::bookCourtDirectly(int courtId, const QDateTime& startTime, c
         int currentAttendees = m_padelManager->getCurrentAttendees(courtId, startTime, endTime);
         int maxAttendees = court.getMaxAttendees();
         
-        QString errorMessage;
-        if (currentAttendees >= maxAttendees) {
-            errorMessage = tr("Court is at maximum capacity (%1/%2 attendees).").arg(currentAttendees).arg(maxAttendees);
-        } else {
-            errorMessage = tr("Court is not available at the selected time.");
-        }
+        Court alternativeCourt = m_padelManager->findClosestAvailableCourt(courtId, startTime, endTime);
         
-        QMessageBox::warning(this, tr("Availability Error"), errorMessage);
-            return;
+        if (alternativeCourt.getId() > 0) {
+            QString errorMessage;
+            if (currentAttendees >= maxAttendees) {
+                errorMessage = tr("Court is at maximum capacity (%1/%2 attendees).").arg(currentAttendees).arg(maxAttendees);
+            } else {
+                errorMessage = tr("Court is not available at the selected time.");
+            }
+            
+            QString suggestionMessage = errorMessage + "\n\n" +
+                tr("Would you like to book court %1 at %2 instead? It's available at the same time.")
+                .arg(alternativeCourt.getName())
+                .arg(alternativeCourt.getLocation());
+            
+            QMessageBox::StandardButton response = QMessageBox::question(
+                this, tr("Alternative Court Available"), 
+                suggestionMessage,
+                QMessageBox::Yes | QMessageBox::No
+            );
+            
+            if (response == QMessageBox::Yes) {
+                int alternativeCourtId = alternativeCourt.getId();
+                
+                for (int i = 0; i < m_courtSelector->count(); i++) {
+                    if (m_courtSelector->itemData(i).toInt() == alternativeCourtId) {
+                        m_courtSelector->setCurrentIndex(i);
+                        break;
+                    }
+                }
+                
+                bookCourtDirectly(alternativeCourtId, startTime, endTime);
+                return;
+            } else {
+                if (errorMessage.contains("maximum capacity")) {
+                    QMessageBox::StandardButton response = QMessageBox::question(
+                        this, 
+                        tr("Court At Capacity"),
+                        tr("The court is at maximum capacity for this time slot.\nWould you like to join the waitlist? If someone cancels, you'll be automatically notified.\n\nVIP members receive priority on the waitlist."),
+                        QMessageBox::Yes | QMessageBox::No
+                    );
+                    
+                    if (response == QMessageBox::Yes) {
+                        m_selectedWaitlistTime = startTime.time();
+                        joinWaitlist(courtId);
+                    }
+                } else {
+                    QMessageBox::warning(this, tr("Availability Error"), errorMessage);
+                }
+
+                updateCourtDetails(courtId);
+                refreshTimeSlots();
+                updateWaitlistStatus(courtId);
+                return;
+            }
+        } else {
+            QString errorMessage;
+            if (currentAttendees >= maxAttendees) {
+                errorMessage = tr("Court is at maximum capacity (%1/%2 attendees).").arg(currentAttendees).arg(maxAttendees);
+            } else {
+                errorMessage = tr("Court is not available at the selected time.");
+            }
+            
+            QMessageBox::warning(this, tr("Availability Error"), errorMessage);
+                return;
         }
+    }
 
     QString confirmMessage = tr("You are about to book:\n\n") +
                           tr("Court: %1\n").arg(court.getName()) +
@@ -2517,6 +2556,11 @@ void BookingWindow::bookTimeSlot(int courtId, const QDate& date, const QString& 
         QDateTime startDateTime(date, startTime);
         QDateTime endDateTime(date, endTime);
 
+        if (!m_padelManager->isCourtAvailable(courtId, startDateTime, endDateTime)) {
+            bookCourtDirectly(courtId, startDateTime, endDateTime);
+            return;
+        }
+
         QString message = tr("Do you want to book court %1 on %2 from %3 to %4?")
                          .arg(m_courtSelector->currentText())
                          .arg(date.toString("dd/MM/yyyy"))
@@ -2527,17 +2571,259 @@ void BookingWindow::bookTimeSlot(int courtId, const QDate& date, const QString& 
                                        QMessageBox::Yes | QMessageBox::No);
         
         if (result == QMessageBox::Yes) {
-            
             bookCourtDirectly(courtId, startDateTime, endDateTime);
-                }
-            } catch (const std::exception& e) {
+        }
+    } catch (const std::exception& e) {
         qDebug() << "ERROR: Exception in bookTimeSlot:" << e.what();
         QMessageBox::warning(this, tr("Booking Error"), 
                             tr("An error occurred while booking: %1").arg(e.what()));
-            } catch (...) {
+    } catch (...) {
         qDebug() << "ERROR: Unknown exception in bookTimeSlot";
         QMessageBox::warning(this, tr("Booking Error"), 
                             tr("An unknown error occurred while booking."));
     }
 }
 
+QWidget* BookingWindow::setupAlternativeCourtsUI(QWidget* parent)
+{
+    m_alternativeCourtsWidget = new QWidget(parent);
+    m_alternativeCourtsLayout = new QVBoxLayout(m_alternativeCourtsWidget);
+    m_alternativeCourtsLayout->setContentsMargins(0, 10, 0, 10);
+    
+    m_alternativesLabel = new QLabel(tr("Alternative Courts with Available Times:"), m_alternativeCourtsWidget);
+    m_alternativesLabel->setStyleSheet("font-weight: bold; color: #4F46E5; font-size: 14px; margin-top: 5px;");
+    m_alternativeCourtsLayout->addWidget(m_alternativesLabel);
+    
+    QWidget* alternativesContainer = new QWidget(m_alternativeCourtsWidget);
+    m_alternativeCourtsList = new QGridLayout(alternativesContainer);
+    m_alternativeCourtsList->setSpacing(10);
+    m_alternativeCourtsList->setContentsMargins(0, 10, 0, 10);
+    
+    m_alternativeCourtsLayout->addWidget(alternativesContainer);
+    
+    return m_alternativeCourtsWidget;
+}
+
+void BookingWindow::updateAlternativeCourts() 
+{
+    try {
+        if (!m_padelManager || !m_alternativeCourtsList || !m_courtSelector || !m_dateSelector) {
+            qDebug() << "ERROR: null components in updateAlternativeCourts";
+            return;
+        }
+        
+        QLayoutItem* item;
+        while ((item = m_alternativeCourtsList->takeAt(0)) != nullptr) {
+            if (item->widget()) {
+                item->widget()->deleteLater();
+            }
+            delete item;
+        }
+        
+        int currentCourtId = m_courtSelector->currentData().toInt();
+        if (currentCourtId <= 0) {
+            return;
+        }
+        
+        QDate selectedDate = m_dateSelector->date();
+        if (!selectedDate.isValid()) {
+            selectedDate = QDate::currentDate();
+        }
+        
+        QTime defaultTime(12, 0);
+        QDateTime defaultDateTime(selectedDate, defaultTime);
+        
+        QString locationFilter = "";
+        if (m_locationFilter && m_locationFilter->currentIndex() > 0) {
+            locationFilter = m_locationFilter->currentData().toString();
+        }
+        
+        QVector<Court> allCourts = m_padelManager->getAllCourts();
+        if (allCourts.isEmpty()) {
+            m_alternativeCourtsWidget->setVisible(true);
+            QLabel* noAlternativesLabel = new QLabel(tr("No alternative courts with available times"));
+            noAlternativesLabel->setAlignment(Qt::AlignCenter);
+            noAlternativesLabel->setStyleSheet("color: black; background-color: white; padding: 20px; font-size: 16px; font-weight: bold; border: 1px solid black;");
+            m_alternativeCourtsList->addWidget(noAlternativesLabel, 0, 0);
+            return;
+        }
+        
+        int row = 0;
+        int col = 0;
+        int maxCols = 3;
+        int count = 0;
+    
+        for (const Court& court : allCourts) {
+            if (court.getId() == currentCourtId) {
+                continue;
+            }
+            
+            if (!locationFilter.isEmpty() && court.getLocation() != locationFilter) {
+                continue;
+            }
+            
+            QJsonObject courtDetails = m_padelManager->getCourtDetails(court.getId());
+            int maxAttendees = 2; 
+            if (courtDetails.contains("maxAttendees")) {
+                maxAttendees = courtDetails["maxAttendees"].toInt();
+            }
+            
+            QJsonArray availableTimeSlots = m_padelManager->getAvailableTimeSlots(court.getId(), selectedDate, maxAttendees);
+            
+            if (!availableTimeSlots.isEmpty()) {
+                QFrame* courtFrame = new QFrame();
+                courtFrame->setFrameStyle(QFrame::Box | QFrame::Raised);
+                courtFrame->setLineWidth(2);
+                courtFrame->setMidLineWidth(1);
+                courtFrame->setFixedSize(250, 180);
+                courtFrame->setStyleSheet(
+                    "QFrame { background-color: white; border: 3px solid #3B82F6; border-radius: 8px; }"
+                );
+                
+                QVBoxLayout* courtLayout = new QVBoxLayout(courtFrame);
+                courtLayout->setSpacing(8);
+                courtLayout->setContentsMargins(12, 12, 12, 12);
+                
+                QString courtName = court.getName();
+                QString location = court.getLocation();
+                
+                QLabel* nameLabel = new QLabel(courtName);
+                nameLabel->setStyleSheet("font-weight: bold; color: black; font-size: 16px; background-color: transparent;");
+                courtLayout->addWidget(nameLabel);
+                
+                QLabel* locationLabel = new QLabel(location);
+                locationLabel->setStyleSheet("color: black; font-size: 14px; background-color: transparent;");
+                courtLayout->addWidget(locationLabel);
+                
+                QFrame* line = new QFrame();
+                line->setFrameShape(QFrame::HLine);
+                line->setFrameShadow(QFrame::Sunken);
+                line->setStyleSheet("background-color: black;");
+                line->setMinimumHeight(2);
+                courtLayout->addWidget(line);
+                
+                QLabel* timesLabel = new QLabel(tr("Available Times:"));
+                timesLabel->setStyleSheet("font-weight: bold; font-size: 14px; color: black; background-color: transparent;");
+                courtLayout->addWidget(timesLabel);
+                
+                QVBoxLayout* timesLayout = new QVBoxLayout();
+                timesLayout->setSpacing(5);
+                
+                int displayLimit = qMin(3, availableTimeSlots.size());
+                for (int i = 0; i < displayLimit; i++) {
+                    QJsonObject slot = availableTimeSlots[i].toObject();
+                    QString startTime = slot["startTime"].toString();
+                    QString endTime = slot["endTime"].toString();
+                    int available = slot["availableSpots"].toInt();
+                    
+                    QString timeText = QString("%1-%2 (%3 spots)").arg(startTime).arg(endTime).arg(available);
+                    
+                    QLabel* timeLabel = new QLabel(timeText);
+                    timeLabel->setStyleSheet("color: black; font-size: 14px; background-color: transparent;");
+                    timesLayout->addWidget(timeLabel);
+                    
+                    if (i == 0) {
+                        courtFrame->setProperty("startTime", startTime);
+                    }
+                }
+                
+                courtLayout->addLayout(timesLayout);
+                
+                QPushButton* bookButton = new QPushButton(tr("Book"));
+                bookButton->setStyleSheet(
+                    "background-color: #3B82F6; color: white; border-radius: 4px; padding: 8px; font-weight: bold; font-size: 14px;"
+                );
+                bookButton->setCursor(Qt::PointingHandCursor);
+                bookButton->setMinimumHeight(30);  
+                courtLayout->addWidget(bookButton);
+                
+                courtFrame->setProperty("courtId", court.getId());
+                
+                connect(bookButton, &QPushButton::clicked, this, [this, court, courtFrame]() {
+                    int courtId = courtFrame->property("courtId").toInt();
+                    QString startTimeStr = courtFrame->property("startTime").toString();
+                    onAlternativeCourtButtonClicked(courtId, startTimeStr);
+                });
+                
+                m_alternativeCourtsList->addWidget(courtFrame, row, col);
+                
+                col++;
+                if (col >= maxCols) {
+                    col = 0;
+                    row++;
+                }
+                count++;
+            }
+        }
+        
+        m_alternativeCourtsWidget->setVisible(true);
+        
+        if (count == 0) {
+            QLabel* noAlternativesLabel = new QLabel(tr("No alternative courts with available times"));
+            noAlternativesLabel->setAlignment(Qt::AlignCenter);
+            noAlternativesLabel->setStyleSheet("color: black; background-color: white; padding: 20px; font-size: 16px; font-weight: bold; border: 1px solid black;");
+            m_alternativeCourtsList->addWidget(noAlternativesLabel, 0, 0);
+        }
+    }
+    catch (const std::exception& e) {
+        qDebug() << "ERROR in updateAlternativeCourts:" << e.what();
+    }
+    catch (...) {
+        qDebug() << "UNKNOWN ERROR in updateAlternativeCourts";
+    }
+}
+
+void BookingWindow::onAlternativeCourtButtonClicked(int courtId, const QString& timeSlot)
+{
+    try {
+        if (courtId <= 0 || timeSlot.isEmpty()) {
+            return;
+        }
+        
+        for (int i = 0; i < m_courtSelector->count(); i++) {
+            if (m_courtSelector->itemData(i).toInt() == courtId) {
+                m_courtSelector->setCurrentIndex(i);
+                break;
+            }
+        }
+        
+        QDate selectedDate = m_dateSelector->date();
+        QTime startTime = QTime::fromString(timeSlot, "HH:mm");
+        
+        if (selectedDate.isValid() && startTime.isValid()) {
+            QDateTime startDateTime(selectedDate, startTime);
+            QDateTime endDateTime = startDateTime.addSecs(3600);
+            
+            QString courtName = m_courtSelector->currentText();
+            QString courtLocation = "";
+            
+            QJsonObject courtDetails = m_padelManager->getCourtDetails(courtId);
+            if (courtDetails.contains("location")) {
+                courtLocation = courtDetails["location"].toString();
+            }
+            
+            QMessageBox msgBox(this);
+            msgBox.setWindowTitle(tr("Book Alternative Court"));
+            msgBox.setIconPixmap(QPixmap(":/icons/booking.png").scaled(QSize(48, 48)));
+            
+            QString message = tr("<h3>Book this court?</h3>") +
+                          tr("<p><b>Court:</b> %1</p>").arg(courtName) +
+                          tr("<p><b>Location:</b> %1</p>").arg(courtLocation) +
+                          tr("<p><b>Date:</b> %1</p>").arg(selectedDate.toString("dd/MM/yyyy")) +
+                          tr("<p><b>Time:</b> %1 - %2</p>").arg(startTime.toString("HH:mm"))
+                                                        .arg(endDateTime.time().toString("HH:mm"));
+            
+            msgBox.setText(message);
+            msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+            msgBox.setDefaultButton(QMessageBox::Yes);
+            
+            int result = msgBox.exec();
+            
+            if (result == QMessageBox::Yes) {
+                bookCourtDirectly(courtId, startDateTime, endDateTime);
+            }
+        }
+    }
+    catch (const std::exception& e) {}
+    catch (...) {}
+}
