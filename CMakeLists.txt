@@ -43,7 +43,13 @@ set(RESOURCE_FILES
 # Add data files
 set(DATA_FILES
     "project code/Data/users.json"
+    "project code/Data/members.json"
+    "project code/Data/courts.json"
+    "project code/Data/bookings.json"
+    "project code/Data/waitlists.json"
     "project code/Data/remembered.json"
+    "project code/Data/saved_cards.json"
+    "project code/Data/classes.json"
 )
 
 # Find required Qt6 components
@@ -90,6 +96,10 @@ set(SRC_SOURCES
         "project code/src/onboarding/languageselectionpage.cpp"
         "project code/src/pages/Gym/staffhomepage.h"
         "project code/src/pages/Gym/staffhomepage.cpp"
+        "project code/src/pages/Padel/addcourtpage.h"
+        "project code/src/pages/Padel/addcourtpage.cpp"
+        "project code/src/pages/Padel/BookingWindow.cpp"
+        "project code/src/pages/Padel/BookingWindow.h"
 )
 
 set(SETTINGS_SOURCES
@@ -189,46 +199,30 @@ set(PROJECT_SOURCES
         "project code/UI/Stylesheets/System/mainpageStyle.h"
 )
 
+# Define absolute source data directory path
+set(SOURCE_DATA_DIR "${CMAKE_SOURCE_DIR}")
+
+# Add compile definition to force using the source directory for data files
+add_compile_definitions(SOURCE_DATA_DIR="${SOURCE_DATA_DIR}")
+add_compile_definitions(FORCE_SOURCE_DIR=1)
+
 # Create executable
 add_executable(DS_Project ${PROJECT_SOURCES} "project code/Model/System/timeLogic.cpp" "project code/Model/System/timeLogic.h" "project code/UI/Widgets/Clock/Clock.cpp" "project code/UI/Widgets/Clock/Clock.h")
 
-# Create required directories only once during configure time rather than build time
+# Create required directories only once during configure time
 file(MAKE_DIRECTORY 
     "${CMAKE_SOURCE_DIR}/project code/Data"
     "${CMAKE_SOURCE_DIR}/project code/UsersPhoto"
 )
 
-# Copy data files to build directory (only if they don't exist or have changed)
-foreach(DATA_FILE ${DATA_FILES})
-    get_filename_component(FILE_NAME ${DATA_FILE} NAME)
-    configure_file(
-        "${CMAKE_SOURCE_DIR}/${DATA_FILE}"
-        "${CMAKE_BINARY_DIR}/project code/Data/${FILE_NAME}"
-        COPYONLY
-    )
-endforeach()
-
-# Create required directories in build directory
+# Create required directories in build directory for plugins
 add_custom_command(
     TARGET DS_Project 
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory
-        "$<TARGET_FILE_DIR:DS_Project>/project code/Data"
-        "$<TARGET_FILE_DIR:DS_Project>/project code/UsersPhoto"
         "$<TARGET_FILE_DIR:DS_Project>/plugins/platforms"
         "$<TARGET_FILE_DIR:DS_Project>/plugins/imageformats"
-    COMMENT "Creating required directories in build directory"
-)
-
-# Install data files and directories
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/project code/Data"
-    DESTINATION "project code"
-    FILES_MATCHING PATTERN "*.json"
-)
-
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/project code/UsersPhoto"
-    DESTINATION "project code"
-    FILES_MATCHING PATTERN "*.png" PATTERN "*.jpg" PATTERN "*.jpeg"
+    COMMENT "Creating required directories for Qt plugins"
 )
 
 # Include directories
