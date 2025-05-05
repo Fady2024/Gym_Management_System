@@ -7,6 +7,7 @@ Booking::Booking()
     , m_price(0.0)
     , m_isVip(false)
     , m_isCancelled(false)
+    , m_isFromWaitlist(false)
 {
 }
 
@@ -20,6 +21,7 @@ Booking::Booking(int bookingId, const Court& court, const QDateTime& startTime,
     , m_price(0.0)
     , m_isVip(false)
     , m_isCancelled(false)
+    , m_isFromWaitlist(false)
 {
 }
 
@@ -32,6 +34,7 @@ Booking::Booking(const Booking& other)
     , m_price(other.m_price)
     , m_isVip(other.m_isVip)
     , m_isCancelled(other.m_isCancelled)
+    , m_isFromWaitlist(other.m_isFromWaitlist)
 {
 }
 
@@ -45,6 +48,7 @@ Booking& Booking::operator=(const Booking& other) {
         m_price = other.m_price;
         m_isVip = other.m_isVip;
         m_isCancelled = other.m_isCancelled;
+        m_isFromWaitlist = other.m_isFromWaitlist;
     }
     return *this;
 }
@@ -94,6 +98,10 @@ bool Booking::isCancelled() const {
     return m_isCancelled;
 }
 
+bool Booking::isFromWaitlist() const {
+    return m_isFromWaitlist;
+}
+
 // Setters
 void Booking::setBookingId(int id) {
     m_bookingId = id;
@@ -135,6 +143,10 @@ void Booking::setCancelled(bool cancelled) {
     m_isCancelled = cancelled;
 }
 
+void Booking::setIsFromWaitlist(bool fromWaitlist) {
+    m_isFromWaitlist = fromWaitlist;
+}
+
 // Booking operations
 void Booking::cancel() {
     m_isCancelled = true;
@@ -144,4 +156,5 @@ void Booking::reschedule(const QDateTime& newStartTime, const QDateTime& newEndT
     m_startTime = newStartTime;
     m_endTime = newEndTime;
 }
+
 
