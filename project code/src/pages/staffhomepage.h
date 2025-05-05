@@ -12,6 +12,7 @@
 #include "../DataManager/padeldatamanager.h"
 #include "homepage.h"
 #include "settingspage.h"
+#include "addcourtpage.h"
 #include <QLabel>
 #include "../Language/LanguageSelector.h"
 
@@ -49,6 +50,7 @@ private slots:
     void handleNutritionPage() const;
     void handleProfilePage() const;
     void handleSettingsPage() const;
+    void handleAddCourtPage() const;
     void toggleTheme();
     void onLanguageChanged(const QString& language);
 
@@ -76,6 +78,7 @@ private:
     QPushButton* nutritionButton;
     QPushButton* profileButton;
     QPushButton* settingsButton;
+    QPushButton* addCourtButton;
 
     // Pages
     HomePage* homePage;
@@ -83,6 +86,7 @@ private:
     QWidget* nutritionPage;
     QWidget* profilePage;
     SettingsPage* settingsPage;
+    AddCourtPage* addCourtPage;
 
     QLabel* titleLabel;
     QScrollArea* scrollArea;
