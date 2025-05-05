@@ -26,6 +26,9 @@
 #include "../Subscription/subscriptionpage.h"
 #include "../Subscription/subscriptionstatuspage.h"
 #include "../Payment/paymentpage.h"
+#include <QCoreApplication>
+#include <QFileInfo>
+#include <QDir>
 
 SettingsPage::SettingsPage(UserDataManager* userDataManager, MemberDataManager* memberManager, QWidget *parent)
     : QWidget(parent)
@@ -853,44 +856,60 @@ void SettingsPage::loadUserData(const QString& email)
         emailEdit->setText(userData.getEmail());
 
         const QString photoPath = userData.getUserPhotoPath();
-        if (!photoPath.isEmpty() && QFile::exists(photoPath)) {
-            const QPixmap photo(photoPath);
-            if (!photo.isNull()) {
-                QPixmap circularPhoto(140, 140);
-                circularPhoto.fill(Qt::transparent);
+        if (!photoPath.isEmpty()) {
+            QString absolutePhotoPath;
+            
+#ifdef FORCE_SOURCE_DIR
+            absolutePhotoPath = QString::fromUtf8(SOURCE_DATA_DIR) + "/" + photoPath;
+#else
+            absolutePhotoPath = QCoreApplication::applicationDirPath();
+            absolutePhotoPath = QFileInfo(absolutePhotoPath).dir().absolutePath() + "/" + photoPath;
+#endif
+            
+            qDebug() << "Loading profile photo from:" << absolutePhotoPath;
+            
+            if (QFile::exists(absolutePhotoPath)) {
+                const QPixmap photo(absolutePhotoPath);
+                if (!photo.isNull()) {
+                    QPixmap circularPhoto(140, 140);
+                    circularPhoto.fill(Qt::transparent);
 
-                QPainter painter(&circularPhoto);
-                painter.setRenderHint(QPainter::Antialiasing);
-                painter.setRenderHint(QPainter::SmoothPixmapTransform);
+                    QPainter painter(&circularPhoto);
+                    painter.setRenderHint(QPainter::Antialiasing);
+                    painter.setRenderHint(QPainter::SmoothPixmapTransform);
 
-                QPainterPath path;
-                path.addEllipse(0, 0, 140, 140);
-                painter.setClipPath(path);
+                    QPainterPath path;
+                    path.addEllipse(0, 0, 140, 140);
+                    painter.setClipPath(path);
 
-                constexpr QSize targetSize(140, 140);
-                QPixmap scaledPhoto;
+                    constexpr QSize targetSize(140, 140);
+                    QPixmap scaledPhoto;
 
-                const qreal sourceRatio = static_cast<qreal>(photo.width()) / photo.height();
-                constexpr qreal targetRatio = static_cast<qreal>(targetSize.width()) / targetSize.height();
+                    const qreal sourceRatio = static_cast<qreal>(photo.width()) / photo.height();
+                    constexpr qreal targetRatio = static_cast<qreal>(targetSize.width()) / targetSize.height();
 
-                if (sourceRatio > targetRatio) {
-                    scaledPhoto = photo.scaledToHeight(targetSize.height(), Qt::SmoothTransformation);
-                } else {
-                    scaledPhoto = photo.scaledToWidth(targetSize.width(), Qt::SmoothTransformation);
+                    if (sourceRatio > targetRatio) {
+                        scaledPhoto = photo.scaledToHeight(targetSize.height(), Qt::SmoothTransformation);
+                    } else {
+                        scaledPhoto = photo.scaledToWidth(targetSize.width(), Qt::SmoothTransformation);
+                    }
+
+                    const int x = (scaledPhoto.width() - targetSize.width()) / 2;
+                    const int y = (scaledPhoto.height() - targetSize.height()) / 2;
+
+                    painter.drawPixmap(-x, -y, scaledPhoto);
+
+                    painter.setClipping(false);
+                    painter.setPen(QPen(QColor("#8B5CF6"), 3));
+                    painter.drawEllipse(1, 1, 137, 137);
+
+                    profileImageButton->setIcon(QIcon(circularPhoto));
+                    profileImageButton->setIconSize(QSize(140, 140));
+                    currentPhotoPath = photoPath;
                 }
-
-                const int x = (scaledPhoto.width() - targetSize.width()) / 2;
-                const int y = (scaledPhoto.height() - targetSize.height()) / 2;
-
-                painter.drawPixmap(-x, -y, scaledPhoto);
-
-                painter.setClipping(false);
-                painter.setPen(QPen(QColor("#8B5CF6"), 3));
-                painter.drawEllipse(1, 1, 137, 137);
-
-                profileImageButton->setIcon(QIcon(circularPhoto));
-                profileImageButton->setIconSize(QSize(140, 140));
-                currentPhotoPath = photoPath;
+            } else {
+                qDebug() << "Profile photo file does not exist at path:" << absolutePhotoPath;
+                resetToDefaultProfileImage();
             }
         } else {
             resetToDefaultProfileImage();
@@ -930,10 +949,30 @@ void SettingsPage::changeProfilePicture()
             const int x = (scaledPhoto.width() - 110) / 2;
             const int y = (scaledPhoto.height() - 110) / 2;
             painter.drawPixmap(-x, -y, scaledPhoto);
+            
+            QFileInfo fileInfo(filePath);
+            QString fileName = fileInfo.fileName();
+            QString relativePhotoPath = "project code/UsersPhoto/" + fileName;
+            QString destinationPath;
+#ifdef FORCE_SOURCE_DIR
+            destinationPath = QString::fromUtf8(SOURCE_DATA_DIR) + "/" + relativePhotoPath;
+#else
+            destinationPath = QCoreApplication::applicationDirPath();
+            destinationPath = QFileInfo(destinationPath).dir().absolutePath() + "/" + relativePhotoPath;
+#endif
+            QFileInfo destInfo(destinationPath);
+            QDir().mkpath(destInfo.dir().absolutePath());
+            
+            if (QFile::copy(filePath, destinationPath)) {
+                qDebug() << "Copied profile photo to:" << destinationPath;
+                currentPhotoPath = relativePhotoPath;
+            } else {
+                qDebug() << "Failed to copy profile photo to:" << destinationPath;
+                currentPhotoPath = filePath;
+            }
 
             profileImageButton->setIcon(QIcon(circularPhoto));
             profileImageButton->setIconSize(QSize(110, 110));
-            currentPhotoPath = filePath;
         }
     }
 }
@@ -972,7 +1011,7 @@ void SettingsPage::updateSuccessDialogTheme(QDialog* dialog, bool isDark)
     ));
 }
 
-void SettingsPage::saveChanges()
+bool SettingsPage::saveChanges()
 {
     QString currentUserEmail;
     QString dummyPassword;
@@ -1002,38 +1041,51 @@ void SettingsPage::saveChanges()
             emailEdit->setText(previousEmail);
             
             // Restore previous photo
-            if (!previousPhotoPath.isEmpty() && QFile::exists(previousPhotoPath)) {
-                currentPhotoPath = previousPhotoPath;
-                QPixmap photo(previousPhotoPath);
-                if (!photo.isNull()) {
-                    QPixmap circularPhoto(140, 140);
-                    circularPhoto.fill(Qt::transparent);
+            if (!previousPhotoPath.isEmpty()) {
+                QString absolutePhotoPath;
+                
+#ifdef FORCE_SOURCE_DIR
+                absolutePhotoPath = QString::fromUtf8(SOURCE_DATA_DIR) + "/" + previousPhotoPath;
+#else
+                absolutePhotoPath = QCoreApplication::applicationDirPath();
+                absolutePhotoPath = QFileInfo(absolutePhotoPath).dir().absolutePath() + "/" + previousPhotoPath;
+#endif
+                
+                if (QFile::exists(absolutePhotoPath)) {
+                    currentPhotoPath = previousPhotoPath;
+                    QPixmap photo(absolutePhotoPath);
+                    if (!photo.isNull()) {
+                        QPixmap circularPhoto(140, 140);
+                        circularPhoto.fill(Qt::transparent);
 
-                    QPainter painter(&circularPhoto);
-                    painter.setRenderHint(QPainter::Antialiasing);
-                    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+                        QPainter painter(&circularPhoto);
+                        painter.setRenderHint(QPainter::Antialiasing);
+                        painter.setRenderHint(QPainter::SmoothPixmapTransform);
 
-                    QPainterPath path;
-                    path.addEllipse(0, 0, 140, 140);
-                    painter.setClipPath(path);
+                        QPainterPath path;
+                        path.addEllipse(0, 0, 140, 140);
+                        painter.setClipPath(path);
 
-                    const QPixmap scaledPhoto = photo.scaled(140, 140, 
-                        Qt::KeepAspectRatio, Qt::SmoothTransformation);
-                    painter.drawPixmap(0, 0, scaledPhoto);
+                        const QPixmap scaledPhoto = photo.scaled(140, 140, 
+                            Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                        painter.drawPixmap(0, 0, scaledPhoto);
 
-                    painter.setClipping(false);
-                    painter.setPen(QPen(QColor("#8B5CF6"), 3));
-                    painter.drawEllipse(1, 1, 137, 137);
+                        painter.setClipping(false);
+                        painter.setPen(QPen(QColor("#8B5CF6"), 3));
+                        painter.drawEllipse(1, 1, 137, 137);
 
-                    profileImageButton->setIcon(QIcon(circularPhoto));
-                    profileImageButton->setIconSize(QSize(140, 140));
+                        profileImageButton->setIcon(QIcon(circularPhoto));
+                        profileImageButton->setIconSize(QSize(140, 140));
+                    }
+                } else {
+                    resetToDefaultProfileImage();
                 }
             } else {
                 resetToDefaultProfileImage();
             }
 
             showMessageDialog(tr("%1\nPrevious data has been restored.").arg(errorMessage), true);
-            return;
+            return false;
         }
 
         userData.setName(nameEdit->text());
@@ -1043,45 +1095,62 @@ void SettingsPage::saveChanges()
         QString saveErrorMessage;
         if (userDataManager->saveUserData(userData, saveErrorMessage)) {
             showMessageDialog(tr("Your profile has been updated successfully!"));
+            return true;
         } else {
             // If save fails, restore previous data
             nameEdit->setText(previousName);
             emailEdit->setText(previousEmail);
-            if (!previousPhotoPath.isEmpty() && QFile::exists(previousPhotoPath)) {
-                currentPhotoPath = previousPhotoPath;
-                QPixmap photo(previousPhotoPath);
-                if (!photo.isNull()) {
-                    QPixmap circularPhoto(140, 140);
-                    circularPhoto.fill(Qt::transparent);
+            if (!previousPhotoPath.isEmpty()) {
+                QString absolutePhotoPath;
+                
+#ifdef FORCE_SOURCE_DIR
+                absolutePhotoPath = QString::fromUtf8(SOURCE_DATA_DIR) + "/" + previousPhotoPath;
+#else
+                absolutePhotoPath = QCoreApplication::applicationDirPath();
+                absolutePhotoPath = QFileInfo(absolutePhotoPath).dir().absolutePath() + "/" + previousPhotoPath;
+#endif
+                
+                if (QFile::exists(absolutePhotoPath)) {
+                    currentPhotoPath = previousPhotoPath;
+                    QPixmap photo(absolutePhotoPath);
+                    if (!photo.isNull()) {
+                        QPixmap circularPhoto(140, 140);
+                        circularPhoto.fill(Qt::transparent);
 
-                    QPainter painter(&circularPhoto);
-                    painter.setRenderHint(QPainter::Antialiasing);
-                    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+                        QPainter painter(&circularPhoto);
+                        painter.setRenderHint(QPainter::Antialiasing);
+                        painter.setRenderHint(QPainter::SmoothPixmapTransform);
 
-                    QPainterPath path;
-                    path.addEllipse(0, 0, 140, 140);
-                    painter.setClipPath(path);
+                        QPainterPath path;
+                        path.addEllipse(0, 0, 140, 140);
+                        painter.setClipPath(path);
 
-                    const QPixmap scaledPhoto = photo.scaled(140, 140, 
-                        Qt::KeepAspectRatio, Qt::SmoothTransformation);
-                    painter.drawPixmap(0, 0, scaledPhoto);
+                        const QPixmap scaledPhoto = photo.scaled(140, 140, 
+                            Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                        painter.drawPixmap(0, 0, scaledPhoto);
 
-                    painter.setClipping(false);
-                    painter.setPen(QPen(QColor("#8B5CF6"), 3));
-                    painter.drawEllipse(1, 1, 137, 137);
+                        painter.setClipping(false);
+                        painter.setPen(QPen(QColor("#8B5CF6"), 3));
+                        painter.drawEllipse(1, 1, 137, 137);
 
-                    profileImageButton->setIcon(QIcon(circularPhoto));
-                    profileImageButton->setIconSize(QSize(140, 140));
+                        profileImageButton->setIcon(QIcon(circularPhoto));
+                        profileImageButton->setIconSize(QSize(140, 140));
+                    }
+                } else {
+                    resetToDefaultProfileImage();
                 }
             } else {
                 resetToDefaultProfileImage();
             }
             showMessageDialog(tr("Failed to update profile: %1\nPrevious data has been restored.").arg(saveErrorMessage), true);
+            return false;
         }
     }
+    
+    return false;
 }
 
-void SettingsPage::resetChanges()
+bool SettingsPage::resetChanges()
 {
     QString currentUserEmail;
     QString dummyPassword;
@@ -1093,38 +1162,54 @@ void SettingsPage::resetChanges()
         emailEdit->setText(userData.getEmail());
         
         const QString photoPath = userData.getUserPhotoPath();
-        if (!photoPath.isEmpty() && QFile::exists(photoPath)) {
-            currentPhotoPath = photoPath;
-            QPixmap photo(photoPath);
-            if (!photo.isNull()) {
-                QPixmap circularPhoto(140, 140);
-                circularPhoto.fill(Qt::transparent);
+        if (!photoPath.isEmpty()) {
+            QString absolutePhotoPath;
+            
+#ifdef FORCE_SOURCE_DIR
+            absolutePhotoPath = QString::fromUtf8(SOURCE_DATA_DIR) + "/" + photoPath;
+#else
+            absolutePhotoPath = QCoreApplication::applicationDirPath();
+            absolutePhotoPath = QFileInfo(absolutePhotoPath).dir().absolutePath() + "/" + photoPath;
+#endif
+            
+            if (QFile::exists(absolutePhotoPath)) {
+                currentPhotoPath = photoPath;
+                QPixmap photo(absolutePhotoPath);
+                if (!photo.isNull()) {
+                    QPixmap circularPhoto(140, 140);
+                    circularPhoto.fill(Qt::transparent);
 
-                QPainter painter(&circularPhoto);
-                painter.setRenderHint(QPainter::Antialiasing);
-                painter.setRenderHint(QPainter::SmoothPixmapTransform);
+                    QPainter painter(&circularPhoto);
+                    painter.setRenderHint(QPainter::Antialiasing);
+                    painter.setRenderHint(QPainter::SmoothPixmapTransform);
 
-                QPainterPath path;
-                path.addEllipse(0, 0, 140, 140);
-                painter.setClipPath(path);
+                    QPainterPath path;
+                    path.addEllipse(0, 0, 140, 140);
+                    painter.setClipPath(path);
 
-                const QPixmap scaledPhoto = photo.scaled(140, 140, 
-                    Qt::KeepAspectRatio, Qt::SmoothTransformation);
-                painter.drawPixmap(0, 0, scaledPhoto);
+                    const QPixmap scaledPhoto = photo.scaled(140, 140, 
+                        Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                    painter.drawPixmap(0, 0, scaledPhoto);
 
-                painter.setClipping(false);
-                painter.setPen(QPen(QColor("#8B5CF6"), 3));
-                painter.drawEllipse(1, 1, 137, 137);
+                    painter.setClipping(false);
+                    painter.setPen(QPen(QColor("#8B5CF6"), 3));
+                    painter.drawEllipse(1, 1, 137, 137);
 
-                profileImageButton->setIcon(QIcon(circularPhoto));
-                profileImageButton->setIconSize(QSize(140, 140));
+                    profileImageButton->setIcon(QIcon(circularPhoto));
+                    profileImageButton->setIconSize(QSize(140, 140));
+                }
+            } else {
+                resetToDefaultProfileImage();
             }
         } else {
             resetToDefaultProfileImage();
         }
 
         showMessageDialog(tr("All changes have been reset to last saved state."));
+        return true;
     }
+    
+    return false;
 }
 
 void SettingsPage::handleLogout()
