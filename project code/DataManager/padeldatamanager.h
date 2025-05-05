@@ -26,6 +26,7 @@
 // Structure to store waitlist entries
 struct WaitlistEntry {
     int memberId;
+    int courtId;
     QDateTime requestedTime;
     bool isVIP;
     int priority;
@@ -49,21 +50,32 @@ public:
     Court getCourtById(int courtId) const;
     QVector<Court> getAllCourts() const;
     QVector<Court> getCourtsByLocation(const QString& location) const;
+    
+    // New search and filter methods
+    QVector<Court> searchCourtsByName(const QString& nameQuery) const;
+    QVector<Court> filterCourtsByTimeAndLocation(const QTime& time, const QDate& date, 
+                                              const QString& location = QString()) const;
+    QVector<Court> getAvailableCourts(const QDateTime& startTime, const QDateTime& endTime, 
+                                    const QString& location = QString()) const;
+    int getCurrentAttendees(int courtId, const QDateTime& startTime, const QDateTime& endTime) const;
+    QVector<Court> searchCourts(const QString& nameQuery, const QTime& time, const QDate& date, 
+                            const QString& location = QString()) const;
 
     // Booking management
     bool addBooking(const Booking& booking, QString& errorMessage);
     bool updateBooking(const Booking& booking, QString& errorMessage);
     bool deleteBooking(int bookingId, QString& errorMessage);
     bool createBooking(int userId, int courtId, const QDateTime& startTime, 
-                      const QDateTime& endTime, QString& errorMessage);
+                     const QDateTime& endTime, QString& errorMessage, bool isFromWaitlist = false);
     bool cancelBooking(int bookingId, QString& errorMessage);
     bool rescheduleBooking(int bookingId, const QDateTime& newStartTime, 
-                          const QDateTime& newEndTime, QString& errorMessage);
+                         const QDateTime& newEndTime, QString& errorMessage);
     Booking getBookingById(int bookingId) const;
     QVector<Booking> getAllBookings() const;
     QVector<Booking> getBookingsByMember(int memberId) const;
     QVector<Booking> getBookingsByCourt(int courtId) const;
     QVector<Booking> getBookingsByDate(const QDate& date) const;
+    QVector<Booking> getUserAutoBookings(int userId) const;
     bool isCourtAvailable(int courtId, const QDateTime& startTime, 
                          const QDateTime& endTime) const;
 
@@ -83,16 +95,26 @@ public:
     int calculatePriority(int memberId) const;
 
     // Waitlist management
-    bool addToWaitlist(int memberId, int courtId, const QDateTime& requestedTime, 
-                      QString& errorMessage);
-    bool removeFromWaitlist(int memberId, int courtId, QString& errorMessage);
+    bool addToWaitlist(int userId, int courtId, const QDateTime& requestedTime,
+                   QString& errorMessage);
+    bool removeFromWaitlist(int userId, int courtId, QString& errorMessage);
     QVector<WaitlistEntry> getWaitlistForCourt(int courtId) const;
+    QVector<WaitlistEntry> getWaitlistForMember(int memberId) const;
+    QVector<WaitlistEntry> getWaitlistForUser(int userId) const;
+    int getWaitlistPosition(int userId, int courtId) const;
     bool processWaitlist(int courtId, QString& errorMessage);
+    bool tryFillSlotFromWaitlist(int courtId, const QDateTime& startTime, const QDateTime& endTime, QString& errorMessage);
+    bool isUserInWaitlist(int userId, int courtId, const QDateTime& requestedTime) const;
+    QJsonObject getDetailedWaitlistInfo(int courtId, const QDate& date) const;
+    void checkBookingStatus();
+    void processWaitlistForDate(int courtId, const QDate& date);
 
     // Time slot management
     bool addTimeSlot(int courtId, const QTime& timeSlot, QString& errorMessage);
     bool removeTimeSlot(int courtId, const QTime& timeSlot, QString& errorMessage);
-    QVector<QTime> getAvailableTimeSlots(int courtId, const QDate& date) const;
+    QJsonArray getAvailableTimeSlots(int courtId, const QDate& date, int maxAttendees) const;
+    QVector<QTime> getAllTimeSlots(int courtId) const;
+    QJsonArray getAllTimeSlotsJson(int courtId) const;
 
     // Reporting
     QJsonObject generateMonthlyReport(const QDate& month) const;
@@ -102,17 +124,22 @@ public:
     // Dependency injection
     void setMemberDataManager(MemberDataManager* memberManager);
 
+    bool userHasBookingAtTime(int userId, int courtId, const QDate& date, const QTime& timeSlot) const;
+    bool userHasBookingOnDate(int userId, int courtId, const QDate& date) const;
+    QJsonObject getCourtDetails(int courtId) const;
+
 signals:
-    void bookingCreated(int bookingId, int userId);
-    void bookingUpdated(int bookingId);
-    void bookingCancelled(int bookingId, int userId);
-    void bookingRescheduled(int bookingId, int userId);
     void courtAdded(int courtId);
     void courtUpdated(int courtId);
     void courtDeleted(int courtId);
+    void bookingCreated(int bookingId, int userId);
+    void bookingCancelled(int bookingId, int userId);
+    void bookingRescheduled(int bookingId, int userId);
     void waitlistUpdated(int courtId);
-    void courtAvailabilityChanged(int courtId);
+    void waitlistPositionChanged(int userId, int courtId, int position);
     void vipStatusChanged(int memberId, bool isVIP);
+    void courtAvailabilityChanged(int courtId);
+    void waitlistBookingCreated(int userId, int courtId, const QDateTime& startTime);
 
 private slots:
     void safeEmitBookingCreated(int bookingId, int userId);
@@ -131,8 +158,11 @@ private:
     // File operations
     QJsonArray readCourtsFromFile(QString& errorMessage) const;
     QJsonArray readBookingsFromFile(QString& errorMessage) const;
-    bool writeCourtsToFile(const QJsonArray& courts, QString& errorMessage) const;
+    QJsonArray readWaitlistsFromFile(QString& errorMessage) const;
     bool writeBookingsToFile(const QJsonArray& bookings, QString& errorMessage) const;
+    bool writeCourtsToFile(const QJsonArray& courts, QString& errorMessage) const;
+    bool writeWaitlistsToFile(const QJsonArray& waitlists, QString& errorMessage) const;
+    QJsonArray waitlistsToJson() const;
     
     // JSON conversion
     QJsonObject courtToJson(const Court& court) const;
@@ -143,12 +173,14 @@ private:
     // Helper methods
     [[nodiscard]] int generateCourtId() const;
     [[nodiscard]] int generateBookingId() const;
-    void checkBookingStatus();
     void setupTimers();
     bool validateBookingTime(const QDateTime& startTime, const QDateTime& endTime, 
                            QString& errorMessage) const;
     bool validateCourtAvailability(int courtId, const QDateTime& startTime, 
                                  const QDateTime& endTime) const;
+    void updateWaitlistPositionsAndNotify(int courtId);
+    void removeUserFromAllWaitlists(int userId, int courtId, const QDate& date);
+    int countDailyBookings(int courtId, const QDate& date) const;
 };
 
 #endif // PADELDATAMANAGER_H 
