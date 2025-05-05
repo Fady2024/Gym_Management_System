@@ -17,12 +17,25 @@ UserDataManager::UserDataManager(QObject* parent)
     : QObject(parent)
 {
     // Get the project directory path
-    QString projectDir = QCoreApplication::applicationDirPath();
+    QString projectDir;
+    
+#ifdef FORCE_SOURCE_DIR
+    // Use the source directory path defined in CMake
+    projectDir = QString::fromUtf8(SOURCE_DATA_DIR);
+    qDebug() << "Using source directory path:" << projectDir;
+#else
+    // Fallback to application directory
+    projectDir = QCoreApplication::applicationDirPath();
     projectDir = QFileInfo(projectDir).dir().absolutePath();
+    qDebug() << "Using application directory path:" << projectDir;
+#endif
     
     // Set data directory paths
     dataDir = projectDir + "/project code/Data";
     usersPhotoDir = projectDir + "/project code/UsersPhoto";
+    
+    qDebug() << "Data directory path:" << dataDir;
+    qDebug() << "Users photo directory path:" << usersPhotoDir;
     
     // Create directories if they don't exist
     QDir().mkpath(dataDir);
