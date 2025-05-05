@@ -1,0 +1,16 @@
+[
+    {
+        "courtId": 3,
+        "isVIP": false,
+        "priority": 0,
+        "requestedTime": "2025-05-05T16:00:00",
+        "userId": 5
+    },
+    {
+        "courtId": 3,
+        "isVIP": true,
+        "priority": 100,
+        "requestedTime": "2025-05-05T16:00:00",
+        "userId": 4
+    }
+]

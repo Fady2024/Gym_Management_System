@@ -14,5 +14,45 @@
         "name": "Fadygerges2024@gmail.com",
         "password": "Fadygerges2024@gmail.com",
         "photoPath": "project code/UsersPhoto/github (1).png"
+    },
+    {
+        "age": 20,
+        "email": "Fadygerges2024@admin.com",
+        "id": 3,
+        "name": "Fadygerges2024@admin.com",
+        "password": "Fadygerges2024@admin.com",
+        "photoPath": "project code/UsersPhoto/fady_20250422_022603.png"
+    },
+    {
+        "age": 20,
+        "email": "Fadygerges2027@gmail.com",
+        "id": 4,
+        "name": "Fadygerges2027@gmail.com",
+        "password": "Fadygerges2027@gmail.com",
+        "photoPath": "project code/UsersPhoto/fady_20250504_094146.png"
+    },
+    {
+        "age": 20,
+        "email": "Fadygerges2028@gmail.com",
+        "id": 5,
+        "name": "Fadygerges2028@gmail.com",
+        "password": "Fadygerges2028@gmail.com",
+        "photoPath": "project code/UsersPhoto/fady_20250504_094146.png"
+    },
+    {
+        "age": 20,
+        "email": "Fadygerges2029@gmail.com",
+        "id": 6,
+        "name": "Fadygerges2029@gmail.com",
+        "password": "Fadygerges2029@gmail.com",
+        "photoPath": "project code/UsersPhoto/fady_20250504_094146.png"
+    },
+    {
+        "age": 20,
+        "email": "Fadygerges2030@gmail.com",
+        "id": 7,
+        "name": "Fadygerges2030@gmail.com",
+        "password": "Fadygerges2030@gmail.com",
+        "photoPath": "project code/UsersPhoto/7495404-removebg-preview (1).png"
     }
 ]
