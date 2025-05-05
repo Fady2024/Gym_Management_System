@@ -2,9 +2,12 @@
 #include <QDebug>
 #include <QApplication>
 #include <QTimer>
+#include <QTableWidgetItem>
+#include <QRegularExpression>
+#include <QRegularExpressionMatch>
 
 BookingWindow::BookingWindow(PadelDataManager* padelManager, QWidget* parent)
-    : QWidget(parent), m_padelManager(padelManager), m_currentUserId(0)
+    : QWidget(parent), m_padelManager(padelManager), m_currentUserId(0), m_isDarkTheme(false)
 {
     setupUI();
     setupConnections();
@@ -14,7 +17,43 @@ BookingWindow::BookingWindow(PadelDataManager* padelManager, QWidget* parent)
 void BookingWindow::setCurrentUserEmail(const QString& email)
 {
     m_currentUserEmail = email;
-    loadUserData();
+    
+    m_currentUserId = 0;
+    m_userInfoLabel->setText(tr("User: %1").arg(email));
+    
+    if (m_userDataManager) {
+        User user = m_userDataManager->getUserData(email);
+        if (user.getId() > 0) {
+            m_currentUserId = user.getId();
+            qDebug() << "User ID set to" << m_currentUserId << "for email" << email;
+
+            bool isMember = false;
+            if (m_memberDataManager) {
+                isMember = m_memberDataManager->userIsMember(m_currentUserId);
+                if (isMember) {
+                    int memberId = m_memberDataManager->getMemberIdByUserId(m_currentUserId);
+                    qDebug() << "User" << m_currentUserId << "is a member with ID:" << memberId;
+                    
+                    m_userInfoLabel->setText(tr("User: %1 (Member ID: %2)").arg(email).arg(memberId));
+                } else {
+                    m_userInfoLabel->setText(tr("User: %1 (Not a member)").arg(email));
+                }
+            }
+        } else {
+            qDebug() << "No user found for email" << email;
+        }
+    }
+
+    qDebug() << "User changed - clearing and refreshing all booking data";
+    clearTimeSlotGrid();
+    if (m_courtSelector && m_courtSelector->count() > 0) {
+        int courtId = m_courtSelector->currentData().toInt();
+        if (courtId > 0) {
+            updateCourtDetails(courtId);
+            refreshTimeSlots();
+        }
+    }
+    
     refreshBookingsList();
 }
 
@@ -30,7 +69,6 @@ void BookingWindow::loadUserData()
         return;
     }
 
-    // Get user data from email
     User user = m_userDataManager->getUserData(m_currentUserEmail);
     if (user.getId() <= 0) {
         qDebug() << "Error: Invalid user ID for email" << m_currentUserEmail;
@@ -40,7 +78,6 @@ void BookingWindow::loadUserData()
     m_currentUserId = user.getId();
     qDebug() << "Loaded user ID" << m_currentUserId << "from email" << m_currentUserEmail;
 
-    // Check if user is a member
     bool isMember = false;
     int memberId = -1;
     
@@ -54,7 +91,6 @@ void BookingWindow::loadUserData()
         }
     }
 
-    // Update UI with user info
     QString userInfo = tr("User: %1").arg(m_currentUserEmail);
     if (isMember) {
         userInfo += tr(" (Member ID: %1)").arg(memberId);
@@ -69,99 +105,170 @@ void BookingWindow::loadUserData()
 
 void BookingWindow::setupUI()
 {
-    QVBoxLayout* mainLayout = new QVBoxLayout(this);
+    
+    QVBoxLayout* outerLayout = new QVBoxLayout(this);
+    outerLayout->setContentsMargins(0, 0, 0, 0);
+    outerLayout->setSpacing(0);
+
+    QScrollArea* mainScrollArea = new QScrollArea(this);
+    mainScrollArea->setWidgetResizable(true);
+    mainScrollArea->setFrameShape(QFrame::NoFrame);
+    mainScrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    mainScrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    outerLayout->addWidget(mainScrollArea);
+
+    QWidget* contentWidget = new QWidget(mainScrollArea);
+    mainScrollArea->setWidget(contentWidget);
+
+    QVBoxLayout* mainLayout = new QVBoxLayout(contentWidget);
     mainLayout->setContentsMargins(20, 20, 20, 20);
     mainLayout->setSpacing(15);
 
-    // Title
-    QLabel* titleLabel = new QLabel(tr("Padel Court Booking System"), this);
-    titleLabel->setStyleSheet("font-size: 24px; font-weight: bold;");
+    QLabel* titleLabel = new QLabel(tr("Padel Court Booking System"), contentWidget);
+    titleLabel->setStyleSheet("font-size: 24px; font-weight: bold; color: #4F46E5;");
+    titleLabel->setObjectName("titleLabel");
     mainLayout->addWidget(titleLabel);
-    
-    // User info label
-    m_userInfoLabel = new QLabel(tr("User: Not logged in"), this);
+
+    m_userInfoLabel = new QLabel(tr("User: Not logged in"), contentWidget);
     m_userInfoLabel->setStyleSheet("font-size: 14px; color: #666;");
+    m_userInfoLabel->setObjectName("userInfoLabel");
     mainLayout->addWidget(m_userInfoLabel);
 
     mainLayout->addWidget(createSeparator());
 
-    // Court selection section
+    setupSearchUI(contentWidget, mainLayout);
+
+    mainLayout->addWidget(createSeparator());
+
     QHBoxLayout* courtSelectionLayout = new QHBoxLayout();
     mainLayout->addLayout(courtSelectionLayout);
 
-    // Left panel - Court selection
     QVBoxLayout* selectionLayout = new QVBoxLayout();
     selectionLayout->setSpacing(10);
     courtSelectionLayout->addLayout(selectionLayout, 3);
 
-    // Court selector
     QHBoxLayout* courtLayout = new QHBoxLayout();
-    QLabel* courtLabel = new QLabel(tr("Select Court:"), this);
-    m_courtSelector = new QComboBox(this);
+    QLabel* courtLabel = new QLabel(tr("Select Court:"), contentWidget);
+    courtLabel->setStyleSheet("font-weight: bold;");
+    courtLabel->setObjectName("labelHeading");
+    m_courtSelector = new QComboBox(contentWidget);
     m_courtSelector->setMinimumWidth(200);
+    m_courtSelector->setStyleSheet("padding: 8px; border-radius: 4px; border: 1px solid #D1D5DB;");
     courtLayout->addWidget(courtLabel);
     courtLayout->addWidget(m_courtSelector);
     selectionLayout->addLayout(courtLayout);
 
-    // Date selector
     QHBoxLayout* dateLayout = new QHBoxLayout();
-    QLabel* dateLabel = new QLabel(tr("Select Date:"), this);
-    m_dateSelector = new QDateEdit(QDate::currentDate(), this);
+    QLabel* dateLabel = new QLabel(tr("Select Date:"), contentWidget);
+    dateLabel->setStyleSheet("font-weight: bold;");
+    dateLabel->setObjectName("labelHeading");   
+    m_dateSelector = new QDateEdit(QDate::currentDate(), contentWidget);
     m_dateSelector->setCalendarPopup(true);
     m_dateSelector->setMinimumDate(QDate::currentDate());
+    m_dateSelector->setStyleSheet("padding: 8px; border-radius: 4px; border: 1px solid #D1D5DB;");
     dateLayout->addWidget(dateLabel);
     dateLayout->addWidget(m_dateSelector);
     selectionLayout->addLayout(dateLayout);
 
-    // Time slot selector
+    QLabel* timeSlotsTitle = new QLabel(tr("Available Time Slots:"), contentWidget);
+    timeSlotsTitle->setStyleSheet("font-weight: bold; margin-top: 10px; color: #4F46E5;");
+    timeSlotsTitle->setObjectName("sectionHeading");
+    selectionLayout->addWidget(timeSlotsTitle);
+
+    QWidget* timeSlotContainer = new QWidget(contentWidget);
+    timeSlotContainer->setMinimumHeight(300);
+    selectionLayout->addWidget(timeSlotContainer);
+
+    m_timeSlotGrid = new QGridLayout(timeSlotContainer);
+    m_timeSlotGrid->setSpacing(10);
+    m_timeSlotGrid->setContentsMargins(5, 5, 5, 5);
+    
+    m_slotsLayout = new QGridLayout();
+    m_slotsLayout->setSpacing(10);
+    m_slotsLayout->setContentsMargins(5, 5, 5, 5);
+    
+    QWidget* slotsContainer = new QWidget(timeSlotContainer);
+    slotsContainer->setLayout(m_slotsLayout);
+    m_timeSlotGrid->addWidget(slotsContainer, 0, 0);
+
+    m_noSlotsLabel = new QLabel(tr("No time slots available"), timeSlotContainer);
+    m_noSlotsLabel->setAlignment(Qt::AlignCenter);
+    m_noSlotsLabel->setStyleSheet("color: #6B7280; font-style: italic;");
+    m_noSlotsLabel->setObjectName("messageLabel");   
+    m_noSlotsLabel->hide(); 
+    m_timeSlotGrid->addWidget(m_noSlotsLabel, 1, 0);
+    
     QHBoxLayout* timeLayout = new QHBoxLayout();
-    QLabel* timeLabel = new QLabel(tr("Select Time:"), this);
-    m_timeSlotSelector = new QComboBox(this);
+    QLabel* timeLabel = new QLabel(tr("Select Time:"), contentWidget);
+    m_timeSlotSelector = new QComboBox(contentWidget);
     timeLayout->addWidget(timeLabel);
     timeLayout->addWidget(m_timeSlotSelector);
-    selectionLayout->addLayout(timeLayout);
 
-    // Book button
-    m_bookButton = new QPushButton(tr("Book Court"), this);
+    m_bookButton = new QPushButton(tr("Book Court"), contentWidget);
     m_bookButton->setFixedHeight(40);
-    m_bookButton->setStyleSheet("background-color: #8B5CF6; color: white; font-weight: bold; border-radius: 5px;");
+    m_bookButton->setStyleSheet("background-color: #4F46E5; color: white; font-weight: bold; border-radius: 5px;");
+
+    timeLabel->setVisible(false);
+    m_timeSlotSelector->setVisible(false);
+    m_bookButton->setVisible(false);
+
+    selectionLayout->addLayout(timeLayout);
     selectionLayout->addWidget(m_bookButton);
 
-    // Status label
-    m_statusLabel = new QLabel(this);
+    QLayout* waitlistLayout = setupWaitlistUI(contentWidget);
+    selectionLayout->addLayout(waitlistLayout);
+
+    m_statusLabel = new QLabel(contentWidget);
     m_statusLabel->setWordWrap(true);
+    m_statusLabel->setStyleSheet("color: #6B7280; font-style: italic;");
+    m_statusLabel->setObjectName("statusLabel");
     selectionLayout->addWidget(m_statusLabel);
-    
-    // Spacer
+
     selectionLayout->addStretch();
 
-    // Right panel - Court details
     QVBoxLayout* detailsLayout = new QVBoxLayout();
     courtSelectionLayout->addLayout(detailsLayout, 2);
 
-    QLabel* detailsTitle = new QLabel(tr("Court Details"), this);
-    detailsTitle->setStyleSheet("font-size: 18px; font-weight: bold;");
+    QLabel* detailsTitle = new QLabel(tr("Court Details"), contentWidget);
+    detailsTitle->setStyleSheet("font-size: 18px; font-weight: bold; color: #4F46E5;");
+    detailsTitle->setObjectName("sectionHeading");
     detailsLayout->addWidget(detailsTitle);
 
-    m_courtNameLabel = new QLabel(this);
-    m_courtLocationLabel = new QLabel(this);
-    m_courtPriceLabel = new QLabel(this);
-    m_courtDescriptionLabel = new QLabel(this);
+    m_courtNameLabel = new QLabel(contentWidget);
+    m_courtLocationLabel = new QLabel(contentWidget);
+    m_courtPriceLabel = new QLabel(contentWidget);
+    m_courtDescriptionLabel = new QLabel(contentWidget);
     m_courtDescriptionLabel->setWordWrap(true);
+
+    QString labelStyle = "padding: 5px; margin-bottom: 5px; color: #111827;";
+    m_courtNameLabel->setStyleSheet(labelStyle);
+    m_courtLocationLabel->setStyleSheet(labelStyle);
+    m_courtPriceLabel->setStyleSheet(labelStyle);
+    m_courtDescriptionLabel->setStyleSheet(labelStyle);
+
+    m_courtNameLabel->setObjectName("detailLabel");
+    m_courtLocationLabel->setObjectName("detailLabel");
+    m_courtPriceLabel->setObjectName("detailLabel");
+    m_courtDescriptionLabel->setObjectName("detailLabel");
     
     detailsLayout->addWidget(m_courtNameLabel);
     detailsLayout->addWidget(m_courtLocationLabel);
     detailsLayout->addWidget(m_courtPriceLabel);
-    
+
+    m_capacityLabel = new QLabel(contentWidget);
+    m_capacityLabel->setObjectName("capacityLabel");   
+    detailsLayout->addWidget(m_capacityLabel);
+
     detailsLayout->addWidget(createSeparator());
     
     detailsLayout->addWidget(m_courtDescriptionLabel);
     
-    QLabel* featuresTitle = new QLabel(tr("Features:"), this);
-    featuresTitle->setStyleSheet("font-weight: bold; margin-top: 10px;");
+    QLabel* featuresTitle = new QLabel(tr("Features:"), contentWidget);
+    featuresTitle->setStyleSheet("font-weight: bold; margin-top: 10px; color: #4F46E5;");
+    featuresTitle->setObjectName("subHeading");   
     detailsLayout->addWidget(featuresTitle);
     
-    m_courtFeaturesListWidget = new QListWidget(this);
+    m_courtFeaturesListWidget = new QListWidget(contentWidget);
     m_courtFeaturesListWidget->setMaximumHeight(120);
     m_courtFeaturesListWidget->setStyleSheet("background-color: transparent; border: none;");
     detailsLayout->addWidget(m_courtFeaturesListWidget);
@@ -170,30 +277,35 @@ void BookingWindow::setupUI()
 
     mainLayout->addWidget(createSeparator());
 
-    // Bookings section
-    QLabel* bookingsTitle = new QLabel(tr("My Bookings"), this);
-    bookingsTitle->setStyleSheet("font-size: 18px; font-weight: bold;");
+    QLabel* bookingsTitle = new QLabel(tr("My Bookings"), contentWidget);
+    bookingsTitle->setStyleSheet("font-size: 18px; font-weight: bold; color: #4F46E5;");
+    bookingsTitle->setObjectName("sectionHeading");   
     mainLayout->addWidget(bookingsTitle);
 
-    m_bookingsList = new QListWidget(this);
+    m_bookingsList = new QListWidget(contentWidget);
     m_bookingsList->setMinimumHeight(150);
+    m_bookingsList->setStyleSheet("border-radius: 4px; border: 1px solid #D1D5DB;");
     mainLayout->addWidget(m_bookingsList);
 
-    // Booking management section
     QHBoxLayout* bookingManagementLayout = new QHBoxLayout();
     mainLayout->addLayout(bookingManagementLayout);
 
-    m_cancelButton = new QPushButton(tr("Cancel Selected Booking"), this);
+    m_cancelButton = new QPushButton(tr("Cancel Selected Booking"), contentWidget);
     m_cancelButton->setEnabled(false);
+    m_cancelButton->setStyleSheet("background-color: #EF4444; color: white; padding: 8px; border-radius: 4px;");
     bookingManagementLayout->addWidget(m_cancelButton);
 
-    m_rescheduleButton = new QPushButton(tr("Reschedule Selected Booking"), this);
+    m_rescheduleButton = new QPushButton(tr("Reschedule Selected Booking"), contentWidget);
     m_rescheduleButton->setEnabled(false);
+    m_rescheduleButton->setStyleSheet("background-color: #F97316; color: white; padding: 8px; border-radius: 4px;");
     bookingManagementLayout->addWidget(m_rescheduleButton);
 
-    m_rescheduleTimeSelector = new QComboBox(this);
+    m_rescheduleTimeSelector = new QComboBox(contentWidget);
     m_rescheduleTimeSelector->setEnabled(false);
+    m_rescheduleTimeSelector->setStyleSheet("padding: 8px; border-radius: 4px; border: 1px solid #D1D5DB;");
     bookingManagementLayout->addWidget(m_rescheduleTimeSelector);
+    
+    contentWidget->setMinimumWidth(800);
 }
 
 QFrame* BookingWindow::createSeparator()
@@ -213,11 +325,20 @@ void BookingWindow::setupConnections()
     connect(m_bookingsList, &QListWidget::currentRowChanged, this, &BookingWindow::onBookingItemSelected);
     connect(m_cancelButton, &QPushButton::clicked, this, &BookingWindow::cancelBooking);
     connect(m_rescheduleButton, &QPushButton::clicked, this, &BookingWindow::rescheduleBooking);
+
+    connect(m_searchButton, &QPushButton::clicked, this, &BookingWindow::performSearch);
+    connect(m_clearSearchButton, &QPushButton::clicked, this, &BookingWindow::clearSearch);
+    connect(m_searchBox, &QLineEdit::returnPressed, this, &BookingWindow::performSearch);
+
+    connect(m_joinWaitlistButton, &QPushButton::clicked, this, &BookingWindow::onJoinWaitlistClicked);
+    connect(m_checkWaitlistButton, &QPushButton::clicked, this, &BookingWindow::onCheckWaitlistClicked);
 }
 
 void BookingWindow::loadCourts()
 {
     m_courtSelector->clear();
+    
+    updateLocationFilter();
     
     QVector<Court> courts = m_padelManager->getAllCourts();
     for (const Court& court : courts) {
@@ -227,116 +348,1549 @@ void BookingWindow::loadCourts()
     if (m_courtSelector->count() > 0) {
         onCourtSelectionChanged(0);
     }
+    
+    m_totalResultsLabel->setText(tr("Total courts: %1").arg(courts.size()));
+}
+
+void BookingWindow::updateLocationFilter()
+{
+    QString currentSelection = m_locationFilter->currentData().toString();
+    
+    m_locationFilter->clear();
+    m_locationFilter->addItem(tr("All Locations"), "");
+    
+    QSet<QString> locations;
+    QVector<Court> courts = m_padelManager->getAllCourts();
+    
+    for (const Court& court : courts) {
+        locations.insert(court.getLocation());
+    }
+
+    for (const QString& location : locations) {
+        m_locationFilter->addItem(location, location);
+    }
+
+    if (!currentSelection.isEmpty()) {
+        for (int i = 0; i < m_locationFilter->count(); i++) {
+            if (m_locationFilter->itemData(i).toString() == currentSelection) {
+                m_locationFilter->setCurrentIndex(i);
+                break;
+            }
+        }
+    }
+}
+
+void BookingWindow::performSearch()
+{
+    QString nameQuery = m_searchBox->text().trimmed();
+    QString location = m_locationFilter->currentData().toString();
+    bool availableOnly = m_showAvailableOnly->isChecked();
+    
+    loadCourtsByFilter(nameQuery, location, availableOnly);
+}
+
+void BookingWindow::clearSearch()
+{
+    m_searchBox->clear();
+    m_locationFilter->setCurrentIndex(0); 
+    m_showAvailableOnly->setChecked(false);
+
+    loadCourts();
+}
+
+void BookingWindow::loadCourtsByFilter(const QString& nameQuery, const QString& location, bool availableOnly)
+{
+    try {
+        qDebug() << "Loading courts by filter - NameQuery:" << nameQuery << "Location:" << location << "AvailableOnly:" << availableOnly;
+
+        if (!m_courtSelector || !m_dateSelector) {
+            qDebug() << "UI components are null in loadCourtsByFilter";
+            return;
+        }
+        
+        QDate selectedDate = m_dateSelector->date();
+        if (!selectedDate.isValid()) {
+            selectedDate = QDate::currentDate();
+        }
+
+        QTime selectedTime;
+        bool hasValidTimeSelection = false;
+        
+        if (m_timeSlotSelector && m_timeSlotSelector->count() > 0 && m_timeSlotSelector->currentIndex() >= 0) {
+            QString timeStr = m_timeSlotSelector->currentText();
+            selectedTime = QTime::fromString(timeStr, "HH:mm");
+            hasValidTimeSelection = selectedTime.isValid();
+        }
+        
+        if (!hasValidTimeSelection) {
+            selectedTime = QTime(12, 0);
+        }
+        
+        QDateTime requestedDateTime(selectedDate, selectedTime);
+        qDebug() << "Selected date/time:" << requestedDateTime.toString();
+
+        m_courtSelector->blockSignals(true);
+        m_courtSelector->clear();
+
+        QVector<Court> filteredCourts;
+        
+        if (availableOnly && hasValidTimeSelection) {
+            
+            filteredCourts = m_padelManager->getAvailableCourts(requestedDateTime, requestedDateTime.addSecs(3600), location);
+    } else {
+            
+            if (!location.isEmpty()) {
+            filteredCourts = m_padelManager->getCourtsByLocation(location);
+        } else {
+                filteredCourts = m_padelManager->getAllCourts();
+            }
+
+            if (!nameQuery.isEmpty()) {
+                QVector<Court> nameFilteredCourts;
+                for (const Court& court : filteredCourts) {
+                    if (court.getName().contains(nameQuery, Qt::CaseInsensitive)) {
+                        nameFilteredCourts.append(court);
+                    }
+                }
+                filteredCourts = nameFilteredCourts;
+            }
+        }
+
+    for (const Court& court : filteredCourts) {
+            QVector<QTime> availableSlots;
+            
+            QJsonObject courtDetails = m_padelManager->getCourtDetails(court.getId());
+            int maxAttendees = 2;
+            if (courtDetails.contains("maxAttendees")) {
+                maxAttendees = courtDetails["maxAttendees"].toInt();
+            }
+            
+            if (maxAttendees <= 0) {
+                maxAttendees = 2;
+            }
+            
+            try {
+                QJsonArray availableSlotsJson = m_padelManager->getAvailableTimeSlots(court.getId(), selectedDate, maxAttendees);
+                
+                for (int i = 0; i < availableSlotsJson.size(); i++) {
+                    QJsonObject slotObject = availableSlotsJson[i].toObject();
+                    QString startTimeStr = slotObject["startTime"].toString();
+                    QTime startTime = QTime::fromString(startTimeStr, "HH:mm");
+                    
+                    if (startTime.isValid()) {
+                        availableSlots.append(startTime);
+                    }
+                }
+            } catch (const std::exception& e) {
+                qDebug() << "Exception getting available slots:" << e.what();
+            } catch (...) {
+                qDebug() << "Unknown error getting available slots";
+            }
+            
+            QString displayText = court.getName();
+
+            if (!availableSlots.isEmpty()) {
+                displayText += QString(" (%1 slots)").arg(availableSlots.size());
+            }
+
+            displayText += QString(" - $%1/hr").arg(court.getPricePerHour());
+
+            m_courtSelector->addItem(displayText, court.getId());
+        }
+
+        m_courtSelector->blockSignals(false);
+
+    if (m_courtSelector->count() > 0) {
+            m_courtSelector->setCurrentIndex(0);
+        onCourtSelectionChanged(0);
+        } else {
+            clearTimeSlotGrid();
+            
+            if (m_noSlotsLabel) {
+                m_noSlotsLabel->setText(tr("No courts found matching the criteria"));
+                m_noSlotsLabel->show();
+            }
+        }
+    } catch (const std::exception& e) {
+        qDebug() << "Exception in loadCourtsByFilter:" << e.what();
+    } catch (...) {
+        qDebug() << "Unknown error in loadCourtsByFilter";
+    }
+}
+
+void BookingWindow::onJoinWaitlistClicked()
+{
+    try {
+    if (m_currentUserId <= 0) {
+        QMessageBox::warning(this, tr("User Error"), 
+                          tr("Please log in to join the waitlist."));
+        return;
+    }
+        
+        if (!m_padelManager) {
+            qDebug() << "Error: PadelDataManager is null";
+            QMessageBox::warning(this, tr("System Error"), 
+                              tr("System error: Unable to access data manager."));
+        return;
+    }
+    
+    if (m_courtSelector->count() <= 0) {
+        QMessageBox::warning(this, tr("Selection Error"), 
+                          tr("Please select a court."));
+        return;
+    }
+
+    int courtId = m_courtSelector->currentData().toInt();
+        if (courtId <= 0) {
+            QMessageBox::warning(this, tr("Selection Error"), 
+                              tr("Invalid court selection."));
+            return;
+        }
+        
+    QDate selectedDate = m_dateSelector->date();
+        if (!selectedDate.isValid()) {
+            selectedDate = QDate::currentDate();
+        }
+
+        QTime selectedTime;
+        if (m_timeSlotSelector->count() > 0) {
+            QString timeStr = m_timeSlotSelector->currentText();
+            selectedTime = QTime::fromString(timeStr, "HH:mm");
+            if (!selectedTime.isValid()) {
+                selectedTime = QTime(12, 0); 
+            }
+        } else {
+            selectedTime = QTime(12, 0);   
+        }
+        
+        QDateTime requestedDateTime(selectedDate, selectedTime);
+        
+        qDebug() << "========== JOIN WAITLIST FLOW ==========";
+        qDebug() << "Starting waitlist join process for user:" << m_currentUserId;
+        qDebug() << "Court ID:" << courtId;
+        qDebug() << "Selected date:" << selectedDate.toString("yyyy-MM-dd");
+        qDebug() << "Selected time:" << selectedTime.toString("HH:mm");
+
+        bool isInWaitlist = false;
+        try {
+            isInWaitlist = m_padelManager->isUserInWaitlist(m_currentUserId, courtId, requestedDateTime);
+            qDebug() << "User" << m_currentUserId << "is in waitlist for court" << courtId << ":" << isInWaitlist;
+        
+        if (isInWaitlist) {
+                QMessageBox::StandardButton response = QMessageBox::question(
+                    this, tr("Leave Waitlist"),
+                    tr("You are already on the waitlist for this court. Would you like to be removed?"),
+                    QMessageBox::Yes | QMessageBox::No
+                );
+                
+                if (response == QMessageBox::Yes) {
+            QString errorMessage;
+                    bool success = m_padelManager->removeFromWaitlist(m_currentUserId, courtId, errorMessage);
+            
+            if (success) {
+                        QMessageBox::information(this, tr("Success"), 
+                                     tr("You have been removed from the waitlist."));
+                        
+                updateWaitlistStatus(courtId);
+                        return;
+            } else {
+                QMessageBox::warning(this, tr("Error"), 
+                                  tr("Failed to remove from waitlist: %1").arg(errorMessage));
+            return;
+        }
+                } else {
+                    return; 
+                }
+            }
+        } catch (const std::exception& e) {
+            qDebug() << "Exception checking waitlist status:" << e.what();
+            QMessageBox::warning(this, tr("System Error"), 
+                              tr("System error: Failed to check waitlist status."));
+            return;
+        }
+        
+        try {
+            QJsonObject courtDetails = m_padelManager->getCourtDetails(courtId);
+            int maxAttendees = 2; 
+            if (courtDetails.contains("maxAttendees")) {
+                maxAttendees = courtDetails["maxAttendees"].toInt();
+            }
+            
+            if (maxAttendees <= 0) {
+                maxAttendees = 2;
+            }
+            
+            QDateTime startDateTime(selectedDate, selectedTime);
+            QDateTime endDateTime = startDateTime.addSecs(3600); 
+            
+            bool isAvailable = m_padelManager->isCourtAvailable(courtId, startDateTime, endDateTime);
+            qDebug() << "Court" << courtId << "is available at" << startDateTime.toString() << ":" << isAvailable;
+            
+            if (isAvailable) {
+                QMessageBox::StandardButton response = QMessageBox::question(
+                    this, tr("Court Available"),
+                    tr("There are still available slots for this court. Do you want to book directly instead of joining waitlist?"),
+                    QMessageBox::Yes | QMessageBox::No
+                );
+                
+                qDebug() << "User response to direct booking option:" << (response == QMessageBox::Yes ? "Yes - Book directly" : "No - Continue with waitlist");
+                
+                if (response == QMessageBox::Yes) {
+                    qDebug() << "User chose to book directly - calling bookCourtDirectly()";
+                    bookCourtDirectly(courtId, startDateTime, endDateTime);
+        return;
+                }
+                qDebug() << "User chose to continue with waitlist despite available slots";
+            }
+        } catch (const std::exception& e) {
+            qDebug() << "Exception checking court availability:" << e.what();
+    }
+
+    QDialog dialog(this);
+    dialog.setWindowTitle(tr("Join Waitlist"));
+    QVBoxLayout* layout = new QVBoxLayout(&dialog);
+    
+    QLabel* promptLabel = new QLabel(tr("Please select your preferred time for the waitlist:"), &dialog);
+    QTimeEdit* timeEdit = new QTimeEdit(&dialog);
+    timeEdit->setDisplayFormat("HH:mm");
+    timeEdit->setTime(QTime(12, 0));   
+    
+    QPushButton* confirmButton = new QPushButton(tr("Join Waitlist"), &dialog);
+    QPushButton* cancelButton = new QPushButton(tr("Cancel"), &dialog);
+    
+    QHBoxLayout* buttonLayout = new QHBoxLayout();
+    buttonLayout->addWidget(confirmButton);
+    buttonLayout->addWidget(cancelButton);
+    
+    layout->addWidget(promptLabel);
+    layout->addWidget(timeEdit);
+    layout->addLayout(buttonLayout);
+    
+    connect(confirmButton, &QPushButton::clicked, &dialog, &QDialog::accept);
+    connect(cancelButton, &QPushButton::clicked, &dialog, &QDialog::reject);
+    
+    qDebug() << "Showing preferred time dialog to user";
+    if (dialog.exec() == QDialog::Accepted) {
+        QTime preferredTime = timeEdit->time();
+            m_selectedWaitlistTime = preferredTime;
+        
+        qDebug() << "User confirmed preferred time:" << preferredTime.toString() << " - calling joinWaitlist()";
+        
+        joinWaitlist(courtId);
+        } else {
+            qDebug() << "User cancelled waitlist join operation";
+        }
+        qDebug() << "========== END JOIN WAITLIST FLOW ==========";
+    } catch (const std::exception& e) {
+        qDebug() << "Exception in onJoinWaitlistClicked:" << e.what();
+        QMessageBox::warning(this, tr("System Error"), 
+                          tr("System error: An error occurred while joining the waitlist."));
+    } catch (...) {
+        qDebug() << "Unknown exception in onJoinWaitlistClicked";
+        QMessageBox::warning(this, tr("System Error"), 
+                          tr("System error: An unknown error occurred while joining the waitlist."));
+    }
+}
+
+void BookingWindow::joinWaitlist(int courtId)
+{
+        if (!m_padelManager) {
+        QMessageBox::warning(this, tr("Error"), tr("System error: PadelDataManager is null."));
+            return;
+        }
+        
+    try {
+        qDebug() << "=== JOIN WAITLIST FUNCTION ===";
+        qDebug() << "Join waitlist for court:" << courtId;
+        
+    QDate selectedDate = m_dateSelector->date();
+        QTime preferredTime = m_selectedWaitlistTime.isValid() ? m_selectedWaitlistTime : QTime(12, 0);
+        
+        qDebug() << "Selected waitlist time:" << (m_selectedWaitlistTime.isValid() ? "Valid: " + m_selectedWaitlistTime.toString() : "Invalid - using default noon");
+        
+        if (!preferredTime.isValid() && m_timeSlotSelector && m_timeSlotSelector->count() > 0 && m_timeSlotSelector->currentIndex() >= 0) {
+        QString timeStr = m_timeSlotSelector->currentText();
+            QTime parsedTime = QTime::fromString(timeStr, "HH:mm");
+            if (parsedTime.isValid()) {
+                preferredTime = parsedTime;
+                qDebug() << "Using time from selector:" << preferredTime.toString();
+            }
+        }
+        
+        qDebug() << "Attempting to join waitlist for time:" << preferredTime.toString("HH:mm");
+    
+    QDateTime requestedTime(selectedDate, preferredTime);
+    
+        int userId = m_currentUserId;
+        if (userId <= 0) {
+            QMessageBox::warning(this, tr("Error"), tr("You must be logged in to join the waitlist."));
+                return;
+            }
+        
+        qDebug() << "Checking if user" << userId << "is already in waitlist";
+        bool isInWaitlist = false;
+        try {
+            isInWaitlist = m_padelManager->isUserInWaitlist(userId, courtId, requestedTime);
+            qDebug() << "User" << userId << "is in waitlist for court" << courtId << ":" << isInWaitlist;
+        } catch (const std::exception& e) {
+            qDebug() << "Exception checking waitlist status:" << e.what();
+            isInWaitlist = false; 
+        }
+        
+        if (isInWaitlist) {
+            
+            QMessageBox::StandardButton confirm = QMessageBox::question(
+                this, tr("Confirm Removal"),
+                tr("Are you sure you want to be removed from the waitlist?"),
+                QMessageBox::Yes | QMessageBox::No
+            );
+            
+            if (confirm == QMessageBox::Yes) {
+                QString errorMessage;
+                bool success = m_padelManager->removeFromWaitlist(userId, courtId, errorMessage);
+                
+                if (success) {
+                    QMessageBox::information(this, tr("Success"), 
+                        tr("You have been removed from the waitlist."));
+                    updateWaitlistStatus(courtId);
+                    } else {
+                    QMessageBox::warning(this, tr("Error"), 
+                        tr("Failed to remove from waitlist: %1").arg(errorMessage));
+                }
+                    }
+                } else {
+            qDebug() << "Checking if user" << userId << "has booking on date" << selectedDate.toString();
+            bool hasBooking = false;
+            try {
+                hasBooking = m_padelManager->userHasBookingOnDate(userId, courtId, selectedDate);
+                qDebug() << "User has existing booking:" << hasBooking;
+            } catch (const std::exception& e) {
+                qDebug() << "Exception checking booking status:" << e.what();
+                hasBooking = false; 
+            }
+            
+            if (hasBooking) {
+                QMessageBox::warning(this, tr("Error"), 
+                    tr("You already have a booking for this court on this date."));
+            return;
+        }
+
+            QMessageBox::StandardButton confirm = QMessageBox::question(
+                this, tr("Confirm Waitlist"),
+                tr("Would you like to be added to the waitlist for this court at") + " " + preferredTime.toString("HH:mm") + "?",
+                QMessageBox::Yes | QMessageBox::No
+            );
+            
+            if (confirm == QMessageBox::Yes) {
+    QString errorMessage;
+                
+                qDebug() << "=== WAITLIST JOIN DETAILS ===";
+                qDebug() << "User ID:" << userId;
+                qDebug() << "Court ID:" << courtId;
+                qDebug() << "Selected Date:" << selectedDate.toString("yyyy-MM-dd");
+                qDebug() << "Preferred Time:" << preferredTime.toString("HH:mm");
+                qDebug() << "RequestedTime:" << requestedTime.toString("yyyy-MM-dd HH:mm:ss");
+                qDebug() << "===========================";
+                
+                qDebug() << "Calling addToWaitlist function...";
+        bool success = false;
+        
+        try {
+                    success = m_padelManager->addToWaitlist(userId, courtId, requestedTime, errorMessage);
+                    qDebug() << "Add to waitlist result:" << (success ? "SUCCESS" : "FAILED");
+                    if (!success) {
+                        qDebug() << "Error message:" << errorMessage;
+                    }
+        } catch (const std::exception& e) {
+                    qDebug() << "Exception in addToWaitlist call:" << e.what();
+                    success = false;
+        } catch (...) {
+                    qDebug() << "Unknown exception in addToWaitlist call";
+                    success = false;
+                }
+                QMessageBox::information(this, tr("Success"), 
+                    tr("You have been added to the waitlist. You will be notified if a slot becomes available."));
+                try {
+                    qDebug() << "Manually updating waitlist UI...";
+                    if (m_waitlistStatusLabel) {
+                        m_waitlistStatusLabel->setText(tr("You are on the waitlist for") + " " + 
+                                                     preferredTime.toString("HH:mm"));
+                        m_waitlistStatusLabel->setStyleSheet("color: blue;");
+                    }
+                    
+                    qDebug() << "Refreshing time slots to update UI after waitlist join";
+            refreshTimeSlots();
+                } catch (const std::exception& e) {
+                    qDebug() << "Exception updating UI:" << e.what();
+                }
+    } else {
+                qDebug() << "User canceled waitlist join confirmation";
+        }
+        }
+        
+        qDebug() << "=== END JOIN WAITLIST FUNCTION ===";
+    } catch (const std::exception& e) {
+        qDebug() << "Exception in joinWaitlist:" << e.what();
+        QMessageBox::warning(this, tr("Error"), 
+            tr("An exception occurred: %1").arg(e.what()));
+    } catch (...) {
+        qDebug() << "Unknown exception in joinWaitlist";
+        QMessageBox::warning(this, tr("Error"), 
+            tr("An unknown error occurred while processing your request."));
+    }
+}
+
+void BookingWindow::onCheckWaitlistClicked()
+{
+    try {
+    if (m_currentUserId <= 0) {
+        QMessageBox::warning(this, tr("User Error"), 
+                           tr("Please log in to check waitlist status."));
+        return;
+    }
+    
+        if (!m_padelManager) {
+            qDebug() << "Error: PadelDataManager is null in onCheckWaitlistClicked";
+            QMessageBox::warning(this, tr("System Error"), 
+                               tr("System error: Unable to access data manager."));
+            return;
+        }
+
+        int courtId = m_courtSelector->currentData().toInt();
+        if (courtId <= 0) {
+            QMessageBox::warning(this, tr("Selection Error"), 
+                               tr("Invalid court selection."));
+            return;
+        }
+        
+        QDate selectedDate = m_dateSelector->date();
+        if (!selectedDate.isValid()) {
+            selectedDate = QDate::currentDate();
+        }
+        
+        QJsonObject waitlistInfo;
+        try {
+            waitlistInfo = m_padelManager->getDetailedWaitlistInfo(courtId, selectedDate);
+        } catch (const std::exception& e) {
+            qDebug() << "Exception getting detailed waitlist info:" << e.what();
+            QMessageBox::warning(this, tr("Waitlist Error"), 
+                               tr("Error retrieving waitlist information: %1").arg(e.what()));
+            return;
+        } catch (...) {
+            qDebug() << "Unknown exception getting detailed waitlist info";
+            QMessageBox::warning(this, tr("Waitlist Error"), 
+                               tr("Error retrieving waitlist information."));
+        return;
+    }
+    
+        if (waitlistInfo.contains("error")) {
+            QMessageBox::warning(this, tr("Waitlist Error"), 
+                               waitlistInfo["error"].toString());
+            return;
+        }
+        
+        int waitlistCount = waitlistInfo["waitlistCount"].toInt();
+        
+        if (waitlistCount == 0) {
+        QMessageBox::information(this, tr("Waitlist Status"), 
+                                  tr("There are no users on the waitlist for this court on the selected date."));
+        return;
+    }
+    
+    QDialog dialog(this);
+        dialog.setWindowTitle(tr("Waitlist Information"));
+    QVBoxLayout* layout = new QVBoxLayout(&dialog);
+    
+        Court court;
+        try {
+            court = m_padelManager->getCourtById(courtId);
+            if (court.getId() <= 0) {
+                QMessageBox::warning(this, tr("Court Error"), 
+                                   tr("Could not retrieve court information."));
+                return;
+            }
+        } catch (const std::exception& e) {
+            qDebug() << "Exception retrieving court info:" << e.what();
+            QMessageBox::warning(this, tr("Court Error"), 
+                               tr("Could not retrieve court information: %1").arg(e.what()));
+            return;
+        } catch (...) {
+            qDebug() << "Unknown exception retrieving court info";
+            QMessageBox::warning(this, tr("Court Error"), 
+                               tr("Could not retrieve court information."));
+            return;
+        }
+        
+        QLabel* courtLabel = new QLabel(tr("<b>Court:</b> %1").arg(court.getName()), &dialog);
+        QLabel* dateLabel = new QLabel(tr("<b>Date:</b> %1").arg(selectedDate.toString("yyyy-MM-dd")), &dialog);
+        QLabel* countLabel = new QLabel(tr("<b>Total users on waitlist:</b> %1").arg(waitlistCount), &dialog);
+        
+        layout->addWidget(courtLabel);
+        layout->addWidget(dateLabel);
+        layout->addWidget(countLabel);
+
+        QFrame* separator = new QFrame(&dialog);
+        separator->setFrameShape(QFrame::HLine);
+        separator->setFrameShadow(QFrame::Sunken);
+        layout->addWidget(separator);
+
+    QTableWidget* table = new QTableWidget(&dialog);
+    table->setColumnCount(4);
+        table->setHorizontalHeaderLabels({tr("Position"), tr("User"), tr("Requested Time"), tr("VIP Status")});
+
+        QJsonArray entries = waitlistInfo["entries"].toArray();
+        table->setRowCount(entries.size());
+        
+        try {
+            for (int i = 0; i < entries.size(); i++) {
+                QJsonObject entry = entries[i].toObject();
+                
+                QString userName = entry.contains("userName") ? 
+                                entry["userName"].toString() : 
+                                tr("User %1").arg(entry["userId"].toInt());
+
+                bool isCurrentUser = (entry["userId"].toInt() == m_currentUserId);
+                
+                table->setItem(i, 0, new QTableWidgetItem(QString::number(entry["position"].toInt())));
+                table->setItem(i, 1, new QTableWidgetItem(userName));
+
+                QString timeStr = entry["requestedTime"].toString();
+                QString displayTime;
+                
+                if (timeStr.contains("yyyy-MM-dd HH:mm")) {
+                    displayTime = QDateTime::fromString(timeStr, "yyyy-MM-dd HH:mm").time().toString("HH:mm");
+        } else {
+                    int timeIndex = timeStr.lastIndexOf(' ');
+                    if (timeIndex > 0 && timeIndex < timeStr.length() - 1) {
+                        displayTime = timeStr.mid(timeIndex + 1);
+                    } else {
+                        displayTime = timeStr; 
+                    }
+                }
+                
+                table->setItem(i, 2, new QTableWidgetItem(displayTime));
+                table->setItem(i, 3, new QTableWidgetItem(entry["isVIP"].toBool() ? tr("Yes") : tr("No")));
+                
+                if (isCurrentUser) {
+                    for (int col = 0; col < table->columnCount(); col++) {
+                        QTableWidgetItem* item = table->item(i, col);
+                        if (item) {
+                            item->setBackground(QBrush(QColor(255, 235, 205))); 
+                            item->setFont(QFont("", -1, QFont::Bold));
+                        }
+                    }
+                }
+            }
+        } catch (const std::exception& e) {
+            qDebug() << "Exception populating waitlist table:" << e.what();
+        } catch (...) {
+            qDebug() << "Unknown exception populating waitlist table";
+    }
+    
+    table->resizeColumnsToContents();
+    layout->addWidget(table);
+    
+    QPushButton* closeButton = new QPushButton(tr("Close"), &dialog);
+    layout->addWidget(closeButton);
+    
+    connect(closeButton, &QPushButton::clicked, &dialog, &QDialog::accept);
+    
+    dialog.setMinimumWidth(500);
+    dialog.exec();
+    } catch (const std::exception& e) {
+        qDebug() << "Exception in onCheckWaitlistClicked:" << e.what();
+        QMessageBox::warning(this, tr("System Error"), 
+                          tr("System error: An error occurred while checking waitlist status."));
+    } catch (...) {
+        qDebug() << "Unknown exception in onCheckWaitlistClicked";
+        QMessageBox::warning(this, tr("System Error"), 
+                          tr("System error: An unknown error occurred while checking waitlist status."));
+    }
+}
+
+int BookingWindow::getMyWaitlistPosition(int courtId)
+{
+    if (m_currentUserId <= 0 || courtId <= 0) {
+        qDebug() << "Invalid userId or courtId in getMyWaitlistPosition";
+        return -1;
+    }
+    
+    if (!m_padelManager) {
+        qDebug() << "PadelDataManager is null in getMyWaitlistPosition";
+        return -1;
+    }
+    
+    try {
+        QDate selectedDate = m_dateSelector->date();
+        if (!selectedDate.isValid()) {
+            selectedDate = QDate::currentDate();
+        }
+        
+        QTime defaultTime(12, 0);   
+        QDateTime requestedDateTime(selectedDate, defaultTime);
+        
+        if (!requestedDateTime.isValid()) {
+            qDebug() << "Invalid requestedDateTime in getMyWaitlistPosition";
+            return -1;
+        }
+        
+        bool isInWaitlist = false;
+        
+        try {
+            isInWaitlist = m_padelManager->isUserInWaitlist(m_currentUserId, courtId, requestedDateTime);
+        } catch (const std::exception& e) {
+            qDebug() << "Exception checking if user is in waitlist:" << e.what();
+            isInWaitlist = false;
+        } catch (...) {
+            qDebug() << "Unknown exception checking if user is in waitlist";
+            isInWaitlist = false;
+        }
+        
+        if (!isInWaitlist) {
+            return -1;
+        }
+    } catch (const std::exception& e) {
+        qDebug() << "Exception in initial waitlist check:" << e.what();
+    } catch (...) {
+        qDebug() << "Unknown error in initial waitlist check";
+    }
+    
+    try {
+        
+        Court court;
+        try {
+            court = m_padelManager->getCourtById(courtId);
+            if (court.getId() <= 0) {
+                qDebug() << "Court not found in getMyWaitlistPosition:" << courtId;
+                return -1;
+            }
+        } catch (const std::exception& e) {
+            qDebug() << "Exception getting court:" << e.what();
+            return -1;
+        } catch (...) {
+            qDebug() << "Unknown exception getting court";
+                return -1;
+            }
+
+            QDate selectedDate = m_dateSelector->date();
+            if (!selectedDate.isValid()) {
+                selectedDate = QDate::currentDate();
+            }
+            
+        QJsonObject waitlistInfo;
+        try {
+            waitlistInfo = m_padelManager->getDetailedWaitlistInfo(courtId, selectedDate);
+
+            if (waitlistInfo.contains("error") || waitlistInfo["waitlistCount"].toInt() == 0) {
+                qDebug() << "No waitlist entries found for court" << courtId;
+                return -1;
+            }
+        } catch (const std::exception& e) {
+            qDebug() << "Exception getting waitlist info:" << e.what();
+            return -1;
+        } catch (...) {
+            qDebug() << "Unknown exception getting waitlist info";
+                return -1;
+            }
+
+        int position = -1;
+        try {
+            position = m_padelManager->getWaitlistPosition(m_currentUserId, courtId);
+            return position > 0 ? position : -1;
+        } catch (const std::exception& e) {
+            qDebug() << "Exception getting waitlist position:" << e.what();
+            return -1;
+        } catch (...) {
+            qDebug() << "Unknown exception getting waitlist position";
+            return -1;
+        }
+    } catch (const std::exception& e) {
+        qDebug() << "Critical error in getMyWaitlistPosition:" << e.what();
+        return -1;
+    } catch (...) {
+        qDebug() << "Critical error in getMyWaitlistPosition";
+        return -1;
+    }
+}
+
+void BookingWindow::updateWaitlistStatus(int courtId)
+{
+
+    static bool isUpdating = false;
+    if (isUpdating) return;
+    
+    isUpdating = true;
+    
+    try {
+        qDebug() << "Updating waitlist status for court" << courtId;
+        
+        if (!m_padelManager || !m_waitlistStatusLabel || !m_joinWaitlistButton) {
+            qDebug() << "Required components are null in updateWaitlistStatus";
+            isUpdating = false;
+            return;
+        }
+        
+        QDate selectedDate = m_dateSelector->date();
+        if (!selectedDate.isValid()) {
+            qDebug() << "Selected date is invalid in updateWaitlistStatus";
+            isUpdating = false;
+            return;
+        }
+        
+        int userId = m_currentUserId;
+        if (userId <= 0) {
+            qDebug() << "Invalid user ID in updateWaitlistStatus:" << userId;
+            m_waitlistStatusLabel->setText(tr("Please log in to join the waitlist"));
+            m_joinWaitlistButton->setEnabled(false);
+            isUpdating = false;
+            return;
+        }
+
+        QDateTime requestedDateTime(selectedDate, QTime(12, 0)); 
+        bool userInWaitlist = m_padelManager->isUserInWaitlist(userId, courtId, requestedDateTime);
+        
+        if (userInWaitlist) {
+            qDebug() << "User is in waitlist";
+            int position = m_padelManager->getWaitlistPosition(userId, courtId);
+            
+            if (position > 0) {
+                m_waitlistStatusLabel->setText(tr("You are #%1 on the waitlist").arg(position));
+                m_joinWaitlistButton->setText(tr("Leave Waitlist"));
+            m_joinWaitlistButton->setEnabled(true);
+                m_joinWaitlistButton->setToolTip(tr("Leave the waitlist for this court"));
+        } else {
+                m_waitlistStatusLabel->setText(tr("You are on the waitlist"));
+                m_joinWaitlistButton->setText(tr("Leave Waitlist"));
+                m_joinWaitlistButton->setEnabled(true);
+                m_joinWaitlistButton->setToolTip(tr("Leave the waitlist for this court"));
+            }
+        } else {
+            qDebug() << "User is not in waitlist";
+            m_waitlistStatusLabel->setText("");
+            m_joinWaitlistButton->setText(tr("Join Waitlist"));
+
+            bool anyAvailableSlots = false;
+            
+            try {
+                
+                QJsonObject courtDetails = m_padelManager->getCourtDetails(courtId);
+                int maxAttendees = 2; 
+                if (courtDetails.contains("maxAttendees")) {
+                    maxAttendees = courtDetails["maxAttendees"].toInt();
+                }
+                
+                if (maxAttendees <= 0) {
+                    maxAttendees = 2;
+                }
+
+                QJsonArray availableSlots = m_padelManager->getAvailableTimeSlots(courtId, selectedDate, maxAttendees);
+                anyAvailableSlots = !availableSlots.isEmpty();
+                qDebug() << "Available slots for court" << courtId << ":" << availableSlots.size();
+            } catch (const std::exception& e) {
+                qDebug() << "Exception getting available time slots:" << e.what();
+                anyAvailableSlots = true;    
+            } catch (...) {
+                qDebug() << "Unknown error getting available time slots";
+                anyAvailableSlots = true;    
+            }
+            
+            m_joinWaitlistButton->setEnabled(!anyAvailableSlots);
+            
+            if (anyAvailableSlots) {
+                m_joinWaitlistButton->setToolTip(tr("There are available slots. No need to join waitlist."));
+            } else {
+                m_joinWaitlistButton->setToolTip(tr("Join waitlist for this court"));
+            }
+        }
+    } catch (const std::exception& e) {
+        qDebug() << "Exception in updateWaitlistStatus:" << e.what();
+        if (m_waitlistStatusLabel) m_waitlistStatusLabel->setText("");
+        if (m_joinWaitlistButton) {
+            m_joinWaitlistButton->setText(tr("Join Waitlist"));
+            m_joinWaitlistButton->setEnabled(false);
+        }
+    } catch (...) {
+        qDebug() << "Unknown exception in updateWaitlistStatus";
+        if (m_waitlistStatusLabel) m_waitlistStatusLabel->setText("");
+        if (m_joinWaitlistButton) {
+            m_joinWaitlistButton->setText(tr("Join Waitlist"));
+            m_joinWaitlistButton->setEnabled(false);
+        }
+    }
+
+    isUpdating = false;
+}
+
+void BookingWindow::refreshTimeSlots() {
+    try {
+        qDebug() << "BookingWindow::refreshTimeSlots - Starting...";
+        
+        if (!m_padelManager) {
+            qDebug() << "ERROR: PadelManager is null in refreshTimeSlots";
+            throw std::runtime_error("PadelManager is null");
+        }
+        
+        if (!m_courtSelector) {
+            qDebug() << "ERROR: Court selector is null in refreshTimeSlots";
+            throw std::runtime_error("Court selector is null");
+        }
+        
+        if (!m_dateSelector) {
+            qDebug() << "ERROR: Date selector is null in refreshTimeSlots";
+            throw std::runtime_error("Date selector is null");
+        }
+        
+        if (!m_slotsLayout) {
+            qDebug() << "ERROR: Slots layout is null in refreshTimeSlots";
+            throw std::runtime_error("Slots layout is null");
+        }
+
+        int courtIndex = m_courtSelector->currentIndex();
+        if (courtIndex < 0) {
+            qDebug() << "ERROR: Invalid court index in refreshTimeSlots:" << courtIndex;
+            throw std::runtime_error("Invalid court index");
+        }
+
+        bool conversionOk = false;
+        int courtId = m_courtSelector->currentData().toInt(&conversionOk);
+        if (!conversionOk || courtId <= 0) {
+            qDebug() << "ERROR: Invalid court ID in refreshTimeSlots:" << courtId;
+            throw std::runtime_error("Invalid court ID");
+        }
+        
+        QDate date = m_dateSelector->date();
+        if (!date.isValid()) {
+            qDebug() << "ERROR: Invalid date in refreshTimeSlots";
+            throw std::runtime_error("Invalid date");
+        }
+        
+        qDebug() << "Selected court ID:" << courtId << ", date:" << date.toString();
+
+        QLayoutItem* item;
+        while ((item = m_slotsLayout->takeAt(0)) != nullptr) {
+            if (item->widget()) {
+                item->widget()->deleteLater();
+            }
+            delete item;
+        }
+        qDebug() << "Time slot grid cleared";
+
+        QLabel* statusLabel = new QLabel(this);
+        statusLabel->setAlignment(Qt::AlignCenter);
+        statusLabel->setText("Loading time slots...");
+        m_slotsLayout->addWidget(statusLabel);
+        QApplication::processEvents(); 
+        
+        try {
+            
+            QString courtName;
+            int maxAttendees = 4;
+            
+            try {
+                QJsonObject courtDetails = m_padelManager->getCourtDetails(courtId);
+                courtName = courtDetails["name"].toString();
+                maxAttendees = courtDetails["maxAttendees"].toInt();
+                if (maxAttendees <= 0) {
+                    qDebug() << "WARNING: Invalid maxAttendees from court details:" << maxAttendees;
+                    maxAttendees = 4;     
+                }
+                qDebug() << "Retrieved court details:" << courtName << "max attendees:" << maxAttendees;
+        } catch (const std::exception& e) {
+                qDebug() << "ERROR getting court details:" << e.what();
+                maxAttendees = 4;     
+            }
+
+            QJsonArray timeSlots;
+            try {
+                qDebug() << "Getting available time slots for court" << courtId 
+                         << "on" << date.toString() << "with max attendees" << maxAttendees;
+
+                QJsonArray allTimeSlots = m_padelManager->getAllTimeSlotsJson(courtId);
+
+                QJsonArray availableTimeSlots = m_padelManager->getAvailableTimeSlots(courtId, date, maxAttendees);
+                
+                QMap<QString, QJsonObject> availableSlotsMap;
+                for (int i = 0; i < availableTimeSlots.size(); ++i) {
+                    QJsonObject slot = availableTimeSlots[i].toObject();
+                    availableSlotsMap[slot["startTime"].toString()] = slot;
+                }
+
+                timeSlots = QJsonArray();
+                for (int i = 0; i < allTimeSlots.size(); ++i) {
+                    QJsonObject timeSlot = allTimeSlots[i].toObject();
+                    QString startTime = timeSlot["startTime"].toString();
+                    QString endTime = timeSlot["endTime"].toString();
+                    
+                    if (availableSlotsMap.contains(startTime)) {
+                        timeSlots.append(availableSlotsMap[startTime]);
+                    } else {
+                        QDateTime slotStartTime(date, QTime::fromString(startTime, "HH:mm"));
+                        QDateTime slotEndTime = slotStartTime.addSecs(3600);
+                        
+                        int currentAttendees = m_padelManager->getCurrentAttendees(courtId, slotStartTime, slotEndTime);
+                        qDebug() << "Fully booked slot at" << startTime << "with" << currentAttendees << "attendees";
+                        
+                        QJsonObject slotObj;
+                        slotObj["startTime"] = startTime;
+                        slotObj["endTime"] = endTime;
+                        slotObj["currentAttendees"] = currentAttendees;
+                        slotObj["maxAttendees"] = maxAttendees;
+                        slotObj["availableSpots"] = qMax(0, maxAttendees - currentAttendees);
+                        
+                        timeSlots.append(slotObj);
+                    }
+                }
+                
+                if (timeSlots.isEmpty()) {
+                    qDebug() << "No time slots for court" << courtId << "on" << date.toString();
+                    statusLabel->setText("No time slots available for this court on the selected date.");
+                return;
+            }
+                
+                qDebug() << "Retrieved" << timeSlots.size() << "time slots";
+        } catch (const std::exception& e) {
+                qDebug() << "ERROR getting time slots:" << e.what();
+                statusLabel->setText("Error retrieving time slots. Please try again.");
+            return;
+        }
+        
+            if (statusLabel) {
+                statusLabel->deleteLater();
+                m_slotsLayout->removeWidget(statusLabel);
+            }
+            
+            QGridLayout* gridLayout = new QGridLayout();
+            gridLayout->setSpacing(10);
+            
+            int row = 0;
+            int col = 0;
+            int maxCols = 4;
+
+            for (int i = 0; i < timeSlots.size(); ++i) {
+                if (timeSlots[i].isObject()) {
+                    QJsonObject slotObj = timeSlots[i].toObject();
+                    QString startTime = slotObj["startTime"].toString();
+                    QString endTime = slotObj["endTime"].toString();
+                    int currentAttendees = slotObj["currentAttendees"].toInt();
+                    int slotMaxAttendees = slotObj["maxAttendees"].toInt();
+
+                    if (startTime.isEmpty() || endTime.isEmpty() || slotMaxAttendees <= 0) {
+                        qDebug() << "Skipping invalid time slot at index" << i;
+                        continue;
+                    }
+                    
+                    try {
+                        
+                        QWidget* slotWidget = createTimeSlotWidget(startTime, endTime, currentAttendees, slotMaxAttendees);
+                        if (slotWidget) {
+                            gridLayout->addWidget(slotWidget, row, col);
+                            col++;
+                            if (col >= maxCols) {
+                                col = 0;
+                                row++;
+                            }
+                        } else {
+                            qDebug() << "Failed to create widget for time slot at index" << i;
+            }
+        } catch (const std::exception& e) {
+                        qDebug() << "ERROR creating widget for time slot:" << e.what();
+                    }
+                } else {
+                    qDebug() << "Skipping non-object time slot at index" << i;
+                }
+            }
+
+            QLayoutItem* item;
+            while ((item = m_slotsLayout->takeAt(0)) != nullptr) {
+                if (item->widget()) {
+                    item->widget()->deleteLater();
+                }
+                delete item;
+            }
+
+            QWidget* gridContainer = new QWidget(this);
+            gridContainer->setLayout(gridLayout);
+            m_slotsLayout->addWidget(gridContainer, 0, 0);
+            
+            if (row == 0 && col == 0) {
+                
+                QLabel* noSlotsLabel = new QLabel("No available time slots for this court on the selected date.", this);
+                noSlotsLabel->setAlignment(Qt::AlignCenter);
+                m_slotsLayout->addWidget(noSlotsLabel, 1, 0);
+            }
+            
+            qDebug() << "Time slots refreshed successfully";
+            
+        } catch (const std::exception& e) {
+            
+            qDebug() << "ERROR in refreshTimeSlots processing:" << e.what();
+            statusLabel->setText("Error processing time slots: " + QString(e.what()));
+        } catch (...) {
+            qDebug() << "Unknown ERROR in refreshTimeSlots processing";
+            statusLabel->setText("An unknown error occurred while processing time slots.");
+        }
+        
+        } catch (const std::exception& e) {
+        qDebug() << "CRITICAL ERROR in refreshTimeSlots:" << e.what();
+        QMessageBox::critical(this, "Error", 
+                             "Failed to refresh time slots: " + QString(e.what()));
+        } catch (...) {
+        qDebug() << "UNKNOWN CRITICAL ERROR in refreshTimeSlots";
+        QMessageBox::critical(this, "Error", 
+                             "An unknown error occurred while refreshing time slots.");
+    }
+}
+
+QWidget* BookingWindow::createTimeSlotWidget(const QString& startTimeStr, const QString& endTimeStr, 
+                                 int currentAttendees, int maxAttendees) {
+    QWidget* containerFrame = nullptr;
+    
+    try {
+        qDebug() << "Creating time slot widget for" << startTimeStr << "to" << endTimeStr 
+                << "with" << currentAttendees << "of" << maxAttendees << "attendees";
+
+        if (startTimeStr.isEmpty() || endTimeStr.isEmpty()) {
+            qDebug() << "ERROR: Empty time string in createTimeSlotWidget";
+            return nullptr;
+        }
+        
+        QTime startTime = QTime::fromString(startTimeStr, "HH:mm");
+        QTime endTime = QTime::fromString(endTimeStr, "HH:mm");
+        
+        if (!startTime.isValid() || !endTime.isValid()) {
+            qDebug() << "ERROR: Invalid time format in createTimeSlotWidget:" 
+                    << startTimeStr << "or" << endTimeStr;
+            return nullptr;
+        }
+        
+        if (maxAttendees <= 0) {
+            qDebug() << "ERROR: Invalid maxAttendees in createTimeSlotWidget:" << maxAttendees;
+            maxAttendees = 4; 
+        }
+
+        containerFrame = new QWidget(this);
+        QString objectNameStr = QString("timeSlot_%1").arg(QString(startTimeStr).replace(":", ""));
+        containerFrame->setObjectName(objectNameStr);
+
+        QVBoxLayout* layout = new QVBoxLayout(containerFrame);
+        layout->setContentsMargins(10, 10, 10, 10);
+        layout->setSpacing(5);
+
+        QString timeLabelStr = QString("timeLabel_%1").arg(QString(startTimeStr).replace(":", ""));
+        QLabel* timeLabel = new QLabel(QString("%1 - %2").arg(startTimeStr).arg(endTimeStr), containerFrame);
+        timeLabel->setAlignment(Qt::AlignCenter);
+        timeLabel->setObjectName(timeLabelStr);
+        timeLabel->setStyleSheet("font-weight: bold;");
+        layout->addWidget(timeLabel);
+
+        int courtId = m_courtSelector->currentData().toInt();
+        QDate date = m_dateSelector->date();
+        
+        if (courtId <= 0 || !date.isValid()) {
+            qDebug() << "ERROR: Invalid court ID or date in createTimeSlotWidget";
+            throw std::runtime_error("Invalid court ID or date");
+        }
+
+        bool userHasBookingForThisSlot = false;
+        if (m_currentUserId > 0) {
+            try {
+                qDebug() << "Checking if user" << m_currentUserId << "has booking for" << date.toString("yyyy-MM-dd") << startTimeStr;
+
+                QVector<Booking> userBookings = m_padelManager->getBookingsByMember(m_currentUserId);
+                qDebug() << "Found" << userBookings.size() << "bookings for user ID:" << m_currentUserId;
+
+                for (const Booking& booking : userBookings) {
+                    if (booking.isCancelled()) {
+                        continue;
+                    }
+
+                    qDebug() << "BOOKING USER CHECK - Booking ID:" << booking.getBookingId()
+                             << "Booking UserId:" << booking.getUserId()
+                             << "Current UserId:" << m_currentUserId
+                             << "Are equal:" << (booking.getUserId() == m_currentUserId);
+
+                    if (booking.getUserId() != m_currentUserId) {
+                        qDebug() << "✗ REJECT: Booking belongs to different user";
+                        continue;
+                    }
+
+                    bool sameCourtId = (booking.getCourtId() == courtId);
+                    bool sameDate = booking.getStartTime().date() == date;
+                    bool sameTime = false;
+                    
+                    if (booking.getStartTime().isValid() && startTime.isValid()) {
+                        sameTime = (booking.getStartTime().time() == startTime);
+                    }
+                    
+                    qDebug() << "Booking check: ID=" << booking.getBookingId() 
+                             << "Court match=" << sameCourtId
+                             << "Date match=" << sameDate
+                             << "Time match=" << sameTime;
+                    
+                    if (sameCourtId && sameDate && sameTime) {
+                        userHasBookingForThisSlot = true;
+                        qDebug() << "✓ MATCHED: User" << m_currentUserId << "has booking for this exact slot";
+                        break;
+                    }
+                }
+                
+                if (!userHasBookingForThisSlot) {
+                    for (const Booking& booking : userBookings) {
+                        if (booking.isCancelled()) {
+                            continue;
+                        }
+                        
+                        if (booking.getStartTime().date() == date && 
+                            booking.getStartTime().time() == startTime) {
+                            qDebug() << "User has booking at this time on a different court";
+                            break;
+                        }
+                    }
+                }
+            } catch (const std::exception& e) {
+                qDebug() << "Error checking user bookings:" << e.what();
+            }
+        }
+        
+        QString capacityText;
+        if (userHasBookingForThisSlot) {
+            capacityText = QString("%1/%2 players (You're booked!)").arg(currentAttendees).arg(maxAttendees);
+        } else {
+            capacityText = QString("%1/%2 players").arg(currentAttendees).arg(maxAttendees);
+        }
+        
+        QString capacityLabelStr = QString("capacityLabel_%1").arg(QString(startTimeStr).replace(":", ""));
+        QLabel* capacityLabel = new QLabel(capacityText, containerFrame);
+                capacityLabel->setAlignment(Qt::AlignCenter);
+        capacityLabel->setObjectName(capacityLabelStr);
+        
+        if (userHasBookingForThisSlot) {
+            capacityLabel->setStyleSheet("color: #2563EB; font-weight: bold;"); 
+        } else if (currentAttendees >= maxAttendees) {
+            capacityLabel->setStyleSheet("color: #FF0000; font-weight: bold;"); 
+        } else if (currentAttendees >= maxAttendees * 0.75) {
+            capacityLabel->setStyleSheet("color: #FFA500;"); 
+                } else {
+            capacityLabel->setStyleSheet("color: #008000;"); 
+        }
+        
+        layout->addWidget(capacityLabel);
+        
+        bool userOnWaitlist = false;
+        if (m_currentUserId > 0 && currentAttendees >= maxAttendees && !userHasBookingForThisSlot) {
+            try {
+                QDateTime slotDateTime(date, startTime);
+                userOnWaitlist = m_padelManager->isUserInWaitlist(m_currentUserId, courtId, slotDateTime);
+                qDebug() << "User" << m_currentUserId << "on waitlist for slot" << startTimeStr << ":" << userOnWaitlist;
+            } catch (const std::exception& e) {
+                qDebug() << "Error checking waitlist status:" << e.what();
+            }
+        }
+        
+        if (userHasBookingForThisSlot) {
+            QString yourBookingBtnStr = QString("yourBookingBtn_%1").arg(QString(startTimeStr).replace(":", ""));
+            QPushButton* yourBookingBtn = new QPushButton(tr("Your Booking"), containerFrame);
+            yourBookingBtn->setObjectName(yourBookingBtnStr);
+            yourBookingBtn->setCursor(Qt::PointingHandCursor);
+            yourBookingBtn->setStyleSheet("background-color: #2563EB; color: white; padding: 5px; border-radius: 3px; font-weight: bold;");
+
+            connect(yourBookingBtn, &QPushButton::clicked, this, [this, courtId, date, startTimeStr]() {
+                QMessageBox::information(this, tr("Your Booking"), 
+                                      tr("You have a booking for this time slot.\nCourt: %1\nDate: %2\nTime: %3")
+                                      .arg(m_courtSelector->currentText())
+                                      .arg(date.toString("dd/MM/yyyy"))
+                                      .arg(startTimeStr));
+            });
+            
+            layout->addWidget(yourBookingBtn);
+        } else if (currentAttendees < maxAttendees) {
+            
+            QString bookButtonStr = QString("bookButton_%1").arg(QString(startTimeStr).replace(":", ""));
+            QPushButton* bookButton = new QPushButton(tr("Book"), containerFrame);
+            bookButton->setObjectName(bookButtonStr);
+            bookButton->setCursor(Qt::PointingHandCursor);
+            bookButton->setStyleSheet("background-color: #4CAF50; color: white; padding: 5px; border-radius: 3px;");
+
+            connect(bookButton, &QPushButton::clicked, this, [this, courtId, date, startTimeStr, endTimeStr]() {
+                try {
+                    if (m_currentUserId <= 0) {
+                        QMessageBox::information(this, tr("Login Required"), 
+                                              tr("You need to be logged in to book a court."));
+                        return;
+                    }
+                    
+                    bookTimeSlot(courtId, date, startTimeStr, endTimeStr);
+                        } catch (const std::exception& e) {
+                    qDebug() << "ERROR: Exception when booking time slot:" << e.what();
+                            QMessageBox::warning(this, tr("Booking Error"), 
+                                      tr("Could not book time slot: %1").arg(e.what()));
+                        } catch (...) {
+                    qDebug() << "ERROR: Unknown exception when booking time slot";
+                            QMessageBox::warning(this, tr("Booking Error"), 
+                                      tr("Could not book time slot due to an unknown error"));
+                        }
+                    });
+            
+            layout->addWidget(bookButton);
+                } else {
+            
+            QString waitlistButtonStr = QString("waitlistButton_%1").arg(QString(startTimeStr).replace(":", ""));
+            QPushButton* waitlistButton = new QPushButton(
+                userOnWaitlist ? tr("Remove from Waitlist") : tr("Join Waitlist"), 
+                containerFrame
+            );
+            waitlistButton->setObjectName(waitlistButtonStr);
+            waitlistButton->setCursor(Qt::PointingHandCursor);
+
+            if (userOnWaitlist) {
+                waitlistButton->setStyleSheet("background-color: #FF6B6B; color: white; padding: 5px; border-radius: 3px; font-weight: bold;");
+            } else {
+                waitlistButton->setStyleSheet("background-color: #FFA500; color: white; padding: 5px; border-radius: 3px; font-weight: bold;");
+            }
+
+            waitlistButton->setProperty("startTime", startTimeStr);
+
+            connect(waitlistButton, &QPushButton::clicked, this, [this, courtId, startTimeStr]() {
+                try {
+                    if (m_currentUserId <= 0) {
+                        QMessageBox::information(this, tr("Login Required"), 
+                                              tr("You need to be logged in to join the waitlist."));
+                                return;
+                            }
+                            
+                    QTime time = QTime::fromString(startTimeStr, "HH:mm");
+                    if (time.isValid()) {
+                        m_selectedWaitlistTime = time;
+                            joinWaitlist(courtId);
+
+                        QTimer::singleShot(500, this, &BookingWindow::refreshTimeSlots);
+                    } else {
+                        QMessageBox::warning(this, tr("Error"), 
+                                          tr("Invalid time format: %1").arg(startTimeStr));
+                    }
+                        } catch (const std::exception& e) {
+                    qDebug() << "ERROR: Exception when joining waitlist:" << e.what();
+                            QMessageBox::warning(this, tr("Waitlist Error"), 
+                                      tr("Could not join waitlist: %1").arg(e.what()));
+                        } catch (...) {
+                    qDebug() << "ERROR: Unknown exception when joining waitlist";
+                            QMessageBox::warning(this, tr("Waitlist Error"), 
+                                      tr("Could not join waitlist due to an unknown error"));
+                }
+            });
+            
+            layout->addWidget(waitlistButton);
+
+            if (userOnWaitlist) {
+                QLabel* waitlistStatusLabel = new QLabel(tr("You're on the waitlist!"), containerFrame);
+                waitlistStatusLabel->setAlignment(Qt::AlignCenter);
+                waitlistStatusLabel->setStyleSheet("color: #FF6B6B; font-style: italic; font-size: 10px;");
+                layout->addWidget(waitlistStatusLabel);
+            }
+        }
+
+        containerFrame->setFixedSize(140, 120);
+
+        QString bgColor = m_isDarkTheme ? "#2D3748" : "#F9F9F9";
+        QString borderColor = m_isDarkTheme ? "#4B5563" : "#E5E7EB";
+        QString themeStyle = QString(
+            "border: 1px solid %1; "
+            "border-radius: 5px; "
+            "background-color: %2;"
+        ).arg(borderColor, bgColor);
+
+        containerFrame->setStyleSheet(themeStyle);
+
+        if (userOnWaitlist) {
+            containerFrame->setProperty("onWaitlist", true); 
+            
+            QString waitlistBgColor = m_isDarkTheme ? "#3B3054" : "#FAF5FF";
+            QString waitlistBorderColor = m_isDarkTheme ? "#6D28D9" : "#C4B5FD"; 
+            containerFrame->setStyleSheet(QString(
+                "border: 1px solid %1; "
+                "border-radius: 5px; "
+                "background-color: %2;"
+            ).arg(waitlistBorderColor, waitlistBgColor));
+        }
+        
+        qDebug() << "Successfully created time slot widget for" << startTimeStr;
+        
+    } catch (const std::exception& e) {
+        qDebug() << "ERROR: Exception in createTimeSlotWidget:" << e.what();
+        if (containerFrame) {
+            delete containerFrame;
+            containerFrame = nullptr;
+        }
+    } catch (...) {
+        qDebug() << "ERROR: Unknown exception in createTimeSlotWidget";
+        if (containerFrame) {
+            delete containerFrame;
+            containerFrame = nullptr;
+        }
+    }
+    
+    return containerFrame;
+}
+
+void BookingWindow::onBookButtonClicked(int courtId, const QDate& date, const QTime& startTime, const QTime& endTime)
+{
+    try {
+        qDebug() << "Book button clicked for court" << courtId << "on" << date.toString() 
+                << "from" << startTime.toString() << "to" << endTime.toString();
+
+        if (courtId <= 0 || !date.isValid() || !startTime.isValid() || !endTime.isValid()) {
+            qDebug() << "Invalid parameters in onBookButtonClicked";
+            QMessageBox::warning(this, tr("Error"), tr("Invalid booking parameters. Please try again."));
+                                return;
+                            }
+                            
+        if (m_currentUserId <= 0) {
+            qDebug() << "User not logged in when attempting to book";
+            QMessageBox::information(this, tr("Login Required"), 
+                                  tr("You need to be logged in to book a court. Please log in and try again."));
+            return;
+        }
+        
+        QDateTime startDateTime(date, startTime);
+        QDateTime endDateTime(date, endTime);
+        
+        QString message = tr("Do you want to book court %1 on %2 from %3 to %4?")
+                         .arg(courtId)
+                         .arg(date.toString("dd/MM/yyyy"))
+                         .arg(startTime.toString("hh:mm"))
+                         .arg(endTime.toString("hh:mm"));
+                         
+        int result = QMessageBox::question(this, tr("Confirm Booking"), message, 
+                                       QMessageBox::Yes | QMessageBox::No);
+                                       
+        if (result == QMessageBox::Yes) {
+            bookCourtDirectly(courtId, startDateTime, endDateTime);
+        }
+    }
+    catch (const std::exception& e) {
+        qDebug() << "Exception in onBookButtonClicked:" << e.what();
+        QMessageBox::warning(this, tr("Error"), tr("An error occurred while booking. Please try again."));
+    }
+    catch (...) {
+        qDebug() << "Unknown exception in onBookButtonClicked";
+        QMessageBox::warning(this, tr("Error"), tr("An error occurred while booking. Please try again."));
+    }
+}
+
+void BookingWindow::clearTimeSlotGrid()
+{
+    try {
+        qDebug() << "Clearing time slot grid";
+
+        if (!m_slotsLayout) {
+            qDebug() << "Slots layout is null in clearTimeSlotGrid";
+            return;
+        }
+        
+        if (m_noSlotsLabel) {
+            m_noSlotsLabel->hide();
+        }
+        
+    QLayoutItem* item;
+        while ((item = m_slotsLayout->takeAt(0)) != nullptr) {
+        if (item->widget()) {
+                item->widget()->deleteLater();
+        }
+        delete item;
+        }
+        
+        qDebug() << "Time slot grid cleared successfully";
+    }
+    catch (const std::exception& e) {
+        qDebug() << "Exception in clearTimeSlotGrid:" << e.what();
+    }
+    catch (...) {
+        qDebug() << "Unknown exception in clearTimeSlotGrid";
+    }
 }
 
 void BookingWindow::onCourtSelectionChanged(int index)
 {
-    if (index >= 0) {
-        int courtId = m_courtSelector->itemData(index).toInt();
-        updateCourtDetails(courtId);
-        refreshTimeSlots();
-    }
-}
-
-void BookingWindow::updateCourtDetails(int courtId)
-{
-    Court court = m_padelManager->getCourtById(courtId);
+    static bool isChangingCourt = false;
     
-    m_courtNameLabel->setText(tr("Name: %1").arg(court.getName()));
-    m_courtLocationLabel->setText(tr("Location: %1").arg(court.getLocation()));
-    m_courtPriceLabel->setText(tr("Price per hour: $%1").arg(QString::number(court.getPricePerHour(), 'f', 2)));
-    
-    // Show court description
-    if (!court.getDescription().isEmpty()) {
-        m_courtDescriptionLabel->setText(court.getDescription());
-        m_courtDescriptionLabel->setVisible(true);
-    } else {
-        m_courtDescriptionLabel->setVisible(false);
+    if (isChangingCourt) {
+        qDebug() << "Preventing recursive call to onCourtSelectionChanged";
+        return;
     }
     
-    // Show court features
-    m_courtFeaturesListWidget->clear();
-    const QStringList& features = court.getFeatures();
-    if (!features.isEmpty()) {
-        for (const QString& feature : features) {
-            QListWidgetItem* item = new QListWidgetItem("• " + feature);
-            m_courtFeaturesListWidget->addItem(item);
+    isChangingCourt = true;
+    
+    try {
+        if (index < 0 || !m_courtSelector || m_courtSelector->count() <= 0) {
+            qDebug() << "Invalid court selection index or null selector";
+            isChangingCourt = false;
+            return;
         }
-        m_courtFeaturesListWidget->setVisible(true);
-    } else {
-        m_courtFeaturesListWidget->setVisible(false);
+        
+        QVariant courtIdVariant = m_courtSelector->itemData(index);
+        if (!courtIdVariant.isValid()) {
+            qDebug() << "Invalid court ID variant in selection changed";
+            isChangingCourt = false;
+            return;
+        }
+        
+        int courtId = courtIdVariant.toInt();
+        if (courtId <= 0) {
+            qDebug() << "Invalid court ID in selection changed:" << courtId;
+            isChangingCourt = false;
+            return;
+        }
+        
+        qDebug() << "Court selection changed to ID:" << courtId;
+        
+        int selectedCourtId = courtId;
+        
+                QTimer::singleShot(100, this, [this, selectedCourtId]() {
+                    try {
+                
+                updateCourtDetails(selectedCourtId);
+
+                clearTimeSlotGrid();
+
+                refreshTimeSlots();
+
+                if (m_currentUserId > 0) {
+                        updateWaitlistStatus(selectedCourtId);
+                    }
+            } catch (const std::exception& e) {
+                qDebug() << "Exception in court selection update process:" << e.what();
+            } catch (...) {
+                qDebug() << "Unknown exception in court selection update process";
+            }
+        });
+        
+        isChangingCourt = false;
+    }
+    catch (const std::exception& e) {
+        qDebug() << "Exception in onCourtSelectionChanged:" << e.what();
+        isChangingCourt = false;
+    }
+    catch (...) {
+        qDebug() << "Unknown exception in onCourtSelectionChanged";
+        isChangingCourt = false;
     }
 }
 
 void BookingWindow::onDateChanged(const QDate& date)
 {
     refreshTimeSlots();
-}
-
-void BookingWindow::refreshTimeSlots()
-{
-    m_timeSlotSelector->clear();
     
     if (m_courtSelector->count() > 0) {
         int courtId = m_courtSelector->currentData().toInt();
-        QDate selectedDate = m_dateSelector->date();
-        
-        QVector<QTime> availableSlots = m_padelManager->getAvailableTimeSlots(courtId, selectedDate);
-        
-        // Filter out past time slots if the selected date is today
-        if (selectedDate == QDate::currentDate()) {
-            QTime currentTime = QTime::currentTime();
-            
-            // Add 30-minute buffer to current time (don't show slots starting within 30 min)
-            QTime bookingCutoffTime = currentTime.addSecs(30 * 60);
-            
-            QVector<QTime> filteredSlots;
-            for (const QTime& time : availableSlots) {
-                if (time > bookingCutoffTime) {
-                    filteredSlots.append(time);
-                }
-            }
-            
-            availableSlots = filteredSlots;
-        }
-        
-        for (const QTime& time : availableSlots) {
-            m_timeSlotSelector->addItem(time.toString("HH:mm"), time);
-        }
-        
-        m_bookButton->setEnabled(m_timeSlotSelector->count() > 0);
-        
-        if (m_timeSlotSelector->count() == 0) {
-            if (selectedDate == QDate::currentDate()) {
-                m_statusLabel->setText(tr("No more available slots for today. Please select another date."));
-            } else {
-                m_statusLabel->setText(tr("No available slots for this court on the selected date."));
-                QVector<QDateTime> suggestions = m_padelManager->suggestNextSlots(courtId, QDateTime(selectedDate, QTime(0, 0)));
-                if (!suggestions.isEmpty()) {
-                    QString suggestionText = tr("Suggested times: ");
-                    for (int i = 0; i < qMin(3, suggestions.size()); ++i) {
-                        if (i > 0) suggestionText += ", ";
-                        suggestionText += suggestions[i].toString("yyyy-MM-dd HH:mm");
-                    }
-                    m_statusLabel->setText(m_statusLabel->text() + " " + suggestionText);
-                }
-            }
-        } else {
-            m_statusLabel->clear();
-        }
+        updateCourtDetails(courtId);
     }
-}
-
-QTime BookingWindow::getEndTime(const QTime& startTime)
-{
-    return startTime.addSecs(3600);  // Add 1 hour
 }
 
 void BookingWindow::bookCourt()
 {
     if (m_currentUserId <= 0) {
         QMessageBox::warning(this, tr("User Error"), 
-                           tr("Please log in to book a court. Current user ID: %1").arg(m_currentUserId));
+                           tr("Please log in to book a court."));
         return;
     }
     
@@ -345,100 +1899,108 @@ void BookingWindow::bookCourt()
                            tr("Please select a court and time slot."));
         return;
     }
-    
-    try {
-        qDebug() << "Starting booking process...";
-        
-        // Get selected court and time
+
         int courtId = m_courtSelector->currentData().toInt();
         QDate selectedDate = m_dateSelector->date();
-        QTime selectedTime;
         
-        // Extract the time data safely - use direct string parsing
         QString timeStr = m_timeSlotSelector->currentText();
-        selectedTime = QTime::fromString(timeStr, "HH:mm");
-        qDebug() << "Time parsed from text:" << selectedTime.toString();
+    QTime selectedTime = QTime::fromString(timeStr, "HH:mm");
         
         if (!selectedTime.isValid()) {
             QMessageBox::warning(this, tr("Time Error"), 
-                               tr("Selected time is invalid. Please try again."));
+                           tr("Invalid time selection."));
             return;
         }
-        QDateTime startTime;
-        startTime.setDate(selectedDate);
-        startTime.setTime(selectedTime);
         
-        // Add exactly one hour for end time
-        QDateTime endTime = startTime.addSecs(3600);
+    QDateTime startTime(selectedDate, selectedTime);
+    QDateTime endTime = startTime.addSecs(3600); 
+
+    bookCourtDirectly(courtId, startTime, endTime);
+}
+
+void BookingWindow::bookCourtDirectly(int courtId, const QDateTime& startTime, const QDateTime& endTime)
+{
+    if (m_currentUserId <= 0) {
+        QMessageBox::warning(this, tr("User Error"), 
+                           tr("Please log in to book a court."));
+        return;
+    }
+
+    Court court = m_padelManager->getCourtById(courtId);
+    if (court.getId() <= 0) {
+        QMessageBox::warning(this, tr("Court Error"), 
+                           tr("Invalid court selected."));
+        return;
+    }
+
+    if (!m_padelManager->isCourtAvailable(courtId, startTime, endTime)) {
+        int currentAttendees = m_padelManager->getCurrentAttendees(courtId, startTime, endTime);
+        int maxAttendees = court.getMaxAttendees();
         
-        qDebug() << "Attempting to book court" << courtId << "for user" << m_currentUserId 
-                << "at time" << startTime.toString("yyyy-MM-dd HH:mm");
-        
-        // Perform booking - Capture error message
         QString errorMessage;
-        
-        // Disable UI elements during booking
-        m_bookButton->setEnabled(false);
-        setCursor(Qt::WaitCursor);
-        
-        bool success = false;
-        
-        // Use try-catch for booking call
-        try {
-            success = m_padelManager->createBooking(m_currentUserId, courtId, startTime, endTime, errorMessage);
+        if (currentAttendees >= maxAttendees) {
+            errorMessage = tr("Court is at maximum capacity (%1/%2 attendees).").arg(currentAttendees).arg(maxAttendees);
+        } else {
+            errorMessage = tr("Court is not available at the selected time.");
         }
-        catch (const std::exception& e) {
-            setCursor(Qt::ArrowCursor);
-            m_bookButton->setEnabled(true);
-            QMessageBox::critical(this, tr("Booking Error"), 
-                            tr("Exception occurred: %1").arg(e.what()));
+        
+        QMessageBox::warning(this, tr("Availability Error"), errorMessage);
             return;
         }
-        catch (...) {
-            QString errorMsg = "Unknown error during booking. Please try again.";
-            qDebug() << errorMsg;
-            QMessageBox::critical(this, tr("Booking Error"), 
-                            tr("An unknown error occurred while booking."));
-            setCursor(Qt::ArrowCursor);
-            m_bookButton->setEnabled(true);
+
+    QString confirmMessage = tr("You are about to book:\n\n") +
+                          tr("Court: %1\n").arg(court.getName()) +
+                          tr("Date: %1\n").arg(startTime.date().toString("yyyy-MM-dd")) +
+                          tr("Time: %1 - %2\n\n").arg(startTime.time().toString("HH:mm")).arg(endTime.time().toString("HH:mm")) +
+                          tr("Continue?");
+                          
+    QMessageBox::StandardButton response = QMessageBox::question(
+        this, tr("Confirm Booking"), confirmMessage, QMessageBox::Yes | QMessageBox::No);
+        
+    if (response != QMessageBox::Yes) {
             return;
         }
-        
-        // Restore UI
-        setCursor(Qt::ArrowCursor);
-        m_bookButton->setEnabled(true);
+
+    QString errorMessage;
+    bool success = m_padelManager->createBooking(m_currentUserId, courtId, startTime, endTime, errorMessage);
         
         if (success) {
             QMessageBox::information(this, tr("Booking Successful"), 
                                    tr("You have successfully booked court %1 on %2 at %3.")
-                                   .arg(m_courtSelector->currentText())
-                                   .arg(selectedDate.toString("yyyy-MM-dd"))
-                                   .arg(selectedTime.toString("HH:mm")));
-            
-            // No need to save immediately - data will be saved when the app closes
-            qDebug() << "Booking created successfully. Data will be saved on application exit.";
-            
-            // Refresh the views - delay slightly to allow UI to update
-            QTimer::singleShot(100, this, [this]() {
-                qDebug() << "Refreshing booking list...";
+                              .arg(m_padelManager->getCourtById(courtId).getName())
+                              .arg(startTime.date().toString("yyyy-MM-dd"))
+                              .arg(startTime.time().toString("HH:mm")));
+
+        QTimer::singleShot(100, this, [this, courtId]() {
                 refreshBookingsList();
-                qDebug() << "Refreshing time slots...";
                 refreshTimeSlots();
-                qDebug() << "Booking process completed successfully";
-            });
+            updateCourtDetails(courtId);
+            updateWaitlistStatus(courtId);
+        });
+    } else {
+        
+        if (errorMessage.contains("Court is at maximum capacity")) {
+            QMessageBox::StandardButton response = QMessageBox::question(
+                this, 
+                tr("Court At Capacity"),
+                tr("The court is at maximum capacity for this time slot.\nWould you like to join the waitlist? If someone cancels, you'll be automatically notified.\n\nVIP members receive priority on the waitlist."),
+                QMessageBox::Yes | QMessageBox::No
+            );
+            
+            if (response == QMessageBox::Yes) {
+                
+                m_selectedWaitlistTime = startTime.time();
+                joinWaitlist(courtId);
+            }
         } else {
             QMessageBox::warning(this, tr("Booking Failed"), 
                                tr("Booking failed: %1").arg(errorMessage.isEmpty() ? 
                                                          "Unknown error occurred" : errorMessage));
         }
-    } 
-    catch (const std::exception& e) {
-        QMessageBox::critical(this, tr("Booking Error"), 
-                            tr("An exception occurred while booking: %1").arg(e.what()));
-    } 
-    catch (...) {
-        QMessageBox::critical(this, tr("Booking Error"), 
-                            tr("An unknown error occurred while booking."));
+
+        updateCourtDetails(courtId);
+        refreshTimeSlots();
+        updateWaitlistStatus(courtId);
     }
 }
 
@@ -475,10 +2037,12 @@ void BookingWindow::refreshBookingsList()
 
 void BookingWindow::onBookingItemSelected(int row)
 {
-    if (row >= 0) {
-        QListWidgetItem* item = m_bookingsList->item(row);
-        m_selectedBookingId = item->data(Qt::UserRole).toInt();
-        
+    if (row >= 0 && row < m_bookingsList->count()) {
+        QListWidgetItem* idItem = m_bookingsList->item(row);
+        if (idItem) {
+            m_selectedBookingId = idItem->data(Qt::UserRole).toInt();
+            m_cancelButton->setEnabled(true);
+
         Booking booking;
         for (const Booking& b : m_padelManager->getAllBookings()) {
             if (b.getBookingId() == m_selectedBookingId) {
@@ -486,20 +2050,38 @@ void BookingWindow::onBookingItemSelected(int row)
                 break;
             }
         }
-        
-        bool canModify = canCancelOrReschedule(booking);
-        m_cancelButton->setEnabled(canModify);
-        m_rescheduleButton->setEnabled(canModify);
-        m_rescheduleTimeSelector->setEnabled(canModify);
-        
-        if (canModify) {
+
+            bool canReschedule = canCancelOrReschedule(booking);
+            m_rescheduleButton->setEnabled(canReschedule);
+            m_rescheduleTimeSelector->setEnabled(canReschedule);
+            
+            if (canReschedule) {
+                
             m_rescheduleTimeSelector->clear();
             int courtId = booking.getCourtId();
             QDate bookingDate = booking.getStartTime().date();
             
-            QVector<QTime> availableSlots = m_padelManager->getAvailableTimeSlots(courtId, bookingDate);
-            for (const QTime& time : availableSlots) {
-                m_rescheduleTimeSelector->addItem(time.toString("HH:mm"), time);
+                QJsonObject courtDetails = m_padelManager->getCourtDetails(courtId);
+                int maxAttendees = 2; 
+                if (courtDetails.contains("maxAttendees")) {
+                    maxAttendees = courtDetails["maxAttendees"].toInt();
+                }
+                
+                if (maxAttendees <= 0) {
+                    maxAttendees = 2;
+                }
+                
+                QJsonArray availableSlotsJson = m_padelManager->getAvailableTimeSlots(courtId, bookingDate, maxAttendees);
+                
+                for (int i = 0; i < availableSlotsJson.size(); i++) {
+                    QJsonObject slotObject = availableSlotsJson[i].toObject();
+                    QString startTimeStr = slotObject["startTime"].toString();
+                    QTime startTime = QTime::fromString(startTimeStr, "HH:mm");
+                    
+                    if (startTime.isValid()) {
+                        m_rescheduleTimeSelector->addItem(startTime.toString("HH:mm"), startTime);
+                    }
+                }
             }
         }
     } else {
@@ -513,94 +2095,227 @@ void BookingWindow::onBookingItemSelected(int row)
 bool BookingWindow::canCancelOrReschedule(const Booking& booking)
 {
     QDateTime now = QDateTime::currentDateTime();
-    return booking.getStartTime() > now.addSecs(3 * 3600);  // 3 hours before
+    return booking.getStartTime() > now.addSecs(3 * 3600);  
 }
 
-void BookingWindow::cancelBooking()
-{
-    if (m_selectedBookingId < 0) return;
+void BookingWindow::cancelBooking() {
     
-    QMessageBox::StandardButton confirmation = QMessageBox::question(
-        this, tr("Confirm Cancellation"),
-        tr("Are you sure you want to cancel this booking?"),
-        QMessageBox::Yes | QMessageBox::No
-    );
+    if (m_selectedBookingId < 0) {
+        QMessageBox::warning(this, tr("Warning"), tr("Please select a booking to cancel."));
+        return;
+    }
     
-    if (confirmation == QMessageBox::Yes) {
-        QString errorMessage;
-        bool success = m_padelManager->cancelBooking(m_selectedBookingId, errorMessage);
+    QListWidgetItem* item = m_bookingsList->currentItem();
+    QString bookingDetails = item ? item->text() : QString("Booking ID: %1").arg(m_selectedBookingId);
+    
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this, tr("Cancel Booking"),
+                                 tr("Are you sure you want to cancel this booking?\n%1").arg(bookingDetails),
+                                 QMessageBox::Yes | QMessageBox::No);
+    
+    if (reply == QMessageBox::Yes) {
         
-        if (success) {
-            QMessageBox::information(this, tr("Cancellation Successful"), 
-                                  tr("Your booking has been cancelled."));
+        qDebug() << "User" << m_currentUserEmail << "attempting to cancel booking ID:" << m_selectedBookingId;
+        
+        QString errorMessage;
+        if (m_padelManager->cancelBooking(m_selectedBookingId, errorMessage)) {
+            QMessageBox::information(this, tr("Success"), tr("Booking cancelled successfully."));
+
             refreshBookingsList();
             refreshTimeSlots();
+
+            QTimer::singleShot(1000, this, &BookingWindow::refreshTimeSlots);
         } else {
-            QMessageBox::warning(this, tr("Cancellation Failed"), errorMessage);
+            QMessageBox::critical(this, tr("Error"), tr("Failed to cancel booking: %1").arg(errorMessage));
         }
     }
 }
 
-void BookingWindow::rescheduleBooking()
-{
-    if (m_selectedBookingId < 0 || m_rescheduleTimeSelector->count() <= 0) return;
+void BookingWindow::rescheduleBooking() {
     
-    QMessageBox::StandardButton confirmation = QMessageBox::question(
-        this, tr("Confirm Reschedule"),
-        tr("Are you sure you want to reschedule this booking?"),
-        QMessageBox::Yes | QMessageBox::No
-    );
+    if (m_selectedBookingId < 0) {
+        QMessageBox::warning(this, tr("Warning"), tr("Please select a booking to reschedule."));
+        return;
+    }
+
+    QTime newTime;
     
-    if (confirmation == QMessageBox::Yes) {
-        QTime newTime = m_rescheduleTimeSelector->currentData().toTime();
-        
-        Booking booking;
-        for (const Booking& b : m_padelManager->getAllBookings()) {
-            if (b.getBookingId() == m_selectedBookingId) {
-                booking = b;
-                break;
+    if (m_rescheduleTimeSelector->metaObject()->className() == QString("QTimeEdit")) {
+        QTimeEdit* timeEdit = qobject_cast<QTimeEdit*>(m_rescheduleTimeSelector);
+        if (timeEdit) {
+            newTime = timeEdit->time();
+        }
+    } else {
+        int currentIndex = m_rescheduleTimeSelector->currentIndex();
+        if (currentIndex >= 0) {
+            QVariant timeData = m_rescheduleTimeSelector->itemData(currentIndex);
+            if (timeData.canConvert<QTime>()) {
+                newTime = timeData.value<QTime>();
+            } else {
+                QString timeText = m_rescheduleTimeSelector->currentText();
+                newTime = QTime::fromString(timeText, "HH:mm");
             }
         }
+    }
+    
+    if (!newTime.isValid()) {
+        QMessageBox::warning(this, tr("Warning"), tr("Please select a valid time."));
+        return;
+    }
+
+    QListWidgetItem* item = m_bookingsList->currentItem();
+    if (!item) {
+        QMessageBox::warning(this, tr("Warning"), tr("Selected booking information is not available."));
+        return;
+    }
+
+    QString bookingText = item->text();
+    QDate bookingDate = QDate::currentDate();
+    
+    QRegularExpression dateRegex("(\\d{4}-\\d{2}-\\d{2})");
+    QRegularExpressionMatch match = dateRegex.match(bookingText);
+    if (match.hasMatch()) {
+        QString dateStr = match.captured(1);
+        bookingDate = QDate::fromString(dateStr, "yyyy-MM-dd");
+    }
+    
+    if (!bookingDate.isValid()) {
+        QMessageBox::warning(this, tr("Warning"), tr("Could not determine booking date."));
+        return;
+    }
+
+    QDateTime newStartTime(bookingDate, newTime);
+    QDateTime newEndTime(bookingDate, getEndTime(newTime));
+
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this, tr("Reschedule Booking"),
+                                 tr("Are you sure you want to reschedule this booking to %1?")
+                                   .arg(newStartTime.toString("yyyy-MM-dd HH:mm")),
+                                 QMessageBox::Yes | QMessageBox::No);
+    
+    if (reply == QMessageBox::Yes) {
         
-        QDate bookingDate = booking.getStartTime().date();
-        QDateTime newStartTime(bookingDate, newTime);
-        QDateTime newEndTime(bookingDate, getEndTime(newTime));
+        qDebug() << "User" << m_currentUserEmail << "attempting to reschedule booking ID:" 
+                 << m_selectedBookingId << "to" << newStartTime.toString();
         
         QString errorMessage;
-        bool success = m_padelManager->rescheduleBooking(
-            m_selectedBookingId, newStartTime, newEndTime, errorMessage);
-        
-        if (success) {
-            QMessageBox::information(this, tr("Reschedule Successful"), 
-                                  tr("Your booking has been rescheduled."));
+        if (m_padelManager->rescheduleBooking(m_selectedBookingId, newStartTime, newEndTime, errorMessage)) {
+            QMessageBox::information(this, tr("Success"), tr("Booking rescheduled successfully."));
+
             refreshBookingsList();
             refreshTimeSlots();
+
+            QTimer::singleShot(1000, this, &BookingWindow::refreshTimeSlots);
         } else {
-            QMessageBox::warning(this, tr("Reschedule Failed"), errorMessage);
+            QMessageBox::critical(this, tr("Error"), tr("Failed to reschedule booking: %1").arg(errorMessage));
         }
     }
+}
+
+QLayout* BookingWindow::setupWaitlistUI(QWidget* parent) 
+{
+    QVBoxLayout* waitlistLayout = new QVBoxLayout();
+
+    m_waitlistStatusLabel = new QLabel(parent);
+    m_waitlistStatusLabel->setWordWrap(true);
+    m_waitlistStatusLabel->setStyleSheet("color: #F97316; font-weight: bold;");
+    waitlistLayout->addWidget(m_waitlistStatusLabel);
+    
+    QHBoxLayout* buttonLayout = new QHBoxLayout();
+
+    m_joinWaitlistButton = new QPushButton(tr("Global Waitlist"), parent);
+    m_joinWaitlistButton->setStyleSheet("background-color: #6B7280; color: white; border-radius: 4px; padding: 8px;");
+    m_joinWaitlistButton->setEnabled(false);
+    m_joinWaitlistButton->setVisible(false);
+    
+    m_checkWaitlistButton = new QPushButton(tr("Check Waitlist Status"), parent);
+    m_checkWaitlistButton->setStyleSheet("background-color: #6B7280; color: white; border-radius: 4px; padding: 8px;");
+    
+    buttonLayout->addWidget(m_joinWaitlistButton);
+    buttonLayout->addWidget(m_checkWaitlistButton);
+    
+    waitlistLayout->addLayout(buttonLayout);
+    
+    return waitlistLayout;
+}
+
+QTime BookingWindow::getEndTime(const QTime& startTime)
+{
+    return startTime.addSecs(3600);  
 }
 
 void BookingWindow::updateTheme(bool isDark)
 {
     m_isDarkTheme = isDark;
+
+    QString lightBg = "#FFFFFF";
+    QString lightText = "#111827";
+    QString lightSecondaryText = "#4B5563";
+    QString lightBorder = "#E5E7EB";
+    QString lightHighlight = "#F3F4F6";
     
-    QString backgroundColor = isDark ? "#1F2937" : "#FFFFFF";
-    QString textColor = isDark ? "#FFFFFF" : "#111827";
-    QString secondaryTextColor = isDark ? "#9CA3AF" : "#4B5563";
-    QString buttonColor = isDark ? "#8B5CF6" : "#8B5CF6";
-    QString buttonTextColor = "#FFFFFF";
-    
+    QString darkBg = "#1F2937";
+    QString darkText = "#FFFFFF";
+    QString darkSecondaryText = "#9CA3AF";
+    QString darkBorder = "#374151";
+    QString darkHighlight = "#374151";
+
+    QString primaryColor = "#4F46E5"; 
+    QString secondaryColor = "#6B7280"; 
+    QString warningColor = "#F97316"; 
+    QString dangerColor = "#EF4444"; 
+    QString successColor = "#10B981"; 
+
+    QString backgroundColor = isDark ? darkBg : lightBg;
+    QString textColor = isDark ? darkText : lightText;
+    QString secondaryTextColor = isDark ? darkSecondaryText : lightSecondaryText;
+    QString borderColor = isDark ? darkBorder : lightBorder;
+    QString highlightColor = isDark ? darkHighlight : lightHighlight;
+
     setStyleSheet(QString(
         "QWidget { background-color: %1; color: %2; }"
         "QLabel { color: %2; }"
-        "QComboBox { background-color: %1; color: %2; border: 1px solid #D1D5DB; border-radius: 5px; padding: 5px; }"
-        "QComboBox:disabled { background-color: #F3F4F6; color: #9CA3AF; }"
-        "QDateEdit { background-color: %1; color: %2; border: 1px solid #D1D5DB; border-radius: 5px; padding: 5px; }"
-        "QPushButton { background-color: %3; color: %4; border-radius: 5px; padding: 8px; }"
-        "QPushButton:disabled { background-color: #D1D5DB; color: #9CA3AF; }"
-        "QListWidget { background-color: %1; color: %2; border: 1px solid #D1D5DB; border-radius: 5px; }"
-    ).arg(backgroundColor, textColor, buttonColor, buttonTextColor));
+        "QComboBox { background-color: %1; color: %2; border: 1px solid %3; border-radius: 5px; padding: 5px; }"
+        "QComboBox:disabled { background-color: %5; color: %4; }"
+        "QDateEdit { background-color: %1; color: %2; border: 1px solid %3; border-radius: 5px; padding: 5px; }"
+        "QPushButton:disabled { background-color: %5; color: %4; }"
+        "QListWidget { background-color: %1; color: %2; border: 1px solid %3; border-radius: 5px; }"
+        "QLineEdit { background-color: %1; color: %2; border: 1px solid %3; border-radius: 5px; padding: 5px; }"
+        "QCheckBox { color: %2; }"
+        "#titleLabel { font-size: 24px; font-weight: bold; color: %6; }"
+        "#sectionHeading { font-size: 18px; font-weight: bold; color: %6; }"
+        "#subHeading { font-weight: bold; margin-top: 10px; color: %6; }"
+        "#labelHeading { font-weight: bold; }"
+        "#statusLabel, #messageLabel { color: %4; font-style: italic; }"
+        "#detailLabel { padding: 5px; margin-bottom: 5px; color: %2; }"
+        "#capacityLabel { font-weight: bold; color: %6; }"
+    ).arg(backgroundColor, textColor, borderColor, secondaryTextColor, highlightColor, primaryColor));
+
+    if (m_bookButton) {
+        m_bookButton->setStyleSheet(QString("background-color: %1; color: white; font-weight: bold; border-radius: 5px;").arg(primaryColor));
+    }
+    
+    if (m_searchButton) {
+        m_searchButton->setStyleSheet(QString("background-color: %1; color: white; border-radius: 4px; padding: 8px;").arg(primaryColor));
+    }
+    
+    if (m_clearSearchButton) {
+        m_clearSearchButton->setStyleSheet(QString("background-color: %1; color: white; border-radius: 4px; padding: 8px;").arg(secondaryColor));
+    }
+    
+    if (m_cancelButton) {
+        m_cancelButton->setStyleSheet(QString("background-color: %1; color: white; border-radius: 4px; padding: 8px;").arg(dangerColor));
+    }
+    
+    if (m_rescheduleButton) {
+        m_rescheduleButton->setStyleSheet(QString("background-color: %1; color: white; border-radius: 4px; padding: 8px;").arg(warningColor));
+    }
+    
+    if (m_checkWaitlistButton) {
+        m_checkWaitlistButton->setStyleSheet(QString("background-color: %1; color: white; border-radius: 4px; padding: 8px;").arg(secondaryColor));
+    }
+    
+    refreshTimeSlots();
 }
 
 void BookingWindow::retranslateUI()
@@ -608,7 +2323,221 @@ void BookingWindow::retranslateUI()
     if (m_bookButton) m_bookButton->setText(tr("Book Court"));
     if (m_cancelButton) m_cancelButton->setText(tr("Cancel Selected Booking"));
     if (m_rescheduleButton) m_rescheduleButton->setText(tr("Reschedule Selected Booking"));
-    
+    if (m_searchButton) m_searchButton->setText(tr("Search"));
+    if (m_clearSearchButton) m_clearSearchButton->setText(tr("Clear"));
+    if (m_joinWaitlistButton) m_joinWaitlistButton->setText(tr("Global Waitlist"));
+    if (m_checkWaitlistButton) m_checkWaitlistButton->setText(tr("Check Waitlist Status"));
+
     refreshBookingsList();
+}
+
+void BookingWindow::setupSearchUI(QWidget* parent, QVBoxLayout* parentLayout)
+{
+    QVBoxLayout* searchLayout = new QVBoxLayout();
+
+    QLabel* searchTitle = new QLabel(tr("Search & Filter Courts"), parent);
+    searchTitle->setStyleSheet("font-size: 18px; font-weight: bold; color: #4F46E5;");
+    searchLayout->addWidget(searchTitle);
+
+    QHBoxLayout* searchControlsLayout = new QHBoxLayout();
+
+    m_searchBox = new QLineEdit(parent);
+    m_searchBox->setPlaceholderText(tr("Search by court name..."));
+    m_searchBox->setClearButtonEnabled(true);
+    m_searchBox->setStyleSheet("padding: 8px; border-radius: 4px; border: 1px solid #D1D5DB;");
+
+    m_locationFilter = new QComboBox(parent);
+    m_locationFilter->addItem(tr("All Locations"), "");
+    m_locationFilter->setStyleSheet("padding: 8px; border-radius: 4px; border: 1px solid #D1D5DB;");
+
+    m_showAvailableOnly = new QCheckBox("", parent);
+    m_showAvailableOnly->setVisible(false);
+
+    m_searchButton = new QPushButton(tr("Search"), parent);
+    m_searchButton->setStyleSheet("background-color: #4F46E5; color: white; padding: 8px; border-radius: 4px;");
+    
+    m_clearSearchButton = new QPushButton(tr("Clear"), parent);
+    m_clearSearchButton->setStyleSheet("background-color: #6B7280; color: white; padding: 8px; border-radius: 4px;");
+
+    searchControlsLayout->addWidget(m_searchBox, 4);
+    searchControlsLayout->addWidget(m_locationFilter, 3);
+    searchControlsLayout->addWidget(m_searchButton, 1);
+    searchControlsLayout->addWidget(m_clearSearchButton, 1);
+    
+    searchLayout->addLayout(searchControlsLayout);
+
+    m_totalResultsLabel = new QLabel(parent);
+    m_totalResultsLabel->setStyleSheet("color: #6B7280; margin-top: 5px;");
+    searchLayout->addWidget(m_totalResultsLabel);
+
+    parentLayout->addLayout(searchLayout);
+}
+
+void BookingWindow::updateCourtDetails(int courtId)
+{
+    Court court = m_padelManager->getCourtById(courtId);
+    
+    m_courtNameLabel->setText(tr("Name: %1").arg(court.getName()));
+    m_courtLocationLabel->setText(tr("Location: %1").arg(court.getLocation()));
+    m_courtPriceLabel->setText(tr("Price per hour: $%1").arg(QString::number(court.getPricePerHour(), 'f', 2)));
+
+    if (!court.getDescription().isEmpty()) {
+        m_courtDescriptionLabel->setText(court.getDescription());
+        m_courtDescriptionLabel->setVisible(true);
+    } else {
+        m_courtDescriptionLabel->setVisible(false);
+    }
+
+    m_courtFeaturesListWidget->clear();
+    const QStringList& features = court.getFeatures();
+    if (!features.isEmpty()) {
+        for (const QString& feature : features) {
+            QListWidgetItem* item = new QListWidgetItem("• " + feature);
+            m_courtFeaturesListWidget->addItem(item);
+        }
+        m_courtFeaturesListWidget->setVisible(true);
+    } else {
+        m_courtFeaturesListWidget->setVisible(false);
+    }
+
+    QDate selectedDate = m_dateSelector->date();
+
+    QTime selectedTime;
+    if (m_timeSlotSelector->count() > 0 && m_timeSlotSelector->currentIndex() >= 0) {
+        QString timeStr = m_timeSlotSelector->currentText();
+        selectedTime = QTime::fromString(timeStr, "HH:mm");
+        if (!selectedTime.isValid()) {
+            selectedTime = QTime(12, 0);
+        }
+    } else {
+        selectedTime = QTime(12, 0);   
+    }
+    
+    QDateTime startTime(selectedDate, selectedTime);
+    QDateTime endTime = startTime.addSecs(3600); 
+    
+    qDebug() << "CourDetails Capacity Check - Court:" << courtId 
+             << "Time:" << startTime.toString("yyyy-MM-dd HH:mm")
+             << "to" << endTime.toString("yyyy-MM-dd HH:mm");
+
+    QVector<Booking> courtBookings = m_padelManager->getBookingsByCourt(courtId);
+    int dailyBookings = 0;
+
+    for (const Booking& booking : courtBookings) {
+        bool onSameDate = booking.getStartTime().date() == selectedDate;
+        bool isCancelled = booking.isCancelled();
+        
+        qDebug() << "    Booking:" << booking.getBookingId()
+                << "Date:" << booking.getStartTime().toString("yyyy-MM-dd")
+                << "Time:" << booking.getStartTime().time().toString("HH:mm")
+                << "SameDate:" << onSameDate
+                << "Cancelled:" << isCancelled;
+        
+        if (onSameDate && !isCancelled) {
+            dailyBookings++;
+        }
+    }
+
+    bool currentUserHasBooking = false;
+    if (m_currentUserId > 0) {
+        qDebug() << "Checking bookings for user ID:" << m_currentUserId << "in updateCourtDetails";
+        
+        for (const Booking& booking : courtBookings) {
+            
+            qDebug() << "CAPACITY USER CHECK - Booking ID:" << booking.getBookingId()
+                     << "Booking UserId:" << booking.getUserId()
+                     << "Current UserId:" << m_currentUserId
+                     << "Are equal:" << (booking.getUserId() == m_currentUserId);
+
+            if (booking.getUserId() != m_currentUserId) {
+                qDebug() << "✗ REJECT: Capacity booking belongs to user" << booking.getUserId() << "not current user" << m_currentUserId;
+                continue;
+            }
+            
+            if (!booking.isCancelled() && 
+                booking.getStartTime().date() == selectedDate &&
+                booking.getStartTime().time() == selectedTime) {
+                currentUserHasBooking = true;
+                qDebug() << "✓ MATCHED CAPACITY: User" << m_currentUserId << "has booking at this time";
+                break;
+            }
+        }
+        
+        qDebug() << "Final user booking status for user" << m_currentUserId << "is:" << currentUserHasBooking;
+    }
+
+    int currentAttendees = m_padelManager->getCurrentAttendees(courtId, startTime, endTime);
+    int maxAttendees = court.getMaxAttendees();
+    
+    qDebug() << "CourDetails Capacity Results - Current:" << currentAttendees 
+             << "Max:" << maxAttendees
+             << "DailyTotal:" << dailyBookings;
+
+    QString capacityText;
+    if (currentUserHasBooking) {
+        capacityText = tr("Capacity: %1/%2 (%3 today) - You're booked!")
+                            .arg(currentAttendees)
+                            .arg(maxAttendees)
+                      .arg(dailyBookings);
+        m_capacityLabel->setStyleSheet("color: #2563EB; font-weight: bold;"); 
+    } else {
+        capacityText = tr("Capacity: %1/%2 (%3 today)")
+                      .arg(currentAttendees)
+                      .arg(maxAttendees)
+                      .arg(dailyBookings);
+        m_capacityLabel->setStyleSheet(""); 
+    }
+    
+    m_capacityLabel->setText(capacityText);
+}
+
+void BookingWindow::bookTimeSlot(int courtId, const QDate& date, const QString& startTimeStr, const QString& endTimeStr)
+{
+    try {
+        qDebug() << "Booking time slot for court" << courtId << "on" << date.toString()
+                << "from" << startTimeStr << "to" << endTimeStr;
+
+        if (m_currentUserId <= 0) {
+            qDebug() << "Cannot book time slot: No user is logged in";
+            QMessageBox::warning(this, tr("Login Required"), 
+                                tr("You must be logged in to book a time slot."));
+            return;
+        }
+
+        QTime startTime = QTime::fromString(startTimeStr, "HH:mm");
+        QTime endTime = QTime::fromString(endTimeStr, "HH:mm");
+        
+        if (!startTime.isValid() || !endTime.isValid()) {
+            qDebug() << "ERROR: Invalid time format for booking:" << startTimeStr << "-" << endTimeStr;
+            QMessageBox::warning(this, tr("Booking Error"), 
+                                tr("Invalid time format. Please try again."));
+            return;
+        }
+
+        QDateTime startDateTime(date, startTime);
+        QDateTime endDateTime(date, endTime);
+
+        QString message = tr("Do you want to book court %1 on %2 from %3 to %4?")
+                         .arg(m_courtSelector->currentText())
+                         .arg(date.toString("dd/MM/yyyy"))
+                         .arg(startTimeStr)
+                         .arg(endTimeStr);
+        
+        int result = QMessageBox::question(this, tr("Confirm Booking"), message, 
+                                       QMessageBox::Yes | QMessageBox::No);
+        
+        if (result == QMessageBox::Yes) {
+            
+            bookCourtDirectly(courtId, startDateTime, endDateTime);
+                }
+            } catch (const std::exception& e) {
+        qDebug() << "ERROR: Exception in bookTimeSlot:" << e.what();
+        QMessageBox::warning(this, tr("Booking Error"), 
+                            tr("An error occurred while booking: %1").arg(e.what()));
+            } catch (...) {
+        qDebug() << "ERROR: Unknown exception in bookTimeSlot";
+        QMessageBox::warning(this, tr("Booking Error"), 
+                            tr("An unknown error occurred while booking."));
+    }
 }
 
