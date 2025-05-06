@@ -12,7 +12,7 @@
 #include "../DataManager/padeldatamanager.h"
 #include "../homepage.h"
 #include "settingspage.h"
-#include "addcourtpage.h"
+#include "../Padel/addcourtpage.h"
 #include <QLabel>
 #include "../Language/LanguageSelector.h"
 

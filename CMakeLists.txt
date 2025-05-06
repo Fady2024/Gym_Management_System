@@ -197,6 +197,10 @@ set(PROJECT_SOURCES
         "project code/UI/Widgets/Notifications/NotificationManager.h"
         "project code/UI/Widgets/Notifications/NotificationManager.cpp"
         "project code/UI/Stylesheets/System/mainpageStyle.h"
+        "project code/Model/System/timeLogic.cpp"
+        "project code/Model/System/timeLogic.h"
+        "project code/UI/Widgets/Clock/Clock.cpp"
+        "project code/UI/Widgets/Clock/Clock.h"
 )
 
 # Define absolute source data directory path
@@ -207,7 +211,7 @@ add_compile_definitions(SOURCE_DATA_DIR="${SOURCE_DATA_DIR}")
 add_compile_definitions(FORCE_SOURCE_DIR=1)
 
 # Create executable
-add_executable(DS_Project ${PROJECT_SOURCES} "project code/Model/System/timeLogic.cpp" "project code/Model/System/timeLogic.h" "project code/UI/Widgets/Clock/Clock.cpp" "project code/UI/Widgets/Clock/Clock.h")
+add_executable(DS_Project ${PROJECT_SOURCES})
 
 # Create required directories only once during configure time
 file(MAKE_DIRECTORY 

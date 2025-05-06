@@ -22,8 +22,8 @@
 #include <QMap>
 #include <QSpinBox>
 
-#include "../../DataManager/padeldatamanager.h"
-#include "../../UI/UIUtils.h"
+#include "../../../DataManager/padeldatamanager.h"
+#include "../../../UI/UIUtils.h"
 
 class FeatureCard : public QWidget {
     Q_OBJECT
