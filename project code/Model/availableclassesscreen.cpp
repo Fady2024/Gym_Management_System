@@ -12,24 +12,37 @@
 #include <QDialogButtonBox>
 #include <QMessageBox>
 #include <QProgressBar>
+#include <QComboBox>
+#include <QGroupBox>
+#include <QMap>
 
 AvailableClassesScreen::AvailableClassesScreen(ClassDataManager* dataManager, QWidget *parent)
     : QWidget(parent), classDataManager(dataManager)
 {
+    setupCoaches();
     setupUI();
     refreshClasses();
 }
 
 AvailableClassesScreen::~AvailableClassesScreen()
 {
+}
 
+void AvailableClassesScreen::setupCoaches()
+{
+
+    coaches.append(Staff(1, "John Smith", "john.smith@example.com", "password123", "john.jpg", QDate(1985, 5, 15), Staff::Role::COACH));
+    coaches.append(Staff(2, "Sarah Johnson", "sarah.johnson@example.com", "password123", "sarah.jpg", QDate(1990, 8, 22), Staff::Role::COACH));
+    coaches.append(Staff(3, "Michael Brown", "michael.brown@example.com", "password123", "michael.jpg", QDate(1982, 3, 10), Staff::Role::COACH));
+    coaches.append(Staff(4, "Emily Davis", "emily.davis@example.com", "password123", "emily.jpg", QDate(1988, 12, 5), Staff::Role::COACH));
+    coaches.append(Staff(5, "David Wilson", "david.wilson@example.com", "password123", "david.jpg", QDate(1979, 7, 18), Staff::Role::COACH));
 }
 
 void AvailableClassesScreen::setupUI()
 {
-    QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(20, 20, 20, 20);
-    mainLayout->setSpacing(20);
+    mainVLayout = new QVBoxLayout(this);
+    mainVLayout->setContentsMargins(20, 20, 20, 20);
+    mainVLayout->setSpacing(20);
 
     addClassButton = new QPushButton("Add Class");
     addClassButton->setStyleSheet(
@@ -43,45 +56,116 @@ void AvailableClassesScreen::setupUI()
 
     connect(addClassButton, &QPushButton::clicked, this, &AvailableClassesScreen::showAddClassDialog);
 
-    mainLayout->addWidget(addClassButton, 0, Qt::AlignRight);
+    mainVLayout->addWidget(addClassButton, 0, Qt::AlignRight);
 
     scrollArea = new QScrollArea;
     scrollArea->setWidgetResizable(true);
     scrollArea->setStyleSheet("border: none;");
 
     scrollWidget = new QWidget;
-    classesGridLayout = new QGridLayout(scrollWidget);
-    classesGridLayout->setAlignment(Qt::AlignTop);
-    classesGridLayout->setSpacing(20);
-    scrollWidget->setLayout(classesGridLayout);
+    QVBoxLayout* scrollLayout = new QVBoxLayout(scrollWidget);
+    scrollLayout->setAlignment(Qt::AlignTop);
+    scrollLayout->setSpacing(30);
 
     scrollArea->setWidget(scrollWidget);
-    mainLayout->addWidget(scrollArea);
+    mainVLayout->addWidget(scrollArea);
 
-    setLayout(mainLayout);
+    setLayout(mainVLayout);
 }
 
 void AvailableClassesScreen::refreshClasses()
 {
 
-    QLayoutItem *item;
-    while ((item = classesGridLayout->takeAt(0)) != nullptr) {
-        delete item->widget();
-        delete item;
-    }
+    QWidget* contentWidget = scrollArea->widget();
+    delete contentWidget;
+
+    scrollWidget = new QWidget;
+    QVBoxLayout* scrollLayout = new QVBoxLayout(scrollWidget);
+    scrollLayout->setAlignment(Qt::AlignTop);
+    scrollLayout->setSpacing(30);
+
 
     QVector<Class> classes = classDataManager->getAllClasses();
 
+    QMap<QString, QVector<Class>> classesByCoach;
+
+
     for (const Class &gymClass : classes) {
-        createClassCard(gymClass);
+        classesByCoach[gymClass.getCoachName()].append(gymClass);
     }
 
-    for (int i = 0; i < 3; ++i) {
-        classesGridLayout->setColumnStretch(i, 1);
+
+    for (const Staff &coach : coaches) {
+        QString coachName = coach.getName();
+
+        QVector<Class> coachClasses = classesByCoach.value(coachName);
+        if (coachClasses.isEmpty() && classesByCoach.keys().contains(coachName) == false) {
+
+            continue;
+        }
+
+        QGroupBox* coachGroup = new QGroupBox(coachName);
+        coachGroup->setStyleSheet(
+            "QGroupBox {"
+            "   font-size: 18px;"
+            "   font-weight: bold;"
+            "   border: none;"
+            "   margin-top: 15px;"
+            "}"
+            "QGroupBox::title {"
+            "   subcontrol-origin: margin;"
+            "   left: 10px;"
+            "   padding: 0 5px;"
+            "   color: #2c3e50;"
+            "}"
+        );
+
+
+        QVBoxLayout* coachLayout = new QVBoxLayout(coachGroup);
+        coachLayout->setContentsMargins(10, 25, 10, 10);
+        coachLayout->setSpacing(20);
+
+
+        if (classesByCoach.contains(coachName)) {
+            QGridLayout* classesGrid = new QGridLayout();
+            classesGrid->setSpacing(20);
+            coachLayout->addLayout(classesGrid);
+
+
+            int col = 0;
+            int row = 0;
+            for (const Class &gymClass : classesByCoach[coachName]) {
+                QWidget *card = new QWidget;
+                createClassCard(gymClass, classesGrid, row, col);
+
+
+                col++;
+                if (col >= 3) {
+                    col = 0;
+                    row++;
+                }
+            }
+
+
+            for (int i = 0; i < 3; ++i) {
+                classesGrid->setColumnStretch(i, 1);
+            }
+        } else {
+
+            QLabel* noClassesLabel = new QLabel("No classes scheduled for this coach");
+            noClassesLabel->setAlignment(Qt::AlignCenter);
+            noClassesLabel->setStyleSheet("color: #666; font-style: italic;");
+            coachLayout->addWidget(noClassesLabel);
+        }
+
+
+        scrollLayout->addWidget(coachGroup);
     }
+
+    scrollArea->setWidget(scrollWidget);
 }
 
-void AvailableClassesScreen::createClassCard(const Class &gymClass)
+void AvailableClassesScreen::createClassCard(const Class &gymClass, QGridLayout *classesGrid, int row, int col)
 {
     QWidget *card = new QWidget;
     card->setMinimumWidth(250);
@@ -115,9 +199,6 @@ void AvailableClassesScreen::createClassCard(const Class &gymClass)
     titleLabel->setAlignment(Qt::AlignCenter);
     titleLabel->setWordWrap(true);
 
-    QLabel *coachLabel = new QLabel(tr("<b>Coach:</b> ") + gymClass.getCoachName());
-    coachLabel->setTextFormat(Qt::RichText);
-
     QLabel *timeLabel = new QLabel(tr("<b>Date:</b> %1 - %2").arg(
         gymClass.getFromDate().toString(QLocale::system().dateFormat(QLocale::ShortFormat)),
         gymClass.getToDate().toString(QLocale::system().dateFormat(QLocale::ShortFormat))));
@@ -150,7 +231,6 @@ void AvailableClassesScreen::createClassCard(const Class &gymClass)
     ).arg(progressColor));
 
     cardLayout->addWidget(titleLabel);
-    cardLayout->addWidget(coachLabel);
     cardLayout->addWidget(timeLabel);
     cardLayout->addWidget(progressBar);
 
@@ -172,7 +252,7 @@ void AvailableClassesScreen::createClassCard(const Class &gymClass)
     });
 
     cardLayout->addLayout(buttonLayout);
-    classesGridLayout->addWidget(card, classesGridLayout->count() / 3, classesGridLayout->count() % 3);
+    classesGrid->addWidget(card, row, col);
 }
 
 void AvailableClassesScreen::showAddClassDialog()
@@ -183,7 +263,12 @@ void AvailableClassesScreen::showAddClassDialog()
 
     QFormLayout form(&dialog);
     QLineEdit *classNameEdit = new QLineEdit;
-    QLineEdit *coachNameEdit = new QLineEdit;
+
+
+    QComboBox *coachComboBox = new QComboBox;
+    for (const Staff &coach : coaches) {
+        coachComboBox->addItem(coach.getName(), coach.getId());
+    }
 
     QDateEdit *fromDateEdit = new QDateEdit;
     fromDateEdit->setCalendarPopup(true);
@@ -198,11 +283,13 @@ void AvailableClassesScreen::showAddClassDialog()
     QSpinBox *capacitySpinBox = new QSpinBox;
     capacitySpinBox->setRange(1, 100);
     capacitySpinBox->setValue(20);
+
     form.addRow(tr("Class Name:"), classNameEdit);
-    form.addRow(tr("Coach Name:"), coachNameEdit);
+    form.addRow(tr("Coach:"), coachComboBox);
     form.addRow(tr("Start Date:"), fromDateEdit);
     form.addRow(tr("End Date:"), toDateEdit);
     form.addRow(tr("Capacity:"), capacitySpinBox);
+
     QDialogButtonBox buttonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel,
                              Qt::Horizontal, &dialog);
     form.addRow(&buttonBox);
@@ -211,27 +298,28 @@ void AvailableClassesScreen::showAddClassDialog()
     connect(&buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
 
     if (dialog.exec() == QDialog::Accepted) {
-        if (classNameEdit->text().isEmpty() || coachNameEdit->text().isEmpty()) {
-            QMessageBox::warning(this, tr("Error"), tr("EMLAHA"));
+        if (classNameEdit->text().isEmpty()) {
+            QMessageBox::warning(this, tr("Error"), tr("Class name cannot be empty!"));
             return;
         }
 
         if (fromDateEdit->date() > toDateEdit->date()) {
-            QMessageBox::warning(this, tr("Error"), tr("EZAY END BEFORE BEGINGNINGINIGG"));
+            QMessageBox::warning(this, tr("Error"), tr("End date cannot be before start date!"));
             return;
         }
 
         Class newClass;
 
         newClass.setClassName(classNameEdit->text().trimmed());
-        newClass.setCoachName(coachNameEdit->text().trimmed());
+        newClass.setCoachName(coachComboBox->currentText());  // Use selected coach name
         newClass.setFromDate(fromDateEdit->date());
         newClass.setToDate(toDateEdit->date());
         newClass.setCapacity(capacitySpinBox->value());
         newClass.setNumOfEnrolled(0);
 
-        qDebug() << "adding rn new class with ID:" << newClass.getId()
-                 << "Name:" << newClass.getClassName();
+        qDebug() << "Adding new class with ID:" << newClass.getId()
+                 << "Name:" << newClass.getClassName()
+                 << "Coach:" << newClass.getCoachName();
 
         QString errorMessage;
         if (!classDataManager->addClass(newClass, errorMessage)) {
