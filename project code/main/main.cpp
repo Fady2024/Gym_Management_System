@@ -19,6 +19,8 @@
 #include <QDebug>
 #include <QTimer>
 
+
+
 int main(int argc, char* argv[])
 {
     AppInitializer::initializeApplication();
@@ -81,14 +83,12 @@ int main(int argc, char* argv[])
     auto authPage = new AuthPage(userDataManager);
     auto mainPage = new MainPage(userDataManager, memberDataManager, classDataManager, padelDataManager);
     auto staffHomePage = new StaffHomePage(userDataManager, memberDataManager, classDataManager, padelDataManager);
-
     // Add pages to stacked widget
-    /*stackedWidget->addWidget(splashScreen);
-    stackedWidget->addWidget(languageSelectionPage);
-    stackedWidget->addWidget(onboardingPage);
-    stackedWidget->addWidget(authPage);*/
+    // stackedWidget->addWidget(splashScreen);
+    // stackedWidget->addWidget(languageSelectionPage);
+    // stackedWidget->addWidget(onboardingPage);
+    // stackedWidget->addWidget(authPage);
     stackedWidget->addWidget(mainPage);
-    stackedWidget->addWidget(staffHomePage);
 
     // Connect signals and slots
     QObject::connect(splashScreen, &SplashScreen::animationFinished, [stackedWidget, languageSelectionPage]() {

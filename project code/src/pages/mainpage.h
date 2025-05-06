@@ -15,6 +15,7 @@
 #include "Padel/BookingWindow.h"
 #include <QLabel>
 #include "../Language/LanguageSelector.h"
+#include "availableclassesscreen.h"
 //#include "../../UI/Widgets/Clock.h"
 #include "../../UI/Widgets/Notifications/Notifications.h"
 #include "Stylesheets/System/mainpageStyle.h"
@@ -86,7 +87,7 @@ private:
     // Pages
     HomePage* homePage;
     BookingWindow* workoutPage;
-    QWidget* nutritionPage;
+    AvailableClassesScreen* nutritionPage;
     QWidget* profilePage;
     SettingsPage* settingsPage;
 

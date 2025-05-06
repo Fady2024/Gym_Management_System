@@ -317,7 +317,7 @@ void MainPage::setupPages()
             return;
         }
 
-        nutritionPage = new QWidget;
+        nutritionPage = new AvailableClassesScreen(classDataManager);
         if (!nutritionPage) {
             qDebug() << "Error: Failed to create nutritionPage";
             return;
