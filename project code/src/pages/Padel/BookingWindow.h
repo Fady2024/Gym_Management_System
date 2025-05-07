@@ -37,7 +37,7 @@ class BookingWindow : public QWidget {
 
 public:
     BookingWindow(PadelDataManager* padelManager, QWidget *parent = nullptr);
-
+    
     void retranslateUI();
     void updateTheme(bool isDark);
     void setCurrentUserEmail(const QString& email);
@@ -70,7 +70,7 @@ private:
     QString m_currentUserEmail;
     int m_selectedBookingId = -1;
     QTime m_selectedWaitlistTime;
-
+    
     // UI components
     QComboBox* m_courtSelector;
     QDateEdit* m_dateSelector;
@@ -131,7 +131,7 @@ private:
     QTime getEndTime(const QTime& startTime);
     void loadUserData();
     QFrame* createSeparator();
-    void clearTimeSlotGrid();
+    void clearTimeSlotGrid() const;
     QWidget* createTimeSlotWidget(const QString& startTimeStr, const QString& endTimeStr,
                                  int currentAttendees, int maxAttendees);
     void bookTimeSlot(int courtId, const QDate& date, const QString& startTimeStr, const QString& endTimeStr);
@@ -186,12 +186,28 @@ public:
         setCursor(Qt::PointingHandCursor);
     }
 
+    void setBooked(bool isBooked, int bookingId = -1) {
+        m_isBooked = isBooked;
+        m_bookingId = bookingId;
+        updateDisplay();
+    }
+
     void setSlotInfo(const QString& time, const QString& availability, bool isAvailable) {
         m_time = time;
         m_availability = availability;
         m_isAvailable = isAvailable;
-        updateDisplay(false);
+        updateDisplay();
     }
+
+    void resetState() {
+        m_isBooked = false;
+        m_time.clear();
+        m_availability.clear();
+        m_isAvailable = true;
+        m_bookingId = -1;
+        updateDisplay();
+    }
+
     QString normalStyle() const {
         bool isSelectedDay = property("isSelectedDay").toBool();
 
@@ -217,7 +233,7 @@ protected:
     }
 
     void leaveEvent(QEvent* event) override {
-        updateDisplay(false);
+        updateDisplay();
         QPushButton::leaveEvent(event);
     }
 
@@ -225,20 +241,26 @@ private:
     QString m_time;
     QString m_availability;
     bool m_isAvailable;
+    bool m_isBooked;
+    int m_bookingId;
 
-    void updateDisplay(bool hovered) {
+    void updateDisplay(bool hovered = false) {
+        if (m_isBooked) {
+            setText("Cancel Booking");
+            setStyleSheet(bookedStyle());
+            return;
+        }
         if (hovered && m_isAvailable) {
             setText("Book Court");
             setStyleSheet(hoverStyle());
         } else {
-            setText(QString("%1\n%2").arg(m_time).arg(m_availability));
+            setText(m_availability);
             setStyleSheet(normalStyle());
         }
     }
 
-
-    QString hoverStyle() const {
-        return QString(
+    static QString hoverStyle() {
+        return {
             "QPushButton {"
             "  border: 1px solid #4F46E5;"
             "  padding: 5px;"
@@ -247,7 +269,13 @@ private:
             "  color: white;"
             "  font-weight: bold;"
             "}"
-        );
+        };
+    }
+
+    static QString bookedStyle() {
+        return {
+            "background-color: #FECACA; color: #B91C1C; border: 1px solid #EF4444;"
+        };
     }
 };
 #endif // BOOKINGWINDOW_H
