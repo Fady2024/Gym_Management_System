@@ -118,3 +118,20 @@ std::deque<int> Class::getWaitlist() const {
 bool Class::isInWaitlist(int memberId) const {
     return std::find(waiting_users_ids.begin(), waiting_users_ids.end(), memberId) != waiting_users_ids.end();
 }
+
+void Class::assignFromWaitlistIfAvailable() {
+    if (!waiting_users_ids.empty() && static_cast<int>(enrolled_members.size()) < capacity) {
+        int nextId = waiting_users_ids.front();
+        waiting_users_ids.pop_front();
+        enrolled_members.insert(nextId);
+        numOfEnrolled = static_cast<int>(enrolled_members.size());
+        qDebug() << "Assigned member from waitlist:" << nextId;
+    }
+}
+
+void Class::cancelEnrollment(int memberId) {
+    if (enrolled_members.erase(memberId)) {
+        numOfEnrolled = static_cast<int>(enrolled_members.size());
+        assignFromWaitlistIfAvailable();
+    }
+}
