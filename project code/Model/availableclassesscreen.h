@@ -1,16 +1,21 @@
+// AvailableClassesScreen.h
+
 #ifndef AVAILABLECLASSESSCREEN_H
 #define AVAILABLECLASSESSCREEN_H
 
 #include <QWidget>
 #include <QVector>
+#include <QSet>
 #include "classdatamanager.h"
 #include "Gym/staff.h"
+#include "System//user.h"
+#include "Gym/member.h"
 
 class QGridLayout;
 class QPushButton;
 class QScrollArea;
 class QVBoxLayout;
-class QComboBox;
+class QLabel;
 
 class AvailableClassesScreen : public QWidget
 {
@@ -22,23 +27,29 @@ public:
 
 private slots:
     void handleEnrollment(int classId);
+    void handleUnenroll(int classId);
     void handleWaitlist(int classId);
     void showAddClassDialog();
 
 private:
     void setupUI();
+    void setupCoaches();
     void refreshClasses();
     void createClassCard(const Class &gymClass, QGridLayout *classesGrid, int row, int col);
-    void setupCoaches();
 
     ClassDataManager* classDataManager;
-    QScrollArea* scrollArea;
-    QWidget* scrollWidget;
-    QPushButton* addClassButton;
-    QVBoxLayout* mainVLayout;
+    QScrollArea*       scrollArea;
+    QWidget*           scrollWidget;
+    QPushButton*       addClassButton;
+    QVBoxLayout*       mainVLayout;
 
-    // dummy :))
-    QVector<Staff> coaches;
+    QLabel*            userNameLabel;
+    QLabel*            enrolledClassesLabel;
+
+    QVector<Staff>     coaches;
+    User               currentUser;
+    Member             currentMember;
+    QSet<int>          enrolledClassIds;
 };
 
 #endif

@@ -1,3 +1,5 @@
+// AvailableClassesScreen.cpp
+
 #include "availableclassesscreen.h"
 #include <QGridLayout>
 #include <QVBoxLayout>
@@ -7,66 +9,71 @@
 #include <QDialog>
 #include <QFormLayout>
 #include <QLineEdit>
-#include <QTimeEdit>
 #include <QSpinBox>
 #include <QDialogButtonBox>
 #include <QMessageBox>
 #include <QProgressBar>
 #include <QComboBox>
+#include <QDateEdit>
 #include <QGroupBox>
-#include <QMap>
+#include <QHBoxLayout>
+
+#include "Widgets/Notifications/NotificationManager.h"
 
 AvailableClassesScreen::AvailableClassesScreen(ClassDataManager* dataManager, QWidget *parent)
     : QWidget(parent), classDataManager(dataManager)
 {
+    //dummy current user
+    currentUser = User("Alice Example", "alice@example.com", "passw0rd", ":/avatars/alice.png", QDate(1995,6,1));
+    currentUser.setId(1);
+    currentMember = Member(1, currentUser.getId(), -1);
+
     setupCoaches();
     setupUI();
     refreshClasses();
 }
 
-AvailableClassesScreen::~AvailableClassesScreen()
-{
-}
+AvailableClassesScreen::~AvailableClassesScreen() = default;
 
 void AvailableClassesScreen::setupCoaches()
 {
-
-    coaches.append(Staff(1, "John Smith", "john.smith@example.com", "password123", "john.jpg", QDate(1985, 5, 15), Staff::Role::COACH));
-    coaches.append(Staff(2, "Sarah Johnson", "sarah.johnson@example.com", "password123", "sarah.jpg", QDate(1990, 8, 22), Staff::Role::COACH));
-    coaches.append(Staff(3, "Michael Brown", "michael.brown@example.com", "password123", "michael.jpg", QDate(1982, 3, 10), Staff::Role::COACH));
-    coaches.append(Staff(4, "Emily Davis", "emily.davis@example.com", "password123", "emily.jpg", QDate(1988, 12, 5), Staff::Role::COACH));
-    coaches.append(Staff(5, "David Wilson", "david.wilson@example.com", "password123", "david.jpg", QDate(1979, 7, 18), Staff::Role::COACH));
+    coaches.append({1, "John Smith", "john.smith@example.com", "password123", "john.jpg", QDate(1985,5,15), Staff::Role::COACH});
+    coaches.append({2, "Sarah Johnson", "sarah.johnson@example.com", "password123", "sarah.jpg", QDate(1990,8,22), Staff::Role::COACH});
+    coaches.append({3, "Michael Brown", "michael.brown@example.com", "password123", "michael.jpg", QDate(1982,3,10), Staff::Role::COACH});
+    coaches.append({4, "Emily Davis", "emily.davis@example.com", "password123", "emily.jpg", QDate(1988,12,5), Staff::Role::COACH});
+    coaches.append({5, "David Wilson", "david.wilson@example.com", "password123", "david.jpg", QDate(1979,7,18), Staff::Role::COACH});
 }
 
 void AvailableClassesScreen::setupUI()
 {
     mainVLayout = new QVBoxLayout(this);
-    mainVLayout->setContentsMargins(20, 20, 20, 20);
-    mainVLayout->setSpacing(20);
+    mainVLayout->setContentsMargins(20,20,20,20);
+    mainVLayout->setSpacing(15);
+
+
+    userNameLabel = new QLabel(QString("Hello, %1!").arg(currentUser.getName()));
+    userNameLabel->setStyleSheet("font-size:20px; font-weight:bold;");
+    enrolledClassesLabel = new QLabel;
+    enrolledClassesLabel->setWordWrap(true);
+    enrolledClassesLabel->setStyleSheet("color:#555;");
+
+    QVBoxLayout* headerLayout = new QVBoxLayout;
+    headerLayout->addWidget(userNameLabel);
+    headerLayout->addWidget(enrolledClassesLabel);
+    mainVLayout->addLayout(headerLayout);
 
     addClassButton = new QPushButton("Add Class");
     addClassButton->setStyleSheet(
-        "background-color: #DFD0B8;"
-        "color: black;"
-        "border: none;"
-        "padding: 10px 20px;"
-        "font-size: 16px;"
-        "border-radius: 5px;"
+        "background-color:#DFD0B8; color:black; border:none; padding:10px 20px; "
+        "font-size:16px; border-radius:5px;"
     );
-
     connect(addClassButton, &QPushButton::clicked, this, &AvailableClassesScreen::showAddClassDialog);
-
     mainVLayout->addWidget(addClassButton, 0, Qt::AlignRight);
 
     scrollArea = new QScrollArea;
     scrollArea->setWidgetResizable(true);
-    scrollArea->setStyleSheet("border: none;");
-
+    scrollArea->setStyleSheet("border:none;");
     scrollWidget = new QWidget;
-    QVBoxLayout* scrollLayout = new QVBoxLayout(scrollWidget);
-    scrollLayout->setAlignment(Qt::AlignTop);
-    scrollLayout->setSpacing(30);
-
     scrollArea->setWidget(scrollWidget);
     mainVLayout->addWidget(scrollArea);
 
@@ -75,186 +82,218 @@ void AvailableClassesScreen::setupUI()
 
 void AvailableClassesScreen::refreshClasses()
 {
+    auto all = classDataManager->getAllClasses();
+    QStringList names;
+    for (auto &c : all) {
+        if (classDataManager->getClassById(c.getId())
+            .isMemberEnrolled(currentUser.getId()))
+        {
+            names << c.getClassName();
+        }
+    }
+    if (names.isEmpty())
+        enrolledClassesLabel->setText("You’re not enrolled in any classes yet.");
+    else
+        enrolledClassesLabel->setText(QString("Your classes: %1").arg(names.join(", ")));
 
-    QWidget* contentWidget = scrollArea->widget();
-    delete contentWidget;
-
+    delete scrollArea->widget();
     scrollWidget = new QWidget;
     QVBoxLayout* scrollLayout = new QVBoxLayout(scrollWidget);
     scrollLayout->setAlignment(Qt::AlignTop);
     scrollLayout->setSpacing(30);
 
+    QMap<QString,QVector<Class>> byCoach;
+    for (auto &c : all) byCoach[c.getCoachName()].append(c);
 
-    QVector<Class> classes = classDataManager->getAllClasses();
+    for (auto &coach : coaches) {
+        auto classesFor = byCoach.value(coach.getName());
+        if (classesFor.isEmpty()) continue;
 
-    QMap<QString, QVector<Class>> classesByCoach;
-
-
-    for (const Class &gymClass : classes) {
-        classesByCoach[gymClass.getCoachName()].append(gymClass);
-    }
-
-
-    for (const Staff &coach : coaches) {
-        QString coachName = coach.getName();
-
-        QVector<Class> coachClasses = classesByCoach.value(coachName);
-        if (coachClasses.isEmpty() && classesByCoach.keys().contains(coachName) == false) {
-
-            continue;
-        }
-
-        QGroupBox* coachGroup = new QGroupBox(coachName);
-        coachGroup->setStyleSheet(
-            "QGroupBox {"
-            "   font-size: 18px;"
-            "   font-weight: bold;"
-            "   border: none;"
-            "   margin-top: 15px;"
-            "}"
-            "QGroupBox::title {"
-            "   subcontrol-origin: margin;"
-            "   left: 10px;"
-            "   padding: 0 5px;"
-            "   color: #2c3e50;"
-            "}"
+        QGroupBox* group = new QGroupBox(coach.getName());
+        group->setStyleSheet(
+            "QGroupBox { font-size:18px; font-weight:bold; border:none; margin-top:15px; }"
+            "QGroupBox::title { subcontrol-origin:margin; left:10px; padding:0 5px; color:#2c3e50; }"
         );
+        QVBoxLayout* glay = new QVBoxLayout(group);
+        glay->setContentsMargins(10,25,10,10);
+        glay->setSpacing(20);
 
+        QGridLayout* grid = new QGridLayout;
+        grid->setSpacing(20);
+        glay->addLayout(grid);
 
-        QVBoxLayout* coachLayout = new QVBoxLayout(coachGroup);
-        coachLayout->setContentsMargins(10, 25, 10, 10);
-        coachLayout->setSpacing(20);
-
-
-        if (classesByCoach.contains(coachName)) {
-            QGridLayout* classesGrid = new QGridLayout();
-            classesGrid->setSpacing(20);
-            coachLayout->addLayout(classesGrid);
-
-
-            int col = 0;
-            int row = 0;
-            for (const Class &gymClass : classesByCoach[coachName]) {
-                QWidget *card = new QWidget;
-                createClassCard(gymClass, classesGrid, row, col);
-
-
-                col++;
-                if (col >= 3) {
-                    col = 0;
-                    row++;
-                }
-            }
-
-
-            for (int i = 0; i < 3; ++i) {
-                classesGrid->setColumnStretch(i, 1);
-            }
-        } else {
-
-            QLabel* noClassesLabel = new QLabel("No classes scheduled for this coach");
-            noClassesLabel->setAlignment(Qt::AlignCenter);
-            noClassesLabel->setStyleSheet("color: #666; font-style: italic;");
-            coachLayout->addWidget(noClassesLabel);
+        int row=0, col=0;
+        for (auto &cls : classesFor) {
+            createClassCard(cls, grid, row, col);
+            if (++col >= 3) { col=0; ++row; }
         }
+        for (int i=0;i<3;i++) grid->setColumnStretch(i,1);
 
-
-        scrollLayout->addWidget(coachGroup);
+        scrollLayout->addWidget(group);
     }
 
     scrollArea->setWidget(scrollWidget);
 }
 
-void AvailableClassesScreen::createClassCard(const Class &gymClass, QGridLayout *classesGrid, int row, int col)
+void AvailableClassesScreen::createClassCard(const Class &gymClass,
+                                             QGridLayout *classesGrid,
+                                             int row, int col)
 {
     QWidget *card = new QWidget;
     card->setMinimumWidth(250);
     card->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
-
-    QString cardStyle = QString(
-        "QWidget {"
-        "   background-color: #DFD0B8;"
-        "   border-radius: 10px;"
-        "   padding: 15px;"
-        "   border: 1px solid #393E46;"
-        "}"
-        "QLabel {"
-        "   font-size: 14px;"
-        "   color: black;"
-        "}"
-        "QLabel#title {"
-        "   font-size: 18px;"
-        "   font-weight: bold;"
-        "   color: #2c3e50;"
-        "}"
+    card->setStyleSheet(
+        "QWidget { background-color:#DFD0B8; border-radius:10px; padding:15px; border:1px solid #393E46; }"
+        "QLabel { font-size:14px; color:black; }"
+        "QLabel#title { font-size:18px; font-weight:bold; color:#2c3e50; }"
     );
-    card->setStyleSheet(cardStyle);
 
     QVBoxLayout *cardLayout = new QVBoxLayout(card);
     cardLayout->setSpacing(12);
-    cardLayout->setContentsMargins(15, 15, 15, 15);
+    cardLayout->setContentsMargins(15,15,15,15);
 
     QLabel *titleLabel = new QLabel(gymClass.getClassName());
     titleLabel->setObjectName("title");
     titleLabel->setAlignment(Qt::AlignCenter);
     titleLabel->setWordWrap(true);
 
-    QLabel *timeLabel = new QLabel(tr("<b>Date:</b> %1 - %2").arg(
-        gymClass.getFromDate().toString(QLocale::system().dateFormat(QLocale::ShortFormat)),
-        gymClass.getToDate().toString(QLocale::system().dateFormat(QLocale::ShortFormat))));
+    QLabel *timeLabel = new QLabel(
+        tr("<b>Date:</b> %1 - %2")
+          .arg(gymClass.getFromDate().toString("dd/MM/yyyy"),
+               gymClass.getToDate().toString("dd/MM/yyyy"))
+    );
     timeLabel->setTextFormat(Qt::RichText);
 
-    QString capacityText = QString("%1 / %2").arg(gymClass.getNumOfEnrolled()).arg(gymClass.getCapacity());
     QProgressBar *progressBar = new QProgressBar;
     progressBar->setRange(0, gymClass.getCapacity());
     progressBar->setValue(gymClass.getNumOfEnrolled());
-    progressBar->setTextVisible(true);
-    progressBar->setFormat(capacityText);
+    progressBar->setFormat(QString("%1 / %2")
+                              .arg(gymClass.getNumOfEnrolled())
+                              .arg(gymClass.getCapacity()));
     progressBar->setAlignment(Qt::AlignCenter);
-
-    int enrollmentPercentage = (gymClass.getNumOfEnrolled() * 100) / gymClass.getCapacity();
-    QString progressColor = enrollmentPercentage < 50 ? "#4CAF50" :
-                          (enrollmentPercentage < 80 ? "#FFC107" : "#F44336");
-
+    int pct = gymClass.getNumOfEnrolled() * 100 / gymClass.getCapacity();
+    QString chunkColor = pct<50 ? "#4CAF50" : (pct<80 ? "#FFC107" : "#F44336");
     progressBar->setStyleSheet(QString(
-        "QProgressBar {"
-        "   border: 1px solid #393E46;"
-        "   border-radius: 5px;"
-        "   text-align: center;"
-        "   height: 20px;"
-        "   color: black;"
-        "}"
-        "QProgressBar::chunk {"
-        "   background-color: %1;"
-        "   border-radius: 5px;"
-        "}"
-    ).arg(progressColor));
+        "QProgressBar { border:1px solid #393E46; border-radius:5px; height:20px; }"
+        "QProgressBar::chunk { background-color:%1; border-radius:5px; }"
+    ).arg(chunkColor));
 
     cardLayout->addWidget(titleLabel);
     cardLayout->addWidget(timeLabel);
     cardLayout->addWidget(progressBar);
 
-    QPushButton *enrollButton = new QPushButton("Enroll");
-    QPushButton *waitlistButton = new QPushButton("Waitlist");
+    bool isFull = classDataManager->isClassFull(gymClass.getId());
+    bool isEnrolled = classDataManager
+                         ->getClassById(gymClass.getId())
+                         .isMemberEnrolled(currentUser.getId());
 
-    enrollButton->setStyleSheet("background-color: #948979; color: black; padding: 8px; border-radius: 4px;");
-    waitlistButton->setStyleSheet("background-color: #948979; color: black; padding: 8px; border-radius: 4px;");
+    QPushButton *actionBtn = new QPushButton;
+    actionBtn->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    actionBtn->setMinimumHeight(30);
 
-    QHBoxLayout *buttonLayout = new QHBoxLayout;
-    buttonLayout->addWidget(enrollButton);
-    buttonLayout->addWidget(waitlistButton);
+    if (isEnrolled) {
+        actionBtn->setText("Cancel");
+        actionBtn->setStyleSheet("background-color:#E57373; color:white; border-radius:4px; font-weight:bold;");
+        connect(actionBtn, &QPushButton::clicked, [=]() {
+            handleUnenroll(gymClass.getId());
+        });
+    } else {
+        actionBtn->setText(isFull ? "Full" : "Enroll");
+        actionBtn->setStyleSheet(QString(
+            "background-color:%1; color:white; border-radius:4px; font-weight:bold;"
+        ).arg(isFull ? "#B0BEC5" : "#81C784"));
 
-    connect(enrollButton, &QPushButton::clicked, [this, classId = gymClass.getId()]() {
-        handleEnrollment(classId);
-    });
-    connect(waitlistButton, &QPushButton::clicked, [this, classId = gymClass.getId()]() {
-        handleWaitlist(classId);
-    });
+        connect(actionBtn, &QPushButton::clicked, [=]() {
+            if (isFull) {
+                if (QMessageBox::question(
+                        this, tr("Class Full"),
+                        tr("This class is full. Join the waitlist?"),
+                        QMessageBox::Yes|QMessageBox::No
+                    ) == QMessageBox::Yes)
+                {
+                    handleWaitlist(gymClass.getId());
+                }
+            } else {
+                handleEnrollment(gymClass.getId());
+            }
+        });
+    }
 
-    cardLayout->addLayout(buttonLayout);
+    QHBoxLayout *btnLayout = new QHBoxLayout;
+    btnLayout->setContentsMargins(0,0,0,0);
+    btnLayout->addWidget(actionBtn);
+    cardLayout->addLayout(btnLayout);
+
     classesGrid->addWidget(card, row, col);
 }
 
+void AvailableClassesScreen::handleEnrollment(int classId)
+{
+    QString error;
+    if (!classDataManager->enrollMember(classId, currentUser.getId(), error)) {
+
+        NotificationManager::instance().showNotification(
+            tr("Enrollment Failed"),
+            error.toUtf8().constData(),
+            nullptr,
+            NotificationType::Error
+        );
+    } else {
+
+        QString className = classDataManager->getClassById(classId).getClassName();
+        NotificationManager::instance().showNotification(
+            tr("Enrolled"),
+            tr("Successfully enrolled in \"%1\".").arg(className),
+            nullptr,
+            NotificationType::Success
+        );
+    }
+    refreshClasses();
+}
+
+void AvailableClassesScreen::handleUnenroll(int classId)
+{
+    QString error;
+    if (!classDataManager->unenrollMember(classId, currentUser.getId(), error)) {
+        NotificationManager::instance().showNotification(
+            tr("Unenroll Failed"),
+            error.toUtf8().constData(),
+            nullptr,
+            NotificationType::Error
+        );
+    } else {
+        QString className = classDataManager->getClassById(classId).getClassName();
+        NotificationManager::instance().showNotification(
+            tr("Cancelled"),
+            tr("Unenrolled from \"%1\".").arg(className),
+            nullptr,
+            NotificationType::Success
+        );
+    }
+    refreshClasses();
+}
+
+void AvailableClassesScreen::handleWaitlist(int classId)
+{
+    QString error;
+    if (!classDataManager->addToWaitlist(classId, currentUser.getId(), false, error)) {
+        NotificationManager::instance().showNotification(
+            tr("Waitlist Failed"),
+            error.toUtf8().constData(),
+            nullptr,
+            NotificationType::Error
+        );
+    } else {
+        QString className = classDataManager->getClassById(classId).getClassName();
+        NotificationManager::instance().showNotification(
+            tr("Waitlist"),
+            tr("You’ve been added to the waitlist for \"%1\".").arg(className),
+            nullptr,
+            NotificationType::Success
+        );
+    }
+    refreshClasses();
+}
 void AvailableClassesScreen::showAddClassDialog()
 {
     QDialog dialog(this);
@@ -334,14 +373,3 @@ void AvailableClassesScreen::showAddClassDialog()
     }
 }
 
-void AvailableClassesScreen::handleEnrollment(int classId)
-{
-    QMessageBox::information(this, tr("Enrollment"),
-        tr("Enrollment for class ID %1 will be implemented").arg(classId));
-}
-
-void AvailableClassesScreen::handleWaitlist(int classId)
-{
-    QMessageBox::information(this, tr("Waitlist"),
-        tr("Waitlist for class ID %1 will be implemented").arg(classId));
-}

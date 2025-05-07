@@ -329,14 +329,18 @@ bool ClassDataManager::unenrollMember(int classId, int memberId, QString& errorM
     }
 
     Class& gymClass = it->second;
-    if (gymClass.getNumOfEnrolled() > 0) {
-        gymClass.setNumOfEnrolled(gymClass.getNumOfEnrolled() - 1);
-        dataModified = true;
-        return true;
+    if (!gymClass.isMemberEnrolled(memberId)) {
+        errorMessage = "You are not enrolled in this class";
+        return false;
     }
 
-    errorMessage = "No members enrolled in this class";
-    return false;
+    gymClass.removeMember(memberId);
+
+    int newCount = gymClass.getNumOfEnrolled() - 1;
+    gymClass.setNumOfEnrolled(qMax(0, newCount));
+
+    dataModified = true;
+    return true;
 }
 
 bool ClassDataManager::isClassFull(int classId) const {
