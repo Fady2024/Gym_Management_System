@@ -68,6 +68,7 @@ public:
     QVector<Booking> getBookingsByMember(int memberId) const;
     QVector<Booking> getBookingsByCourt(int courtId) const;
     QVector<Booking> getBookingsByDate(const QDate& date) const;
+    QVector<Booking> getBookingsForTimeSlot(int courtId, const QDateTime& startTime, const QDateTime& endTime);
     QVector<Booking> getUserAutoBookings(int userId) const;
     bool isCourtAvailable(int courtId, const QDateTime& startTime, 
                          const QDateTime& endTime) const;
