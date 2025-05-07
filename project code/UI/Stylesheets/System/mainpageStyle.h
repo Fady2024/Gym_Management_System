@@ -1,9 +1,12 @@
 #ifndef MAINPAGESTYLE_H
 #define MAINPAGESTYLE_H
 #include <QString>
-const QString titleLabelStyle = QString("QLabel { font-size: 20px; font-weight: 600; color: %1; }");
 
-const QString smallButtonStyle = QString(
+inline const QString stackedWidgetStyle = "QStackedWidget { background: transparent; }";
+
+inline const QString titleLabelStyle = QString("QLabel { font-size: 20px; font-weight: 600; color: %1; }");
+
+inline const QString smallButtonStyle = QString(
             "QPushButton {"
             "   background: transparent;"
             "   border: none;"
@@ -23,7 +26,7 @@ const QString smallButtonStyle = QString(
             "   color: white;"
             "}"
         );
-inline QString buttonStyle = QString(
+inline const QString buttonStyle = QString(
             "QPushButton {"
             "   background: transparent;"
             "   border: none;"
@@ -44,7 +47,7 @@ inline QString buttonStyle = QString(
             "}"
         );
 // .args() is applied for dark theme in staffhomepage.cpp
-inline QString navBarStyler = QString(
+inline const QString navBarStyler = QString(
         "QWidget#navBar {"
         "   background: %1;"
         "   backdrop-filter: blur(%2);"

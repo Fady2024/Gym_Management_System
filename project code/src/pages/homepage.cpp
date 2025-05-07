@@ -3,6 +3,7 @@
 #include <qtimer.h>
 #include "../../Model/System/timeLogic.h"
 #include "Widgets/Notifications/NotificationManager.h"
+#include "Stylesheets/System/homepageStyle.h"
 
 HomePage::HomePage(QWidget *parent)
     : QWidget(parent)
@@ -21,17 +22,17 @@ void HomePage::setupUI()
 
     // Create welcome section with translation
     welcomeLabel = new QLabel;
-    welcomeLabel->setStyleSheet("font-size: 32px; font-weight: bold; background-color: transparent;");
+    welcomeLabel->setStyleSheet(welcomeLabelStyle.arg("32"));
     welcomeLabel->setAlignment(Qt::AlignCenter);
 
     // Create subtitle with translation
     subtitleLabel = new QLabel;
-    subtitleLabel->setStyleSheet("font-size: 24px; color: #6B7280; background-color: transparent;");
+    subtitleLabel->setStyleSheet(subtitleLabelStyle.arg("#6B7280", "24"));
     subtitleLabel->setAlignment(Qt::AlignCenter);
 
     // Create description with translation
     descriptionLabel = new QLabel;
-    descriptionLabel->setStyleSheet("font-size: 16px; color: #6B7280; background-color: transparent;");
+    descriptionLabel->setStyleSheet(descriptionLabelStyle.arg("#6B7280", "16"));
     descriptionLabel->setAlignment(Qt::AlignCenter);
     descriptionLabel->setWordWrap(true);
 
@@ -39,8 +40,8 @@ void HomePage::setupUI()
     addTimeMultiplier = new QPushButton(tr(">>"));
     subTimeMultiplier = new QPushButton(tr("<<"));
 
-    addTimeMultiplier->setStyleSheet("font-size: 32px; padding: 10px; background-color: #6B7280");
-    subTimeMultiplier->setStyleSheet("font-size: 32px; padding: 10px; background-color: #6B7280");
+    addTimeMultiplier->setStyleSheet(timeMultiplierButtonStyle);
+    subTimeMultiplier->setStyleSheet(timeMultiplierButtonStyle);
 
     // Connect buttons to slots
     connect(addTimeMultiplier, &QPushButton::clicked, this, [=]() {
@@ -92,12 +93,9 @@ void HomePage::updateTheme(bool isDark) const
     const QString subtitleColor = isDark ? "#9CA3AF" : "#6B7280";
     const QString descriptionColor = isDark ? "#9CA3AF" : "#6B7280";
 
-    welcomeLabel->setStyleSheet(QString("color: %1; font-size: 32px; font-weight: bold; background-color: transparent;")
-        .arg(titleColor));
-    subtitleLabel->setStyleSheet(QString("color: %1; font-size: 24px; background-color: transparent;")
-        .arg(subtitleColor));
-    descriptionLabel->setStyleSheet(QString("color: %1; font-size: 16px; background-color: transparent;")
-        .arg(descriptionColor));
+    welcomeLabel->setStyleSheet(welcomeLabelStyleWithColor.arg(titleColor,"32"));
+    subtitleLabel->setStyleSheet(subtitleLabelStyle.arg(subtitleColor,"24"));
+    descriptionLabel->setStyleSheet(descriptionLabelStyle.arg(descriptionColor,"16"));
 }
 
 void HomePage::resizeEvent(QResizeEvent* event)
@@ -134,17 +132,9 @@ void HomePage::updateLayout()
     const QString subtitleColor = subtitleLabel->palette().color(QPalette::WindowText).name();
     const QString descriptionColor = descriptionLabel->palette().color(QPalette::WindowText).name();
 
-    welcomeLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold; background-color: transparent;")
-        .arg(titleColor)
-        .arg(titleSize));
-
-    subtitleLabel->setStyleSheet(QString("color: %1; font-size: %2px; background-color: transparent;")
-        .arg(subtitleColor)
-        .arg(subtitleSize));
-
-    descriptionLabel->setStyleSheet(QString("color: %1; font-size: %2px; background-color: transparent;")
-        .arg(descriptionColor)
-        .arg(descriptionSize));
+    welcomeLabel->setStyleSheet(welcomeLabelStyleWithColor.arg(titleColor,titleSize));
+    subtitleLabel->setStyleSheet(subtitleLabelStyle.arg(subtitleColor,subtitleSize));
+    descriptionLabel->setStyleSheet(descriptionLabelStyle.arg(descriptionColor,descriptionSize));
 }
 
 void HomePage::retranslateUI()

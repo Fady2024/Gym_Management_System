@@ -220,7 +220,7 @@ void MainPage::setupUI()
     mainVLayout->addWidget(navBar);
 
     stackedWidget = new QStackedWidget;
-    stackedWidget->setStyleSheet("QStackedWidget { background: transparent; }");
+    stackedWidget->setStyleSheet(stackedWidgetStyle);
     setupPages();
     mainVLayout->addWidget(stackedWidget);
 
@@ -441,8 +441,7 @@ void MainPage::updateTheme(bool isDark)
 
 void MainPage::updateAllTextColors()
 {
-    titleLabel->setStyleSheet(QString("QLabel { font-size: 20px; font-weight: 600; color: %1; }")
-        .arg(isDarkTheme ? "#FFFFFF" : "#111827"));
+    titleLabel->setStyleSheet(titleLabelStyle.arg(isDarkTheme ? "#FFFFFF" : "#111827"));
 }
 
 void MainPage::updateButtonStates(QPushButton* activeButton) const

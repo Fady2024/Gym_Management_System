@@ -209,6 +209,9 @@ set(PROJECT_SOURCES
         "project code/Model/System/timeLogic.h"
         "project code/UI/Widgets/Clock/Clock.cpp"
         "project code/UI/Widgets/Clock/Clock.h"
+        "project code/UI/Stylesheets/System/homepageStyle.h"
+        "project code/UI/Stylesheets/System/leftsidebarStyle.h"
+        "project code/UI/Stylesheets/Padel/BookingWindowStyle.h"
 )
 
 # Define absolute source data directory path

@@ -17,6 +17,7 @@
 #include "../Language/LanguageManager.h"
 #include "../Language/LanguageSelector.h"
 #include "../staff/addmemberpage.h"
+#include "Stylesheets/Gym/staffHomePageStyle.h"
 #include <QDebug>
 
 StaffHomePage::StaffHomePage(UserDataManager* userDataManager, MemberDataManager* memberDataManager,
@@ -81,8 +82,8 @@ void StaffHomePage::setupUI()
     setCentralWidget(centralWidget);
 
     // Set transparent background for main window and central widget
-    setStyleSheet("QMainWindow { background: transparent; }");
-    centralWidget->setStyleSheet("QWidget { background: transparent; }");
+    setStyleSheet(mainWindowStyle);
+    centralWidget->setStyleSheet(centralWidgetStyle);
 
     const auto mainVLayout = new QVBoxLayout(centralWidget);
     mainVLayout->setSpacing(0);
@@ -102,7 +103,7 @@ void StaffHomePage::setupUI()
     // Logo and title setup
     const auto logoContainer = new QWidget;
     logoContainer->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-    logoContainer->setStyleSheet("background: transparent;");
+    logoContainer->setStyleSheet(logoContainerStyle);
     const auto logoLayout = new QHBoxLayout(logoContainer);
     logoLayout->setContentsMargins(0, 0, 0, 0);
     logoLayout->setSpacing(8);
@@ -113,8 +114,7 @@ void StaffHomePage::setupUI()
     logoLabel->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
     titleLabel = new QLabel("FitFlex<span style='color: #7E69AB;'>Pro</span>");
-    titleLabel->setStyleSheet(QString("QLabel { font-size: 20px; font-weight: 600; color: %1; background: transparent; }")
-        .arg(isDarkTheme ? "#FFFFFF" : "#111827"));
+    titleLabel->setStyleSheet(titleLabelStyle.arg(isDarkTheme ? "#FFFFFF" : "#111827"));
     titleLabel->setTextFormat(Qt::RichText);
 
     logoLayout->addWidget(logoLabel);
@@ -125,15 +125,7 @@ void StaffHomePage::setupUI()
     scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     scrollArea->setFixedHeight(64);
-    scrollArea->setStyleSheet(
-        "QScrollArea {"
-        "   background: transparent;"
-        "   border: none;"
-        "}"
-        "QWidget#scrollContainer {"
-        "   background: transparent;"
-        "}"
-    );
+    scrollArea->setStyleSheet(scrollAreaStyle);
     scrollArea->setWidgetResizable(true);
     scrollArea->setMouseTracking(true);
 
@@ -152,26 +144,7 @@ void StaffHomePage::setupUI()
         button->setText(QString("%1 %2").arg(emoji, text));
         button->setFixedHeight(40);
         button->setCursor(Qt::PointingHandCursor);
-        button->setStyleSheet(
-            "QPushButton {"
-            "   background: transparent;"
-            "   border: none;"
-            "   color: #64748b;"
-            "   font-size: 14px;"
-            "   font-weight: 500;"
-            "   padding: 8px 16px;"
-            "   border-radius: 8px;"
-            "   min-width: 100px;"
-            "}"
-            "QPushButton:hover {"
-            "   background: rgba(139, 92, 246, 0.1);"
-            "   color: #8B5CF6;"
-            "}"
-            "QPushButton:checked {"
-            "   background: #8B5CF6;"
-            "   color: white;"
-            "}"
-        );
+        button->setStyleSheet(normalButtonStyle);
         return button;
         };
 
@@ -213,13 +186,7 @@ void StaffHomePage::setupUI()
     // Create theme toggle
     const auto themeToggle = new TopPanel;
     themeToggle->setFixedSize(160, 40);
-    themeToggle->setStyleSheet(
-        "TopPanel {"
-        "   background: transparent;"
-        "   border-radius: 20px;"
-        "   padding: 4px;"
-        "}"
-    );
+    themeToggle->setStyleSheet(themeToggleStyle);
 
     themeToggle->setInitialState(isDarkTheme);
     connect(themeToggle, &TopPanel::themeToggled, this, &StaffHomePage::toggleTheme);
@@ -237,7 +204,7 @@ void StaffHomePage::setupUI()
     mainVLayout->addWidget(navBar);
 
     stackedWidget = new QStackedWidget;
-    stackedWidget->setStyleSheet("QStackedWidget { background: transparent; }");
+    stackedWidget->setStyleSheet(stackedWidgetStyle);
     setupPages();
     mainVLayout->addWidget(stackedWidget);
 
@@ -264,14 +231,7 @@ void StaffHomePage::updateNavBarStyle()
     QString blurIntensity = size.width() < 800 ? "8px" : "12px";
     QString shadowOpacity = size.width() < 800 ? "0.03" : "0.05";
 
-    QString navBarStyle = QString(
-        "QWidget#navBar {"
-        "   background: %1;"
-        "   backdrop-filter: blur(%2);"
-        "   border-bottom: 1px solid rgba(255, 255, 255, 0.1);"
-        "   box-shadow: 0 1px 2px rgba(0, 0, 0, %3);"
-        "}"
-    ).arg(
+    QString navBarStyle = navBarStyler.arg(
         isDarkTheme ? "rgba(31, 41, 55, 0.7)" : "rgba(255, 255, 255, 0.7)",
         blurIntensity,
         shadowOpacity
@@ -461,8 +421,7 @@ void StaffHomePage::updateTheme(bool isDark)
 
 void StaffHomePage::updateAllTextColors()
 {
-    titleLabel->setStyleSheet(QString("QLabel { font-size: 20px; font-weight: 600; color: %1; }")
-        .arg(isDarkTheme ? "#FFFFFF" : "#111827"));
+    titleLabel->setStyleSheet(titleLabelStyle.arg(isDarkTheme ? "#FFFFFF" : "#111827"));
 }
 
 void StaffHomePage::updateButtonStates(QPushButton* activeButton) const
@@ -565,26 +524,7 @@ void StaffHomePage::updateLayout()
     // Adjust navigation buttons layout based on window width
     if (size.width() < 800) {
         // For small screens, reduce padding and font size
-        const QString buttonStyle = QString(
-            "QPushButton {"
-            "   background: transparent;"
-            "   border: none;"
-            "   color: #64748b;"
-            "   font-size: 12px;"
-            "   font-weight: 500;"
-            "   padding: 6px 12px;"
-            "   border-radius: 6px;"
-            "   min-width: 80px;"
-            "}"
-            "QPushButton:hover {"
-            "   background: rgba(139, 92, 246, 0.1);"
-            "   color: #8B5CF6;"
-            "}"
-            "QPushButton:checked {"
-            "   background: #8B5CF6;"
-            "   color: white;"
-            "}"
-        );
+        const QString buttonStyle = smallButtonStyle;
 
         homeButton->setStyleSheet(buttonStyle);
         addMemberButton->setStyleSheet(buttonStyle);
@@ -610,26 +550,7 @@ void StaffHomePage::updateLayout()
     }
     else {
         // For larger screens, use normal styling
-        const QString buttonStyle = QString(
-            "QPushButton {"
-            "   background: transparent;"
-            "   border: none;"
-            "   color: #64748b;"
-            "   font-size: 14px;"
-            "   font-weight: 500;"
-            "   padding: 8px 16px;"
-            "   border-radius: 8px;"
-            "   min-width: 100px;"
-            "}"
-            "QPushButton:hover {"
-            "   background: rgba(139, 92, 246, 0.1);"
-            "   color: #8B5CF6;"
-            "}"
-            "QPushButton:checked {"
-            "   background: #8B5CF6;"
-            "   color: white;"
-            "}"
-        );
+        const QString buttonStyle = normalButtonStyle;
 
         homeButton->setStyleSheet(buttonStyle);
         addMemberButton->setStyleSheet(buttonStyle);

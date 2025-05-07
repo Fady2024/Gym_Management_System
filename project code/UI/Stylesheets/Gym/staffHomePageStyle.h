@@ -1,8 +1,41 @@
-
 #ifndef STAFFHOMEPAGESTYLE_H
 #define STAFFHOMEPAGESTYLE_H
 #include <QString>
+
+inline const QString mainWindowStyle = "QMainWindow { background: transparent; }";
+
+inline const QString centralWidgetStyle = "QWidget { background: transparent; }";
+
+inline const QString logoContainerStyle = "QWidget { background: transparent; }";
+
 inline const QString titleLabelStyle = QString("QLabel { font-size: 20px; font-weight: 600; color: %1; }");
+
+inline const QString scrollAreaStyle =
+    "QScrollArea {"
+    "   background: transparent;"
+    "   border: none;"
+    "}"
+    "QWidget#scrollContainer {"
+    "   background: transparent;"
+    "}";
+
+inline const QString themeToggleStyle =
+    "TopPanel {"
+    "   background: transparent;"
+    "   border-radius: 20px;"
+    "   padding: 4px;"
+    "}";
+
+inline const QString stackedWidgetStyle = "QStackedWidget { background: transparent; }";
+
+inline const QString navBarStyler = QString(
+        "QWidget#navBar {"
+        "   background: %1;"
+        "   backdrop-filter: blur(%2);"
+        "   border-bottom: 1px solid rgba(255, 255, 255, 0.1);"
+        "   box-shadow: 0 1px 2px rgba(0, 0, 0, %3);"
+        "}"
+    );
 
 inline const QString smallButtonStyle = QString(
             "QPushButton {"
@@ -24,7 +57,7 @@ inline const QString smallButtonStyle = QString(
             "   color: white;"
             "}"
         );
-inline const QString buttonStyle = QString(
+inline const QString normalButtonStyle = QString(
             "QPushButton {"
             "   background: transparent;"
             "   border: none;"
@@ -45,12 +78,5 @@ inline const QString buttonStyle = QString(
             "}"
         );
 // .args() is applied for dark theme in staffhomepage.cpp
-inline const QString navBarStyler = QString(
-        "QWidget#navBar {"
-        "   background: %1;"
-        "   backdrop-filter: blur(%2);"
-        "   border-bottom: 1px solid rgba(255, 255, 255, 0.1);"
-        "   box-shadow: 0 1px 2px rgba(0, 0, 0, %3);"
-        "}"
-    );
+
 #endif //STAFFHOMEPAGESTYLE_H

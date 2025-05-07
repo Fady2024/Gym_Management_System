@@ -1,6 +1,7 @@
 #include "leftsidebar.h"
 #include <QPainter>
 #include <QPainterPath>
+#include "Stylesheets/System/leftsidebarStyle.h"
 
 LeftSidebar::LeftSidebar(QWidget *parent)
     : QWidget(parent)
@@ -133,12 +134,7 @@ void LeftSidebar::setContentsMargins(int left, int top, int right, int bottom)
 void LeftSidebar::updateTheme(bool isDark)
 {
     isDarkTheme = isDark;
-    setStyleSheet(QString(R"(
-        QWidget#leftSidebar {
-            background: %1;
-            border-right: 1px solid %2;
-        }
-    )").arg(
+    setStyleSheet(leftsidebarStyle.arg(
         isDark ? "rgba(31, 41, 55, 0.98)" : "rgba(255, 255, 255, 0.98)",
         isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)"
     ));
