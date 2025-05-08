@@ -8,12 +8,14 @@
 #include <QStandardPaths>
 #include <QCoreApplication>
 #include <QFileInfo>
+#include <unordered_map>
+#include <vector>
 
 ClassDataManager::ClassDataManager(QObject* parent)
     : QObject(parent) {
     // Get the project directory path
     QString projectDir;
-    
+
 #ifdef FORCE_SOURCE_DIR
     // Use the source directory path defined in CMake
     projectDir = QString::fromUtf8(SOURCE_DATA_DIR);
@@ -24,15 +26,15 @@ ClassDataManager::ClassDataManager(QObject* parent)
     projectDir = QFileInfo(projectDir).dir().absolutePath();
     qDebug() << "Class - Using application directory path:" << projectDir;
 #endif
-    
+
     // Set data directory paths
     dataDir = projectDir + "/project code/Data";
-    
+
     qDebug() << "Class - Data directory path:" << dataDir;
-    
+
     // Create directories if they don't exist
     QDir().mkpath(dataDir);
-    
+
     // Initialize empty classes.json if it doesn't exist
     QFile classesFile(dataDir + "/classes.json");
     if (!classesFile.exists()) {
@@ -40,7 +42,7 @@ ClassDataManager::ClassDataManager(QObject* parent)
         classesFile.write("[]");
         classesFile.close();
     }
-    
+
     // Initialize data from file
     if (!initializeFromFile()) {
         qDebug() << "Failed to initialize class data from file";
@@ -56,10 +58,12 @@ void ClassDataManager::handleApplicationClosing() {
         qDebug() << "Saving class data before application closing...";
         if (!saveToFile()) {
             qDebug() << "Failed to save class data before application closing!";
-        } else {
+        }
+        else {
             qDebug() << "Class data saved successfully before application closing.";
         }
-    } else {
+    }
+    else {
         qDebug() << "No changes to class data, skipping save on application exit";
     }
 }
@@ -198,7 +202,7 @@ bool ClassDataManager::addToWaitlist(int classId, int memberId, bool isVIP, QStr
         return false;
     }
 
-    gymClass.addToWaitlist(memberId, isVIP); 
+    gymClass.addToWaitlist(memberId, isVIP);
     dataModified = true;
     return true;
 }
@@ -270,13 +274,13 @@ QVector<QDate> ClassDataManager::getClassSessions(int classId) const {
     if (it != classesById.end()) {
         std::queue<QDate> sessions = it->second.getSessions();
         QVector<QDate> result;
-        
+
         std::queue<QDate> tempQueue = sessions;
         while (!tempQueue.empty()) {
             result.append(tempQueue.front());
             tempQueue.pop();
         }
-        
+
         return result;
     }
     return QVector<QDate>();
@@ -296,28 +300,25 @@ bool ClassDataManager::enrollMember(int classId, int memberId, QString& errorMes
 
     Class& gymClass = it->second;
     if (gymClass.isFull()) {
-        // If class is full, check if user is VIP
-        if (memberDataManager->isVIPMember(memberId)) {
-            bool foundNonVIP = false;
-            for (const auto& enrolled : gymClass.getEnrolledMembers()) {
-                if (!memberDataManager->isVIPMember(enrolled)) {
-                    gymClass.removeMember(enrolled);
-                    foundNonVIP = true;
-                    break;
-                }
-            }
-            if (!foundNonVIP) {
-                errorMessage = "Class is full (even for VIP members)";
-                return false;
-            }
-        } else {
-            errorMessage = "Class is full";
-            return false;
-        }
+        // If class is full, check if user is VIP and add him to waitlist
+        addToWaitlist(classId, memberId, memberDataManager->isVIPMember(memberId), errorMessage);
+        errorMessage = "Class is full added the member to the waitlist";
+        return false;
     }
 
     gymClass.addMember(memberId);
     gymClass.setNumOfEnrolled(gymClass.getNumOfEnrolled() + 1);
+    
+    //handle workout
+    auto it2 = MemberClassesbyUserId.find(memberId);
+    if (it2 == MemberClassesbyUserId.end()) {
+        vector<Class> classes;
+        classes.push_back(gymClass);
+        MemberClassesbyUserId.insert({ memberId ,classes });
+    }
+    else {
+        it2->second.push_back(gymClass); // If member already exists, just add the class
+    }
     dataModified = true;
     return true;
 }
@@ -331,12 +332,24 @@ bool ClassDataManager::unenrollMember(int classId, int memberId, QString& errorM
 
     Class& gymClass = it->second;
 
-    if (!gymClass.isEnrolled(memberId)) {
+    if (!gymClass.isMemberEnrolled(memberId)) {
         errorMessage = "Member is not enrolled in this class";
         return false;
     }
 
-    gymClass.cancelEnrollment(memberId);  
+    gymClass.cancelEnrollment(memberId);
+
+    // delete the class from the vector
+    auto it2 = MemberClassesbyUserId.find(memberId);
+    if (it2 != MemberClassesbyUserId.end()) {
+        auto& classList = it2->second;
+        classList.erase(
+            std::remove_if(classList.begin(), classList.end(),
+                [&](const Class& c) { return c.getId() == classId; }),
+            classList.end()
+        );
+    }
+
     dataModified = true;
     return true;
 }
@@ -403,12 +416,12 @@ QJsonObject ClassDataManager::classToJson(const Class& gymClass) {
     QJsonArray sessionsArray;
     std::queue<QDate> sessions = gymClass.getSessions();
     std::queue<QDate> tempQueue = sessions;
-    
+
     while (!tempQueue.empty()) {
         sessionsArray.append(tempQueue.front().toString(Qt::ISODate));
         tempQueue.pop();
     }
-    
+
     json["sessions"] = sessionsArray;
 
     return json;
@@ -467,8 +480,8 @@ bool ClassDataManager::recordAttendance(int classId, int memberId, const QDate& 
 QVector<AttendanceRecord> ClassDataManager::getAttendanceRecords(int classId, const QDate& startDate, const QDate& endDate) const {
     QVector<AttendanceRecord> result;
     for (const auto& record : attendanceRecords) {
-        if (record.classId == classId && 
-            record.date >= startDate && 
+        if (record.classId == classId &&
+            record.date >= startDate &&
             record.date <= endDate) {
             result.append(record);
         }
@@ -479,8 +492,8 @@ QVector<AttendanceRecord> ClassDataManager::getAttendanceRecords(int classId, co
 int ClassDataManager::getAttendanceCount(int classId, const QDate& date) const {
     int count = 0;
     for (const auto& record : attendanceRecords) {
-        if (record.classId == classId && 
-            record.date == date && 
+        if (record.classId == classId &&
+            record.date == date &&
             record.attended) {
             count++;
         }
@@ -491,8 +504,8 @@ int ClassDataManager::getAttendanceCount(int classId, const QDate& date) const {
 double ClassDataManager::getClassRevenue(int classId, const QDate& startDate, const QDate& endDate) const {
     double revenue = 0.0;
     for (const auto& record : attendanceRecords) {
-        if (record.classId == classId && 
-            record.date >= startDate && 
+        if (record.classId == classId &&
+            record.date >= startDate &&
             record.date <= endDate) {
             revenue += record.amountPaid;
         }
@@ -520,17 +533,17 @@ MonthlyReport ClassDataManager::generateMonthlyReport(const QDate& month) const 
     for (const auto& classPair : classesById) {
         const Class& gymClass = classPair.second;
         QString className = gymClass.getClassName();
-        
+
         // Get attendance records for this class
         QVector<AttendanceRecord> classRecords = getAttendanceRecords(gymClass.getId(), startDate, endDate);
-        
+
         if (!classRecords.isEmpty()) {
             report.totalClassesHeld++;
-            
+
             // Calculate class attendance
             int classAttendance = 0;
             double classRevenue = 0.0;
-            
+
             for (const auto& record : classRecords) {
                 if (record.attended) {
                     classAttendance++;
@@ -538,10 +551,10 @@ MonthlyReport ClassDataManager::generateMonthlyReport(const QDate& month) const 
                     classRevenue += record.amountPaid;
                 }
             }
-            
+
             report.totalAttendance += classAttendance;
             report.totalRevenue += classRevenue;
-            
+
             // Add to class-specific stats
             report.classAttendance.append(qMakePair(className, classAttendance));
             report.classRevenue.append(qMakePair(className, classRevenue));
@@ -568,18 +581,18 @@ bool ClassDataManager::saveMonthlyReport(const MonthlyReport& report, QString& e
     }
 
     reportsArray.append(monthlyReportToJson(report));
-    
+
     file.resize(0);
     file.write(QJsonDocument(reportsArray).toJson());
     file.close();
-    
+
     return true;
 }
 
 QVector<MonthlyReport> ClassDataManager::getMonthlyReports(const QDate& startDate, const QDate& endDate) const {
     QVector<MonthlyReport> result;
     QFile file(QDir(dataDir).filePath("monthly_reports.json"));
-    
+
     if (!file.open(QIODevice::ReadOnly)) {
         return result;
     }
@@ -743,4 +756,4 @@ bool ClassDataManager::saveMonthlyReports() const {
     file.write(QJsonDocument(reportsArray).toJson());
     file.close();
     return true;
-} 
+}

@@ -88,8 +88,8 @@ set(SRC_SOURCES
         "project code/src/onboarding/splashscreen.cpp"
         "project code/src/onboarding/languageselectionpage.h"
         "project code/src/onboarding/languageselectionpage.cpp"
-        "project code/src/pages/staffhomepage.h"
-        "project code/src/pages/staffhomepage.cpp"
+        "project code/src/pages/Gym/staffhomepage.h"
+        "project code/src/pages/Gym/staffhomepage.cpp"
         
 )
 
@@ -112,14 +112,14 @@ set(DATA_MANAGER_SOURCES
 )
 
 set(MODEL_SOURCES
-        "project code/Model/user.cpp"
-        "project code/Model/user.h"
-        "project code/Model/member.cpp"
-        "project code/Model/member.h"
-        "project code/Model/class.cpp"
-        "project code/Model/class.h"
-        "project code/Model/subscription.cpp"
-        "project code/Model/subscription.h"
+        "project code/Model/System/user.cpp"
+        "project code/Model/System/user.h"
+        "project code/Model/Gym/member.cpp"
+        "project code/Model/Gym/member.h"
+        "project code/Model/Gym/class.cpp"
+        "project code/Model/Gym/class.h"
+        "project code/Model/Gym/subscription.cpp"
+        "project code/Model/Gym/subscription.h"
         "project code/Model/Padel/Court.cpp"
         "project code/Model/Padel/Court.h"
         "project code/Model/Padel/Booking.cpp"

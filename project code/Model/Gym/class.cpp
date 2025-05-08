@@ -3,14 +3,17 @@
 
 //setters
 
-void Class::setCapacity(int capacity) 
-{ this->capacity = capacity; }
+void Class::setCapacity(int capacity)
+{
+    this->capacity = capacity;
+}
 
-void Class::setNumOfEnrolled(int numOfEnrolled) 
-{ 
+void Class::setNumOfEnrolled(int numOfEnrolled)
+{
     if (numOfEnrolled < static_cast<int>(enrolled_members.size())) {
         this->numOfEnrolled = static_cast<int>(enrolled_members.size());
-    } else {
+    }
+    else {
         this->numOfEnrolled = numOfEnrolled;
     }
 }
@@ -23,14 +26,20 @@ void Class::setToDate(const QDate& toDate) {
     this->toDate = toDate;
 }
 
-void Class::setCoachName(const QString& coachName) 
-{this->coachName = coachName;}
+void Class::setCoachName(const QString& coachName)
+{
+    this->coachName = coachName;
+}
 
 void Class::setClassName(const QString& className)
-{this->className = className;}
+{
+    this->className = className;
+}
 
 void Class::setId(int id)
-{this->id = id;}
+{
+    this->id = id;
+}
 
 //getters
 
@@ -45,7 +54,7 @@ QDate Class::getToDate() const {
 }
 int Class::getCapacity() const { return capacity; }
 int Class::getNumOfEnrolled() const { return numOfEnrolled; }
-int Class::getId() const {return id;}
+int Class::getId() const { return id; }
 
 // Session management
 void Class::addSession(const QDate& date) {
@@ -54,16 +63,16 @@ void Class::addSession(const QDate& date) {
 
 void Class::removeSession(const QDate& date) {
     std::queue<QDate> tempSessions;
-    
+
     while (!sessions.empty()) {
         QDate currentDate = sessions.front();
         sessions.pop();
-        
+
         if (currentDate != date) {
             tempSessions.push(currentDate);
         }
     }
-    
+
     sessions = tempSessions;
 }
 
@@ -73,14 +82,14 @@ std::queue<QDate> Class::getSessions() const {
 
 bool Class::hasSessionOnDate(const QDate& date) const {
     std::queue<QDate> tempSessions = sessions;
-    
+
     while (!tempSessions.empty()) {
         if (tempSessions.front() == date) {
             return true;
         }
         tempSessions.pop();
     }
-    
+
     return false;
 }
 
