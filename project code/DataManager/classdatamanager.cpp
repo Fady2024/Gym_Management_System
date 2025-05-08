@@ -198,10 +198,11 @@ bool ClassDataManager::addToWaitlist(int classId, int memberId, bool isVIP, QStr
         return false;
     }
 
-    gymClass.addToWaitlist(memberId);
+    gymClass.addToWaitlist(memberId, isVIP); 
     dataModified = true;
     return true;
 }
+
 
 bool ClassDataManager::removeFromWaitlist(int classId, int memberId, QString& errorMessage) {
     auto it = classesById.find(classId);
@@ -329,15 +330,17 @@ bool ClassDataManager::unenrollMember(int classId, int memberId, QString& errorM
     }
 
     Class& gymClass = it->second;
-    if (gymClass.getNumOfEnrolled() > 0) {
-        gymClass.setNumOfEnrolled(gymClass.getNumOfEnrolled() - 1);
-        dataModified = true;
-        return true;
+
+    if (!gymClass.isEnrolled(memberId)) {
+        errorMessage = "Member is not enrolled in this class";
+        return false;
     }
 
-    errorMessage = "No members enrolled in this class";
-    return false;
+    gymClass.cancelEnrollment(memberId);  
+    dataModified = true;
+    return true;
 }
+
 
 bool ClassDataManager::isClassFull(int classId) const {
     auto it = classesById.find(classId);

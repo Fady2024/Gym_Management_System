@@ -47,6 +47,8 @@ public:
 	[[nodiscard]] int getNextWaitlistMember() const;
 	[[nodiscard]] std::deque<int> getWaitlist() const;
 	[[nodiscard]] bool isInWaitlist(int memberId) const;
+	void assignFromWaitlistIfAvailable();
+	void cancelEnrollment(int memberId);
 
 	// Member management
 	void addMember(int memberId) { enrolled_members.insert(memberId); }
