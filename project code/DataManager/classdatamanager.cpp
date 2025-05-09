@@ -323,7 +323,8 @@ bool ClassDataManager::enrollMember(int classId, int memberId, QString& errorMes
     return true;
 }
 
-bool ClassDataManager::unenrollMember(int classId, int memberId, QString& errorMessage) {
+bool ClassDataManager::unenrollMember(int classId, int memberId, QString& errorMessage)
+{
     auto it = classesById.find(classId);
     if (it == classesById.end()) {
         errorMessage = "Class not found";
@@ -338,18 +339,6 @@ bool ClassDataManager::unenrollMember(int classId, int memberId, QString& errorM
     }
 
     gymClass.cancelEnrollment(memberId);
-
-    // delete the class from the vector
-    auto it2 = MemberClassesbyUserId.find(memberId);
-    if (it2 != MemberClassesbyUserId.end()) {
-        auto& classList = it2->second;
-        classList.erase(
-            std::remove_if(classList.begin(), classList.end(),
-                [&](const Class& c) { return c.getId() == classId; }),
-            classList.end()
-        );
-    }
-
     dataModified = true;
     return true;
 }

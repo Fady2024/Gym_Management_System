@@ -99,10 +99,25 @@ bool Class::isFull() const {
 }
 
 // Waitlist management
-void Class::addToWaitlist(int memberId) {
+void Class::addToWaitlist(int memberId, bool isVIP)
+{
     // Check if the member is already in the waitlist
     if (!isInWaitlist(memberId)) {
-        waiting_users_ids.push_back(memberId);
+        if (!isVIP) {
+            waiting_users_ids.push_back(memberId);
+        }
+        else {
+            // Find the position after the last VIP
+            auto it = waiting_users_ids.begin();
+            int count = 0;
+            while (count < numofvipInWaitlist && it != waiting_users_ids.end()) {
+                it++;
+                count++;
+            }
+            // Insert the VIP after existing VIPs
+            waiting_users_ids.insert(it, memberId);
+            numofvipInWaitlist++; // increment VIP count
+        }
     }
 }
 

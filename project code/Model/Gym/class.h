@@ -42,7 +42,7 @@ public:
 	[[nodiscard]] bool isFull() const;
 
 	// Waitlist management
-	void addToWaitlist(int memberId);
+	void addToWaitlist(int memberId, bool isVIP);
 	void removeFromWaitlist(int memberId);
 	[[nodiscard]] int getNextWaitlistMember() const;
 	[[nodiscard]] std::deque<int> getWaitlist() const;
@@ -67,5 +67,6 @@ private:
 	int numOfEnrolled;
 	std::deque<int> waiting_users_ids;
 	std::set<int> enrolled_members;  // New member tracking
+	int numofvipInWaitlist;
 };
 #endif
