@@ -84,11 +84,12 @@ int main(int argc, char* argv[])
     auto mainPage = new MainPage(userDataManager, memberDataManager, classDataManager, padelDataManager);
     auto staffHomePage = new StaffHomePage(userDataManager, memberDataManager, classDataManager, padelDataManager);
     // Add pages to stacked widget
-    // stackedWidget->addWidget(splashScreen);
-    // stackedWidget->addWidget(languageSelectionPage);
-    // stackedWidget->addWidget(onboardingPage);
-    // stackedWidget->addWidget(authPage);
-    stackedWidget->addWidget(mainPage);
+     //stackedWidget->addWidget(splashScreen);
+     //stackedWidget->addWidget(languageSelectionPage);
+     //stackedWidget->addWidget(onboardingPage);
+     //stackedWidget->addWidget(authPage);
+     //stackedWidget->addWidget(mainPage);
+     stackedWidget->addWidget(staffHomePage);
 
     // Connect signals and slots
     QObject::connect(splashScreen, &SplashScreen::animationFinished, [stackedWidget, languageSelectionPage]() {
@@ -276,8 +277,8 @@ int main(int argc, char* argv[])
     });
 
     // Start with splash screen
-    stackedWidget->setCurrentWidget(splashScreen);
-    splashScreen->startAnimation();
+    stackedWidget->setCurrentWidget(staffHomePage);
+    //splashScreen->startAnimation();
 
     const int result = QApplication::exec();
 

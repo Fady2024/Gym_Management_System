@@ -13,6 +13,8 @@
 #include "homepage.h"
 #include "settingspage.h"
 #include "../staff/addmemberpage.h"
+#include "../staff/retrievepage.h"
+#include "../staff/searchmemberpage.h"
 #include <QLabel>
 #include "../Language/LanguageSelector.h"
 
@@ -23,9 +25,9 @@ class StaffHomePage : public QMainWindow
 public:
     explicit StaffHomePage(UserDataManager* userDataManager, MemberDataManager* memberDataManager,
         ClassDataManager* classDataManager, QWidget* parent = nullptr);
-    explicit StaffHomePage(UserDataManager* userDataManager, MemberDataManager* memberDataManager, 
-                          ClassDataManager* classDataManager, PadelDataManager* padelDataManager,
-                          QWidget* parent = nullptr);
+    explicit StaffHomePage(UserDataManager* userDataManager, MemberDataManager* memberDataManager,
+        ClassDataManager* classDataManager, PadelDataManager* padelDataManager,
+        QWidget* parent = nullptr);
     ~StaffHomePage();
     void handleHomePage() const;
     void clearUserData();
@@ -48,8 +50,8 @@ protected:
 
 private slots:
     void handleAddMemberPage() const;
-    void handleNutritionPage() const;
-    void handleProfilePage() const;
+    void handleRetrievePage() const;
+    void handleSearchMemberPage() const;
     void handleSettingsPage() const;
     void toggleTheme();
     void onLanguageChanged(const QString& language);
@@ -75,15 +77,15 @@ private:
     // Navigation buttons
     QPushButton* homeButton;
     QPushButton* addMemberButton;
-    QPushButton* nutritionButton;
-    QPushButton* profileButton;
+    QPushButton* retrieveButton;
+    QPushButton* searchMemberButton;
     QPushButton* settingsButton;
 
     // Pages
     HomePage* homePage;
     QWidget* addMemberPage;
-    QWidget* nutritionPage;
-    QWidget* profilePage;
+    QWidget* retrievePage;
+    QWidget* searchMemberPage;
     SettingsPage* settingsPage;
 
     QLabel* titleLabel;
