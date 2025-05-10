@@ -133,8 +133,8 @@ set(MODEL_SOURCES
         "project code/Model/Padel/Court.h"
         "project code/Model/Padel/Booking.cpp"
         "project code/Model/Padel/Booking.h"
-        "project code/Model/availableclassesscreen.cpp"
-        "project code/Model/availableclassesscreen.h"
+        "project code/src/pages/Gym/availableclassesscreen.cpp"
+        "project code/src/pages/Gym/availableclassesscreen.h"
 )
 
 set(CORE_SOURCES
@@ -197,8 +197,8 @@ set(PROJECT_SOURCES
         ${STAFF_SOURCES}
         ${RESOURCE_FILES}
         ${QM_FILES}
-        "project code/Model/availableclassesscreen.cpp"
-        "project code/Model/availableclassesscreen.h"
+        "project code/src/pages/Gym/availableclassesscreen.cpp"
+        "project code/src/pages/Gym/availableclassesscreen.h"
         "project code/UI/Stylesheets/Gym/staffHomePageStyle.h"
         "project code/UI/Stylesheets/System/clockStyle.h"
         "project code/UI/Stylesheets/System/notificationStyle.h"

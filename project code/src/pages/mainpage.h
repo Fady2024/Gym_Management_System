@@ -15,7 +15,7 @@
 #include "Padel/BookingWindow.h"
 #include <QLabel>
 #include "../Language/LanguageSelector.h"
-#include "availableclassesscreen.h"
+#include "Gym/availableclassesscreen.h"
 //#include "../../UI/Widgets/Clock.h"
 #include "../../UI/Widgets/Notifications/Notifications.h"
 #include "Stylesheets/System/mainpageStyle.h"

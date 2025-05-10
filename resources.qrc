@@ -40,6 +40,8 @@
         <file>Images/en.png</file>
         <file>Images/fr.png</file>
         <file>Images/de.png</file>
+        <file>Images/muscle.png</file>
+        <file>Images/whistle.png</file>
         <file>translations/fitflexpro_en.qm</file>
         <file>translations/fitflexpro_fr.qm</file>
         <file>translations/fitflexpro_de.qm</file>

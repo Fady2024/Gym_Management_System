@@ -1,4 +1,5 @@
-// AvailableClassesScreen.cpp
+// AvailableClassesScreen.cpp, CHANGE THIS LATER TO BE THE MAIN GYM SCREEN
+//                                EACH PAGE SHOULD HAVE ITS OWN .CPP
 
 #include "availableclassesscreen.h"
 #include <QGridLayout>
@@ -46,38 +47,33 @@ void AvailableClassesScreen::setupCoaches()
 
 void AvailableClassesScreen::setupUI()
 {
-    mainVLayout = new QVBoxLayout(this);
-    mainVLayout->setContentsMargins(20,20,20,20);
-    mainVLayout->setSpacing(15);
+    //main horizontal layout (leftsidebar + contentStack)
+    mainHLayout = new QHBoxLayout(this);
+    mainHLayout->setContentsMargins(0, 0, 0, 0);
+    mainHLayout->setSpacing(0);
+
+    //create and define sidebar buttons (also it's initial theme)
+    leftSidebar = new LeftSidebar();
+    leftSidebar->addButton(":/Images/whistle.png", "Gym Classes", "classes");
+    leftSidebar->addButton(":/Images/muscle.png", "Workouts", "workouts");
+    leftSidebar->addButton(":/Images/team.png", "Add Class", "add-classes");
+    leftSidebar->updateTheme(true); //HAS TO BE RE-IMPLEMENTED WHEN ADDING DARK THEME TO THIS PAGE (ALWAYS SET TO TRUE FOR NOW)
+    mainHLayout->addWidget(leftSidebar);
+    //page change handling
+    connect(leftSidebar, &LeftSidebar::pageChanged, this, &AvailableClassesScreen::handlePageChange);
 
 
-    userNameLabel = new QLabel(QString("Hello, %1!").arg(currentUser.getName()));
-    userNameLabel->setStyleSheet("font-size:20px; font-weight:bold;");
-    enrolledClassesLabel = new QLabel;
-    enrolledClassesLabel->setWordWrap(true);
-    enrolledClassesLabel->setStyleSheet("color:#555;");
+    //Content stack that holds pages
+    contentStack = new QStackedWidget();
+    contentStack->addWidget(ClassesContent()); // Add Gym Classes page
+    contentStack->addWidget(WorkoutsContent()); // Add Workouts page
+    contentStack->addWidget(ExtraContent()); // Add Workouts page
+    mainHLayout->addWidget(contentStack);
 
-    QVBoxLayout* headerLayout = new QVBoxLayout;
-    headerLayout->addWidget(userNameLabel);
-    headerLayout->addWidget(enrolledClassesLabel);
-    mainVLayout->addLayout(headerLayout);
+    //initialize the state of side bar to the first button
+    leftSidebar->setActiveButton("classes");
 
-    addClassButton = new QPushButton("Add Class");
-    addClassButton->setStyleSheet(
-        "background-color:#DFD0B8; color:black; border:none; padding:10px 20px; "
-        "font-size:16px; border-radius:5px;"
-    );
-    connect(addClassButton, &QPushButton::clicked, this, &AvailableClassesScreen::showAddClassDialog);
-    mainVLayout->addWidget(addClassButton, 0, Qt::AlignRight);
-
-    scrollArea = new QScrollArea;
-    scrollArea->setWidgetResizable(true);
-    scrollArea->setStyleSheet("border:none;");
-    scrollWidget = new QWidget;
-    scrollArea->setWidget(scrollWidget);
-    mainVLayout->addWidget(scrollArea);
-
-    setLayout(mainVLayout);
+    setLayout(mainHLayout);
 }
 
 void AvailableClassesScreen::refreshClasses()
@@ -370,6 +366,63 @@ void AvailableClassesScreen::showAddClassDialog()
         refreshClasses();
         QMessageBox::information(this, tr("Success"),
             tr("Class '%1' added successfully!").arg(newClass.getClassName()));
+    }
+}
+QWidget* AvailableClassesScreen::ClassesContent() {
+    QWidget* classesContent = new QWidget(); //main widget that will be used in extrenal main layout
+    QVBoxLayout* classesLayout= new QVBoxLayout(classesContent); //VBOX that will contain contents (added to the above widget)
+    classesLayout->setContentsMargins(20,20,20,20);
+    classesLayout->setSpacing(15);
+
+    userNameLabel = new QLabel(QString("Hello, %1!").arg(currentUser.getName()));
+    userNameLabel->setStyleSheet("font-size:20px; font-weight:bold;");
+    enrolledClassesLabel = new QLabel;
+    enrolledClassesLabel->setWordWrap(true);
+    enrolledClassesLabel->setStyleSheet("color:#555;");
+
+    QVBoxLayout* headerLayout = new QVBoxLayout;
+    headerLayout->addWidget(userNameLabel);
+    headerLayout->addWidget(enrolledClassesLabel);
+    classesLayout->addLayout(headerLayout);
+
+    addClassButton = new QPushButton("Add Class");
+    addClassButton->setStyleSheet(
+        "background-color:#DFD0B8; color:black; border:none; padding:10px 20px; "
+        "font-size:16px; border-radius:5px;"
+    );
+    connect(addClassButton, &QPushButton::clicked, this, &AvailableClassesScreen::showAddClassDialog);
+    classesLayout->addWidget(addClassButton, 0, Qt::AlignRight);
+
+    scrollArea = new QScrollArea;
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setStyleSheet("border:none;");
+    scrollWidget = new QWidget;
+    scrollArea->setWidget(scrollWidget);
+    classesLayout->addWidget(scrollArea);
+
+    return classesContent; //returns the widget (page) pointer to be added to stacked widgets
+}
+//EXAMPLE FUNCTION FOR A SECOND PAGE (CHANGE LATER)
+QWidget* AvailableClassesScreen::WorkoutsContent() {
+    QWidget* workoutsContent = new QWidget();
+    QLabel* workoutsLabel = new QLabel("THIS IS WORKOUTS PAGE (ADD YOUR PAGE LATER)", workoutsContent);
+    return workoutsContent;
+}
+QWidget* AvailableClassesScreen::ExtraContent() {
+    QWidget* Content = new QWidget();
+    QLabel* Label = new QLabel("THIS IS AN EXTRA PAGE (ADD YOUR PAGE LATER)", Content);
+    return Content;
+
+}
+void AvailableClassesScreen::handlePageChange(const QString& pageID) {
+    if (pageID == "classes") {
+        contentStack->setCurrentIndex(0);
+    }
+    else if (pageID == "workouts") {
+        contentStack->setCurrentIndex(1);
+    }
+    else if (pageID == "add-classes") {
+        contentStack->setCurrentIndex(2);
     }
 }
 

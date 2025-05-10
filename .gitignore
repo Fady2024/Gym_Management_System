@@ -57,3 +57,4 @@ ipch/
 *.idb
 *.ilk
 /.env (2).example
+/.idea/discord.xml
