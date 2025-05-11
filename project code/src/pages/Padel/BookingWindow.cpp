@@ -352,6 +352,55 @@ void BookingWindow::setupUI()
     section2Layout->addWidget(m_statusLabel);
     section2Layout->addStretch();
 
+    // QVBoxLayout* detailsLayout = new QVBoxLayout();
+    // courtSelectionLayout->addLayout(detailsLayout, 2);
+    //
+    // QLabel* detailsTitle = new QLabel(tr("Court Details"), contentWidget);
+    // detailsTitle->setStyleSheet("font-size: 18px; font-weight: bold; color: #4F46E5;");
+    // detailsTitle->setObjectName("sectionHeading");
+    // detailsLayout->addWidget(detailsTitle);
+    //
+    // m_courtNameLabel = new QLabel(contentWidget);
+    // m_courtLocationLabel = new QLabel(contentWidget);
+    // m_courtPriceLabel = new QLabel(contentWidget);
+    // m_courtDescriptionLabel = new QLabel(contentWidget);
+    // m_courtDescriptionLabel->setWordWrap(true);
+    //
+    // QString labelStyle = "padding: 5px; margin-bottom: 5px; color: #111827;";
+    // m_courtNameLabel->setStyleSheet(labelStyle);
+    // m_courtLocationLabel->setStyleSheet(labelStyle);
+    // m_courtPriceLabel->setStyleSheet(labelStyle);
+    // m_courtDescriptionLabel->setStyleSheet(labelStyle);
+    //
+    // m_courtNameLabel->setObjectName("detailLabel");
+    // m_courtLocationLabel->setObjectName("detailLabel");
+    // m_courtPriceLabel->setObjectName("detailLabel");
+    // m_courtDescriptionLabel->setObjectName("detailLabel");
+    //
+    // detailsLayout->addWidget(m_courtNameLabel);
+    // detailsLayout->addWidget(m_courtLocationLabel);
+    // detailsLayout->addWidget(m_courtPriceLabel);
+    //
+    // m_capacityLabel = new QLabel(contentWidget);
+    // m_capacityLabel->setObjectName("capacityLabel");
+    // detailsLayout->addWidget(m_capacityLabel);
+    //
+    // detailsLayout->addWidget(createSeparator());
+    //
+    // detailsLayout->addWidget(m_courtDescriptionLabel);
+    //
+    // QLabel* featuresTitle = new QLabel(tr("Features:"), contentWidget);
+    // featuresTitle->setStyleSheet("font-weight: bold; margin-top: 10px; color: #4F46E5;");
+    // featuresTitle->setObjectName("subHeading");
+    // detailsLayout->addWidget(featuresTitle);
+    //
+    // m_courtFeaturesListWidget = new QListWidget(contentWidget);
+    // m_courtFeaturesListWidget->setMaximumHeight(120);
+    // m_courtFeaturesListWidget->setStyleSheet("background-color: transparent; border: none;");
+    // detailsLayout->addWidget(m_courtFeaturesListWidget);
+    //
+    // detailsLayout->addStretch();
+
     QVBoxLayout* section3Layout = new QVBoxLayout(m_section3);
     section3Layout->setContentsMargins(30, 30, 30, 30);
     section3Layout->setSpacing(18);
