@@ -89,6 +89,7 @@ int main(int argc, char* argv[])
     stackedWidget->addWidget(onboardingPage);
     stackedWidget->addWidget(authPage);
     stackedWidget->addWidget(mainPage);
+    stackedWidget->addWidget(staffHomePage);
 
     // Connect signals and slots
     QObject::connect(splashScreen, &SplashScreen::animationFinished, [stackedWidget, languageSelectionPage]() {
