@@ -4,14 +4,18 @@
 #include "../System/user.h"
 #include <QList>
 #include <QPair>
+#include <QStackedWidget>
 #include "subscription.h"
-
+#include"../Subscription/subscriptionpage.h"
+#include "Widgets/Notifications/NotificationManager.h"
+#include "../DataManager/memberdatamanager.h"
 class Member {
 public:
   Member();
   // Constructor that takes a User reference and member-specific data
   Member(int memberId, int userId, int classId = -1);
-  
+  SubscriptionPage* subscriptionpage;
+  QStackedWidget* stackedWidget;
   // Getters
   int getId() const { return memberId; }
   int getUserId() const { return userId; }
@@ -25,7 +29,8 @@ public:
   void setClassId(int id) { classId = id; }
   void setSubscription(const Subscription& sub) { subscription = sub; }
   bool hasActiveSubscription() const { return subscription.isActive(); }
-  
+  void getRemindersSubEnd();
+  void hadlesubpage();
   // History management
   void addClassToHistory(const QDate &date);
   
@@ -37,6 +42,9 @@ private:
   int userId;
   int classId;
   Subscription subscription;
+  SubscriptionPage* subscriptionpage;
+  QStackedWidget* stackedWidget;
+  MemberDataManager* memberdatamanger;
   QList<QPair<int, QDate>> history;
 };
 
