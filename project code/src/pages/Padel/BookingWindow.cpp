@@ -5,6 +5,7 @@
 #include <QTableWidgetItem>
 #include <QRegularExpression>
 #include <QRegularExpressionMatch>
+#include <QScrollArea>
 
 #include "Stylesheets/Padel/BookingWindowStyle.h"
 
@@ -109,64 +110,122 @@ void BookingWindow::loadUserData()
 
 void BookingWindow::setupUI()
 {
-    
-    QVBoxLayout* outerLayout = new QVBoxLayout(this);
-    outerLayout->setContentsMargins(0, 0, 0, 0);
-    outerLayout->setSpacing(0);
+    QHBoxLayout* rootLayout = new QHBoxLayout(this);
+    rootLayout->setSpacing(0);
+    rootLayout->setContentsMargins(0, 0, 0, 0);
+    m_leftSidebar = new LeftSidebar(this);
+    m_leftSidebar->addButton(":/Images/booking.png", tr("Booking"), "booking-section");
+    m_leftSidebar->addButton(":/Images/alternative.png", tr("Alternative"), "alternative-section");
+    m_leftSidebar->addButton(":/Images/my_bookings.png", tr("My Bookings"), "mybookings-section");
+    connect(m_leftSidebar, &LeftSidebar::pageChanged, this, &BookingWindow::handleSidebarPageChange);
+    m_contentStack = new QStackedWidget();
+    m_contentStack->setStyleSheet("QStackedWidget { background: transparent; }");
 
-    QScrollArea* mainScrollArea = new QScrollArea(this);
-    mainScrollArea->setWidgetResizable(true);
-    mainScrollArea->setFrameShape(QFrame::NoFrame);
-    mainScrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    mainScrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    outerLayout->addWidget(mainScrollArea);
+    QScrollArea* scroll1 = new QScrollArea();
+    scroll1->setWidgetResizable(true);
+    scroll1->setFrameShape(QFrame::NoFrame);
+    scroll1->setStyleSheet(R"(
+        QScrollArea { 
+            background: transparent;
+        }
+        QScrollBar:vertical {
+            background: rgba(220, 220, 255, 0.1);
+            width: 12px;
+            margin: 0px;
+            border-radius: 6px;
+        }
+        QScrollBar::handle:vertical {
+            background: rgba(139, 92, 246, 0.3);
+            min-height: 20px;
+            border-radius: 6px;
+        }
+        QScrollBar::handle:vertical:hover {
+            background: rgba(139, 92, 246, 0.5);
+        }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            height: 0px;
+        }
+        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+            background: none;
+        }
+        
+        QScrollBar:horizontal {
+            background: rgba(220, 220, 255, 0.1);
+            height: 12px;
+            margin: 0px;
+            border-radius: 6px;
+        }
+        QScrollBar::handle:horizontal {
+            background: rgba(139, 92, 246, 0.3);
+            min-width: 20px;
+            border-radius: 6px;
+        }
+        QScrollBar::handle:horizontal:hover {
+            background: rgba(139, 92, 246, 0.5);
+        }
+        QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+            width: 0px;
+        }
+        QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+            background: none;
+        }
+    )");
+    m_section1 = new QWidget();
+    m_section1->setStyleSheet("background: transparent;");
+    scroll1->setWidget(m_section1);
 
-    QWidget* contentWidget = new QWidget(mainScrollArea);
-    mainScrollArea->setWidget(contentWidget);
+    QScrollArea* scroll2 = new QScrollArea();
+    scroll2->setWidgetResizable(true);
+    scroll2->setFrameShape(QFrame::NoFrame);
+    scroll2->setStyleSheet(scroll1->styleSheet());
+    m_section2 = new QWidget();
+    m_section2->setStyleSheet("background: transparent;");
+    scroll2->setWidget(m_section2);
 
-    QVBoxLayout* mainLayout = new QVBoxLayout(contentWidget);
-    mainLayout->setContentsMargins(20, 20, 20, 20);
-    mainLayout->setSpacing(15);
+    QScrollArea* scroll3 = new QScrollArea();
+    scroll3->setWidgetResizable(true);
+    scroll3->setFrameShape(QFrame::NoFrame);
+    scroll3->setStyleSheet(scroll1->styleSheet());
+    m_section3 = new QWidget();
+    m_section3->setStyleSheet("background: transparent;");
+    scroll3->setWidget(m_section3);
 
-    QLabel* titleLabel = new QLabel(tr("Padel Court Booking System"), contentWidget);
+    QVBoxLayout* section1Layout = new QVBoxLayout(m_section1);
+    section1Layout->setContentsMargins(30, 30, 30, 30);
+    section1Layout->setSpacing(18);
+
+    QLabel* titleLabel = new QLabel(tr("Padel Court Booking System"), m_section1);
     titleLabel->setStyleSheet(titleLabelStyle);
     titleLabel->setObjectName("titleLabel");
-    mainLayout->addWidget(titleLabel);
-
-    m_userInfoLabel = new QLabel(tr("User: Not logged in"), contentWidget);
+    section1Layout->addWidget(titleLabel);
+    m_userInfoLabel = new QLabel(tr("User: Not logged in"), m_section1);
     m_userInfoLabel->setStyleSheet(userInfoLabelStyle);
     m_userInfoLabel->setObjectName("userInfoLabel");
-    mainLayout->addWidget(m_userInfoLabel);
-
-    mainLayout->addWidget(createSeparator());
-
-    setupSearchUI(contentWidget, mainLayout);
-
-    mainLayout->addWidget(createSeparator());
+    section1Layout->addWidget(m_userInfoLabel);
+    section1Layout->addWidget(createSeparator());
+    setupSearchUI(m_section1, section1Layout);
+    section1Layout->addWidget(createSeparator());
 
     QHBoxLayout* courtSelectionLayout = new QHBoxLayout();
-    mainLayout->addLayout(courtSelectionLayout);
-
+    section1Layout->addLayout(courtSelectionLayout);
     QVBoxLayout* selectionLayout = new QVBoxLayout();
-    selectionLayout->setSpacing(10);
+    selectionLayout->setSpacing(12);
     courtSelectionLayout->addLayout(selectionLayout, 3);
-
     QHBoxLayout* courtLayout = new QHBoxLayout();
-    QLabel* courtLabel = new QLabel(tr("Select Court:"), contentWidget);
+    QLabel* courtLabel = new QLabel(tr("Select Court:"), m_section1);
     courtLabel->setStyleSheet(courtLabelStyle);
     courtLabel->setObjectName("labelHeading");
-    m_courtSelector = new QComboBox(contentWidget);
+    m_courtSelector = new QComboBox(m_section1);
     m_courtSelector->setMinimumWidth(200);
     m_courtSelector->setStyleSheet(courtSelectorStyle);
     courtLayout->addWidget(courtLabel);
     courtLayout->addWidget(m_courtSelector);
     selectionLayout->addLayout(courtLayout);
-
     QHBoxLayout* dateLayout = new QHBoxLayout();
-    QLabel* dateLabel = new QLabel(tr("Select Date:"), contentWidget);
+    QLabel* dateLabel = new QLabel(tr("Select Date:"), m_section1);
     dateLabel->setStyleSheet(dateLabelStyle);
     dateLabel->setObjectName("labelHeading");   
-    m_dateSelector = new QDateEdit(QDate::currentDate(), contentWidget);
+    m_dateSelector = new QDateEdit(QDate::currentDate(), m_section1);
     m_dateSelector->setCalendarPopup(true);
     m_dateSelector->setMinimumDate(QDate::currentDate());
     m_dateSelector->setStyleSheet(dateSelectorStyle);
@@ -177,26 +236,21 @@ void BookingWindow::setupUI()
     // ============================= WEEK NAVIGATION =============================
     QHBoxLayout* weekNavLayout = new QHBoxLayout();
     weekNavLayout->setAlignment(Qt::AlignCenter);
-
-    m_prevWeekButton = new QPushButton("<---", contentWidget);
-    m_nextWeekButton = new QPushButton("--->", contentWidget);
-    m_weekRangeLabel = new QLabel(contentWidget);
-
+    m_prevWeekButton = new QPushButton("<---", m_section1);
+    m_nextWeekButton = new QPushButton("--->", m_section1);
+    m_weekRangeLabel = new QLabel(m_section1);
     m_prevWeekButton->setStyleSheet(weekButtonStyle);
     m_nextWeekButton->setStyleSheet(weekButtonStyle);
     m_weekRangeLabel->setStyleSheet(weekLabelStyle);
-
     weekNavLayout->addWidget(m_prevWeekButton);
     weekNavLayout->addWidget(m_weekRangeLabel);
     weekNavLayout->addWidget(m_nextWeekButton);
-
     selectionLayout->addLayout(weekNavLayout);
-
     connect(m_prevWeekButton, &QPushButton::clicked, this, &BookingWindow::showPreviousWeek);
     connect(m_nextWeekButton, &QPushButton::clicked, this, &BookingWindow::showNextWeek);
     // =========================== END WEEK NAVIGATION ===========================
 
-    QLabel* timeSlotsTitle = new QLabel(tr("Available Time Slots:"), contentWidget);
+    QLabel* timeSlotsTitle = new QLabel(tr("Available Time Slots:"), m_section1);
     timeSlotsTitle->setStyleSheet(timeSlotsTitleStyle);
     timeSlotsTitle->setObjectName("sectionHeading");
     selectionLayout->addWidget(timeSlotsTitle);
@@ -219,10 +273,9 @@ void BookingWindow::setupUI()
     // m_noSlotsLabel->hide();
     // m_calendarGrid->addWidget(m_noSlotsLabel, 1, 0);
     //================================= New grid ==================================
-    QWidget* calendarContainer = new QWidget(contentWidget);
+    QWidget* calendarContainer = new QWidget(m_section1);
     calendarContainer->setMinimumHeight(600);
     selectionLayout->addWidget(calendarContainer);
-
     m_calendarGrid = new QGridLayout(calendarContainer);
     m_calendarGrid->setSpacing(2);
     m_calendarGrid->setContentsMargins(5, 5, 5, 5);
@@ -270,111 +323,102 @@ void BookingWindow::setupUI()
 
     //=============================================================================
 
-    QWidget* alternativeCourtsWidget = setupAlternativeCourtsUI(contentWidget);
-    selectionLayout->addWidget(alternativeCourtsWidget);
+    QVBoxLayout* section2Layout = new QVBoxLayout(m_section2);
+    section2Layout->setContentsMargins(30, 30, 30, 30);
+    section2Layout->setSpacing(18);
+    
+    QLabel* alternativeTitle = new QLabel(tr("Alternative Courts"), m_section2);
+    alternativeTitle->setStyleSheet(titleLabelStyle);
+    alternativeTitle->setObjectName("titleLabel");
+    section2Layout->addWidget(alternativeTitle);
 
+    QWidget* alternativeCourtsWidget = setupAlternativeCourtsUI(m_section2);
+    section2Layout->addWidget(alternativeCourtsWidget);
     QHBoxLayout* timeLayout = new QHBoxLayout();
-    QLabel* timeLabel = new QLabel(tr("Select Time:"), contentWidget);
-    m_timeSlotSelector = new QComboBox(contentWidget);
+    QLabel* timeLabel = new QLabel(tr("Select Time:"), m_section2);
+    m_timeSlotSelector = new QComboBox(m_section2);
     timeLayout->addWidget(timeLabel);
     timeLayout->addWidget(m_timeSlotSelector);
 
     timeLabel->setVisible(false);
     m_timeSlotSelector->setVisible(false);
-
-    selectionLayout->addLayout(timeLayout);
-
-    QLayout* waitlistLayout = setupWaitlistUI(contentWidget);
-    selectionLayout->addLayout(waitlistLayout);
-
-    m_statusLabel = new QLabel(contentWidget);
+    section2Layout->addLayout(timeLayout);
+    QLayout* waitlistLayout = setupWaitlistUI(m_section2);
+    section2Layout->addLayout(waitlistLayout);
+    m_statusLabel = new QLabel(m_section2);
     m_statusLabel->setWordWrap(true);
     m_statusLabel->setStyleSheet(statusLabelStyle);
     m_statusLabel->setObjectName("statusLabel");
-    selectionLayout->addWidget(m_statusLabel);
+    section2Layout->addWidget(m_statusLabel);
+    section2Layout->addStretch();
 
-    selectionLayout->addStretch();
-
-    // QVBoxLayout* detailsLayout = new QVBoxLayout();
-    // courtSelectionLayout->addLayout(detailsLayout, 2);
-    //
-    // QLabel* detailsTitle = new QLabel(tr("Court Details"), contentWidget);
-    // detailsTitle->setStyleSheet("font-size: 18px; font-weight: bold; color: #4F46E5;");
-    // detailsTitle->setObjectName("sectionHeading");
-    // detailsLayout->addWidget(detailsTitle);
-    //
-    // m_courtNameLabel = new QLabel(contentWidget);
-    // m_courtLocationLabel = new QLabel(contentWidget);
-    // m_courtPriceLabel = new QLabel(contentWidget);
-    // m_courtDescriptionLabel = new QLabel(contentWidget);
-    // m_courtDescriptionLabel->setWordWrap(true);
-    //
-    // QString labelStyle = "padding: 5px; margin-bottom: 5px; color: #111827;";
-    // m_courtNameLabel->setStyleSheet(labelStyle);
-    // m_courtLocationLabel->setStyleSheet(labelStyle);
-    // m_courtPriceLabel->setStyleSheet(labelStyle);
-    // m_courtDescriptionLabel->setStyleSheet(labelStyle);
-    //
-    // m_courtNameLabel->setObjectName("detailLabel");
-    // m_courtLocationLabel->setObjectName("detailLabel");
-    // m_courtPriceLabel->setObjectName("detailLabel");
-    // m_courtDescriptionLabel->setObjectName("detailLabel");
-    //
-    // detailsLayout->addWidget(m_courtNameLabel);
-    // detailsLayout->addWidget(m_courtLocationLabel);
-    // detailsLayout->addWidget(m_courtPriceLabel);
-    //
-    // m_capacityLabel = new QLabel(contentWidget);
-    // m_capacityLabel->setObjectName("capacityLabel");
-    // detailsLayout->addWidget(m_capacityLabel);
-    //
-    // detailsLayout->addWidget(createSeparator());
-    //
-    // detailsLayout->addWidget(m_courtDescriptionLabel);
-    //
-    // QLabel* featuresTitle = new QLabel(tr("Features:"), contentWidget);
-    // featuresTitle->setStyleSheet("font-weight: bold; margin-top: 10px; color: #4F46E5;");
-    // featuresTitle->setObjectName("subHeading");
-    // detailsLayout->addWidget(featuresTitle);
-    //
-    // m_courtFeaturesListWidget = new QListWidget(contentWidget);
-    // m_courtFeaturesListWidget->setMaximumHeight(120);
-    // m_courtFeaturesListWidget->setStyleSheet("background-color: transparent; border: none;");
-    // detailsLayout->addWidget(m_courtFeaturesListWidget);
-    //
-    // detailsLayout->addStretch();
-
-    mainLayout->addWidget(createSeparator());
-
-    QLabel* bookingsTitle = new QLabel(tr("My Bookings"), contentWidget);
-    bookingsTitle->setStyleSheet(bookingsTitleStyle);
-    bookingsTitle->setObjectName("sectionHeading");   
-    mainLayout->addWidget(bookingsTitle);
-
-    m_bookingsList = new QListWidget(contentWidget);
-    m_bookingsList->setMinimumHeight(150);
+    QVBoxLayout* section3Layout = new QVBoxLayout(m_section3);
+    section3Layout->setContentsMargins(30, 30, 30, 30);
+    section3Layout->setSpacing(18);
+    
+    QLabel* bookingsTitle = new QLabel(tr("My Bookings"), m_section3);
+    bookingsTitle->setStyleSheet(titleLabelStyle);
+    bookingsTitle->setObjectName("titleLabel");
+    section3Layout->addWidget(bookingsTitle);
+    
+    QWidget* bookingsContainer = new QWidget(m_section3);
+    bookingsContainer->setObjectName("bookingsContainer");
+    bookingsContainer->setStyleSheet(R"(
+        QWidget#bookingsContainer {
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 16px;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+    )");
+    
+    QVBoxLayout* bookingsContainerLayout = new QVBoxLayout(bookingsContainer);
+    bookingsContainerLayout->setContentsMargins(20, 20, 20, 20);
+    bookingsContainerLayout->setSpacing(20);
+    m_bookingsList = new QListWidget(bookingsContainer);
+    m_bookingsList->setMinimumHeight(200);
     m_bookingsList->setStyleSheet(bookingsListStyle);
-    mainLayout->addWidget(m_bookingsList);
+    bookingsContainerLayout->addWidget(m_bookingsList);
 
     QHBoxLayout* bookingManagementLayout = new QHBoxLayout();
-    mainLayout->addLayout(bookingManagementLayout);
+    bookingManagementLayout->setSpacing(16);
 
-    m_cancelButton = new QPushButton(tr("Cancel Selected Booking"), contentWidget);
+    m_cancelButton = new QPushButton(tr("Cancel Selected Booking"), bookingsContainer);
     m_cancelButton->setEnabled(false);
     m_cancelButton->setStyleSheet(cancelButtonStyle);
     bookingManagementLayout->addWidget(m_cancelButton);
 
-    m_rescheduleButton = new QPushButton(tr("Reschedule Selected Booking"), contentWidget);
+    m_rescheduleButton = new QPushButton(tr("Reschedule Selected Booking"), bookingsContainer);
     m_rescheduleButton->setEnabled(false);
     m_rescheduleButton->setStyleSheet(rescheduleButtonStyle);
     bookingManagementLayout->addWidget(m_rescheduleButton);
 
-    m_rescheduleTimeSelector = new QComboBox(contentWidget);
+    m_rescheduleTimeSelector = new QComboBox(bookingsContainer);
     m_rescheduleTimeSelector->setEnabled(false);
     m_rescheduleTimeSelector->setStyleSheet(rescheduleTimeSelectorStyle);
     bookingManagementLayout->addWidget(m_rescheduleTimeSelector);
     
-    contentWidget->setMinimumWidth(800);
+    bookingsContainerLayout->addLayout(bookingManagementLayout);
+    section3Layout->addWidget(bookingsContainer);
+    
+    section3Layout->addStretch();
+    m_contentStack->addWidget(scroll1);
+    m_contentStack->addWidget(scroll2);
+    m_contentStack->addWidget(scroll3);
+    rootLayout->addWidget(m_leftSidebar);
+    rootLayout->addWidget(m_contentStack, 1);
+    m_leftSidebar->setActiveButton("booking-section");
+    m_contentStack->setCurrentWidget(scroll1);
+}
+
+void BookingWindow::handleSidebarPageChange(const QString& pageId)
+{
+    if (pageId == "booking-section") {
+        m_contentStack->setCurrentIndex(0);
+    } else if (pageId == "alternative-section") {
+        m_contentStack->setCurrentIndex(1);
+    } else if (pageId == "mybookings-section") {
+        m_contentStack->setCurrentIndex(2);
+    }
 }
 
 QFrame* BookingWindow::createSeparator()

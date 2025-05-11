@@ -27,6 +27,8 @@
 #include "../../DataManager/padeldatamanager.h"
 #include "../../DataManager/userdatamanager.h"
 #include "../../DataManager/memberdatamanager.h"
+#include "../../../UI/leftsidebar.h"
+#include <QStackedWidget>
 
 
 class BookingWindow : public QWidget {
@@ -165,6 +167,13 @@ private:
 
     // Alternative courts helpers
     void updateAlternativeCourts();
+
+    LeftSidebar* m_leftSidebar = nullptr;
+    QStackedWidget* m_contentStack = nullptr;
+    QWidget* m_section1 = nullptr;
+    QWidget* m_section2 = nullptr;
+    QWidget* m_section3 = nullptr;
+    void handleSidebarPageChange(const QString& pageId);
 };
 
 class CalendarButton : public QPushButton {
