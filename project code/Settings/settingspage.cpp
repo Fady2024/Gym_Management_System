@@ -530,10 +530,6 @@ void SettingsPage::setupUI()
                         // Set member ID and force load data
                         subscriptionStatusPage->setCurrentMemberId(memberId);
                         subscriptionStatusPage->loadMemberData();
-                        
-                        // Switch to subscription tab to make sure it's displayed properly
-                        leftSidebar->setActiveButton("subscription-status");
-                        contentStack->setCurrentWidget(subscriptionStatusPage);
                     }
                 }
             }
@@ -807,8 +803,8 @@ void SettingsPage::onUserDataLoaded(const QString& email)
                 }
             });
         }
-        leftSidebar->setActiveButton("subscription-status");
-        contentStack->setCurrentWidget(subscriptionStatusPage);
+        leftSidebar->setActiveButton("settings");
+        contentStack->setCurrentWidget(settingsContent);
     } else {
         // User is not a member or memberId is invalid - show new user view
         qDebug() << "User is not a member or has invalid member ID - showing new user subscription view";

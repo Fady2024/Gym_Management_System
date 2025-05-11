@@ -37,19 +37,19 @@ set(Qt6_DIR "${QT_DIR}/lib/cmake/Qt6")
 
 # Add resource files
 set(RESOURCE_FILES
-    resources.qrc
+        resources.qrc
 )
 
 # Add data files
 set(DATA_FILES
-    "project code/Data/users.json"
-    "project code/Data/members.json"
-    "project code/Data/courts.json"
-    "project code/Data/bookings.json"
-    "project code/Data/waitlists.json"
-    "project code/Data/remembered.json"
-    "project code/Data/saved_cards.json"
-    "project code/Data/classes.json"
+        "project code/Data/users.json"
+        "project code/Data/members.json"
+        "project code/Data/courts.json"
+        "project code/Data/bookings.json"
+        "project code/Data/waitlists.json"
+        "project code/Data/remembered.json"
+        "project code/Data/saved_cards.json"
+        "project code/Data/classes.json"
 )
 
 # Find required Qt6 components
@@ -62,9 +62,9 @@ find_package(Qt6 COMPONENTS
 
 # Set up translations
 set(TS_FILES
-    "translations/fitflexpro_fr.ts"
-    "translations/fitflexpro_de.ts"
-    "translations/fitflexpro_en.ts"
+        "translations/fitflexpro_fr.ts"
+        "translations/fitflexpro_de.ts"
+        "translations/fitflexpro_en.ts"
 )
 
 qt_add_translation(QM_FILES ${TS_FILES})
@@ -225,19 +225,19 @@ add_compile_definitions(FORCE_SOURCE_DIR=1)
 add_executable(DS_Project ${PROJECT_SOURCES})
 
 # Create required directories only once during configure time
-file(MAKE_DIRECTORY 
-    "${CMAKE_SOURCE_DIR}/project code/Data"
-    "${CMAKE_SOURCE_DIR}/project code/UsersPhoto"
+file(MAKE_DIRECTORY
+        "${CMAKE_SOURCE_DIR}/project code/Data"
+        "${CMAKE_SOURCE_DIR}/project code/UsersPhoto"
 )
 
 # Create required directories in build directory for plugins
 add_custom_command(
-    TARGET DS_Project 
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory
+        TARGET DS_Project
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory
         "$<TARGET_FILE_DIR:DS_Project>/plugins/platforms"
         "$<TARGET_FILE_DIR:DS_Project>/plugins/imageformats"
-    COMMENT "Creating required directories for Qt plugins"
+        COMMENT "Creating required directories for Qt plugins"
 )
 
 # Include directories
@@ -271,27 +271,27 @@ if(WIN32)
     if(NOT CMAKE_BUILD_TYPE MATCHES "Debug")
         set(DEBUG_SUFFIX "")
     endif()
-    
+
     # Set the absolute path to Qt installation from .env file
     set(QT_INSTALL_PATH "${QT_DIR}")
-    
+
     # Create a single custom command that copies all required DLLs
     # Only copies if they don't exist or have been modified (timestamp comparison)
     add_custom_command(TARGET DS_Project POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${QT_INSTALL_PATH}/bin/Qt6Core${DEBUG_SUFFIX}.dll"
             "${QT_INSTALL_PATH}/bin/Qt6Gui${DEBUG_SUFFIX}.dll"
             "${QT_INSTALL_PATH}/bin/Qt6Widgets${DEBUG_SUFFIX}.dll"
             "$<TARGET_FILE_DIR:DS_Project>/"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${QT_INSTALL_PATH}/plugins/platforms/qwindows${DEBUG_SUFFIX}.dll"
             "$<TARGET_FILE_DIR:DS_Project>/plugins/platforms/"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${QT_INSTALL_PATH}/plugins/imageformats/qjpeg${DEBUG_SUFFIX}.dll"
             "${QT_INSTALL_PATH}/plugins/imageformats/qgif${DEBUG_SUFFIX}.dll"
             "${QT_INSTALL_PATH}/plugins/imageformats/qico${DEBUG_SUFFIX}.dll"
             "${QT_INSTALL_PATH}/plugins/imageformats/qsvg${DEBUG_SUFFIX}.dll"
             "$<TARGET_FILE_DIR:DS_Project>/plugins/imageformats/"
-        COMMENT "Copying Qt DLLs and plugins"
+            COMMENT "Copying Qt DLLs and plugins"
     )
 endif()

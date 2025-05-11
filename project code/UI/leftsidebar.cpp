@@ -14,16 +14,30 @@ LeftSidebar::LeftSidebar(QWidget *parent)
 
 void LeftSidebar::setupUI()
 {
-    setFixedWidth(72);
+    setFixedWidth(80);
     setObjectName("leftSidebar");
 
     mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(buttonSpacing);
-    mainLayout->setContentsMargins(12, 24, 12, 24);
+    mainLayout->setSpacing(buttonSpacing + 8);
+    mainLayout->setContentsMargins(12, 32, 12, 32);
     mainLayout->setAlignment(Qt::AlignHCenter | Qt::AlignTop);
 
     buttonGroup = new QButtonGroup(this);
     buttonGroup->setExclusive(true);
+
+    setStyleSheet(R"(
+        QWidget#leftSidebar {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #ede9fe, stop:1 #c7d2fe);
+            border-radius: 24px;
+        }
+    )");
+
+    QGraphicsDropShadowEffect* shadowEffect = new QGraphicsDropShadowEffect(this);
+    shadowEffect->setBlurRadius(20);
+    shadowEffect->setColor(QColor(0, 0, 0, 50));
+    shadowEffect->setOffset(2, 0);
+    setGraphicsEffect(shadowEffect);
 
     updateButtonStyles();
 }
@@ -37,34 +51,43 @@ QPushButton* LeftSidebar::createButton(const QString& iconPath, const QString& t
     button->setCheckable(true);
     button->setProperty("pageId", pageId);
 
-    QIcon normalIcon;
-    QIcon activeIcon;
-    QPixmap originalPixmap(iconPath);
-    if (!originalPixmap.isNull()) {
-        QPixmap normalPixmap = originalPixmap;
-        QPainter normalPainter(&normalPixmap);
-        normalPainter.setCompositionMode(QPainter::CompositionMode_SourceIn);
-        normalPainter.fillRect(normalPixmap.rect(), isDarkTheme ? QColor(156, 163, 175) : QColor(75, 85, 99));
-        normalIcon.addPixmap(normalPixmap);
+    button->setStyleSheet(QString(R"(
+        QPushButton {
+            border-radius: %1px;
+            background: transparent;
+        }
+    )").arg(buttonSize/3));
 
-        QPixmap activePixmap = originalPixmap;
-        QPainter activePainter(&activePixmap);
-        activePainter.setCompositionMode(QPainter::CompositionMode_SourceIn);
-        activePainter.fillRect(activePixmap.rect(), QColor(255, 255, 255));
-        activeIcon.addPixmap(activePixmap);
-    }
-
-    button->setIcon(normalIcon);
-    button->setIconSize(QSize(buttonSize/2, buttonSize/2));
+    QIcon icon(iconPath);
+    button->setIcon(icon);
+    button->setIconSize(QSize(buttonSize * 0.7, buttonSize * 0.7));
 
     auto glowEffect = new QGraphicsDropShadowEffect(button);
-    glowEffect->setBlurRadius(15);
+    glowEffect->setBlurRadius(18);
     glowEffect->setColor(QColor(139, 92, 246, isDarkTheme ? 80 : 40));
-    glowEffect->setOffset(0, 0);
+    glowEffect->setOffset(0, 2);
     button->setGraphicsEffect(glowEffect);
 
-    connect(button, &QPushButton::toggled, [button, normalIcon, activeIcon](bool checked) {
-        button->setIcon(checked ? activeIcon : normalIcon);
+    connect(button, &QPushButton::toggled, [button, this](bool checked) {
+        if (checked) {
+            button->setStyleSheet(QString(R"(
+                QPushButton {
+                    border: 3px solid #8B5CF6;
+                    background: %1;
+                    border-radius: %2px;
+                }
+            )").arg(isDarkTheme ? "rgba(139,92,246,0.12)" : "rgba(139,92,246,0.08)", QString::number(buttonSize/3)));
+        } else {
+            button->setStyleSheet(QString(R"(
+                QPushButton {
+                    border-radius: %1px;
+                    background: transparent;
+                }
+                QPushButton:hover {
+                    background: rgba(139,92,246,0.05);
+                }
+            )").arg(buttonSize/3));
+        }
     });
 
     connect(button, &QPushButton::clicked, [this, pageId]() {
@@ -116,14 +139,14 @@ void LeftSidebar::setFixedButtonSize(int size)
     buttonSize = size;
     for (auto button : buttons) {
         button->setFixedSize(buttonSize, buttonSize);
-        button->setIconSize(QSize(buttonSize/2, buttonSize/2));
+        button->setIconSize(QSize(buttonSize * 0.7, buttonSize * 0.7));
     }
 }
 
 void LeftSidebar::setButtonSpacing(int spacing)
 {
     buttonSpacing = spacing;
-    mainLayout->setSpacing(buttonSpacing);
+    mainLayout->setSpacing(buttonSpacing + 8);
 }
 
 void LeftSidebar::setContentsMargins(int left, int top, int right, int bottom)
@@ -144,34 +167,5 @@ void LeftSidebar::updateTheme(bool isDark)
 
 void LeftSidebar::updateButtonStyles()
 {
-    const QString buttonStyle = QString(R"(
-        QPushButton {
-            background: %1;
-            border: none;
-            border-radius: %5px;
-            padding: 0;
-            margin: 0;
-            qproperty-iconSize: %6px %6px;
-        }
-        QPushButton:hover:!checked {
-            background: %2;
-        }
-        QPushButton:checked {
-            background: %3;
-        }
-        QPushButton:checked:hover {
-            background: %4;
-        }
-    )").arg(
-        isDarkTheme ? "rgba(31, 41, 55, 0.5)" : "rgba(255, 255, 255, 0.5)",
-        isDarkTheme ? "rgba(139, 92, 246, 0.15)" : "rgba(139, 92, 246, 0.1)",
-        isDarkTheme ? "#8B5CF6" : "#7C3AED",
-        isDarkTheme ? "#7C3AED" : "#6D28D9",
-        QString::number(buttonSize / 3),
-        QString::number(buttonSize / 2)
-    );
-
-    for (auto button : buttons) {
-        button->setStyleSheet(buttonStyle);
-    }
+    // We do not change the button styles here because the highlighting is handled in the toggled slot
 } 
