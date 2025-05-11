@@ -28,6 +28,7 @@
 #include "../../DataManager/userdatamanager.h"
 #include "../../DataManager/memberdatamanager.h"
 #include "../../../UI/leftsidebar.h"
+#include "Widgets/Notifications/NotificationManager.h"
 #include <QStackedWidget>
 
 

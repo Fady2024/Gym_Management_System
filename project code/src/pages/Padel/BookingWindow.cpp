@@ -2018,12 +2018,16 @@ void BookingWindow::bookCourtDirectly(int courtId, const QDateTime& startTime, c
     bool success = m_padelManager->createBooking(m_currentUserId, courtId, startTime, endTime, errorMessage);
         
         if (success) {
-            QMessageBox::information(this, tr("Booking Successful"), 
-                                   tr("You have successfully booked court %1 on %2 at %3.")
-                              .arg(m_padelManager->getCourtById(courtId).getName())
-                              .arg(startTime.date().toString("yyyy-MM-dd"))
-                              .arg(startTime.time().toString("HH:mm")));
-
+            NotificationManager::instance().showNotification(tr("Booking Successful"),
+                                        tr("You have successfully booked court %1 on %2 at %3.")
+                                   .arg(m_padelManager->getCourtById(courtId).getName())
+                                   .arg(startTime.date().toString("yyyy-MM-dd"))
+                                   .arg(startTime.time().toString("HH:mm")),
+                                    [this]() {
+                                        handleSidebarPageChange("mybookings-section");
+                                    },
+                                    NotificationType::Success,
+                                    7000);
         QTimer::singleShot(100, this, [this, courtId]() {
                 refreshBookingsList();
                 refreshTimeSlots();
@@ -2034,21 +2038,26 @@ void BookingWindow::bookCourtDirectly(int courtId, const QDateTime& startTime, c
         
         if (errorMessage.contains("Court is at maximum capacity")) {
             QMessageBox::StandardButton response = QMessageBox::question(
-                this, 
+                this,
                 tr("Court At Capacity"),
-                tr("The court is at maximum capacity for this time slot.\nWould you like to join the waitlist? If someone cancels, you'll be automatically notified.\n\nVIP members receive priority on the waitlist."),
+                tr(
+                    "The court is at maximum capacity for this time slot.\nWould you like to join the waitlist? If someone cancels, you'll be automatically notified.\n\nVIP members receive priority on the waitlist."),
                 QMessageBox::Yes | QMessageBox::No
             );
-            
+
             if (response == QMessageBox::Yes) {
-                
                 m_selectedWaitlistTime = startTime.time();
                 joinWaitlist(courtId);
             }
         } else {
-            QMessageBox::warning(this, tr("Booking Failed"), 
-                               tr("Booking failed: %1").arg(errorMessage.isEmpty() ? 
-                                                         "Unknown error occurred" : errorMessage));
+            NotificationManager::instance().showNotification( tr("Booking Failed"),
+                                    tr("Booking failed: %1").arg(
+                                    errorMessage.isEmpty() ? "Unknown error occurred" : errorMessage),
+                                    nullptr,
+                                    NotificationType::Error);
+            QMessageBox::warning(this, tr("Booking Failed"),
+                                 tr("Booking failed: %1").arg(
+                                     errorMessage.isEmpty() ? "Unknown error occurred" : errorMessage));
         }
 
         //updateCourtDetails(courtId);
@@ -2154,7 +2163,11 @@ bool BookingWindow::canCancelOrReschedule(const Booking& booking)
 void BookingWindow::cancelBooking() {
     
     if (m_selectedBookingId < 0) {
-        QMessageBox::warning(this, tr("Warning"), tr("Please select a booking to cancel."));
+        NotificationManager::instance().showNotification(tr("Warning"),
+            tr("Please select a booking to cancel."),
+                    nullptr,
+                    NotificationType::Info);
+        // QMessageBox::warning(this, tr("Warning"), tr("Please select a booking to cancel."));
         return;
     }
     
@@ -2172,14 +2185,22 @@ void BookingWindow::cancelBooking() {
         
         QString errorMessage;
         if (m_padelManager->cancelBooking(m_selectedBookingId, errorMessage)) {
-            QMessageBox::information(this, tr("Success"), tr("Booking cancelled successfully."));
+            NotificationManager::instance().showNotification(tr("Success"), tr("Booking cancelled successfully."),
+                                    nullptr,
+                                    NotificationType::Success,
+                                    7000);
+            // QMessageBox::information(this, tr("Success"), tr("Booking cancelled successfully."));
 
             refreshBookingsList();
             refreshTimeSlots();
 
             QTimer::singleShot(1000, this, &BookingWindow::refreshTimeSlots);
         } else {
-            QMessageBox::critical(this, tr("Error"), tr("Failed to cancel booking: %1").arg(errorMessage));
+            NotificationManager::instance().showNotification(tr("Error"), tr("Failed to cancel booking: %1").arg(errorMessage),
+                                    nullptr,
+                                    NotificationType::Error,
+                                    7000);
+            // QMessageBox::critical(this, tr("Error"), tr("Failed to cancel booking: %1").arg(errorMessage));
         }
     }
 }
@@ -2187,7 +2208,11 @@ void BookingWindow::cancelBooking() {
 void BookingWindow::rescheduleBooking() {
     
     if (m_selectedBookingId < 0) {
-        QMessageBox::warning(this, tr("Warning"), tr("Please select a booking to reschedule."));
+        NotificationManager::instance().showNotification(tr("Warning"),
+            tr("Please select a booking to reschedule."),
+                    nullptr,
+                    NotificationType::Info);
+        // QMessageBox::warning(this, tr("Warning"), tr("Please select a booking to reschedule."));
         return;
     }
 
@@ -2212,13 +2237,21 @@ void BookingWindow::rescheduleBooking() {
     }
     
     if (!newTime.isValid()) {
-        QMessageBox::warning(this, tr("Warning"), tr("Please select a valid time."));
+        NotificationManager::instance().showNotification(tr("Warning"),
+            tr("Please select a valid time."),
+                    nullptr,
+                    NotificationType::Info);
+        // QMessageBox::warning(this, tr("Warning"), tr("Please select a valid time."));
         return;
     }
 
     QListWidgetItem* item = m_bookingsList->currentItem();
     if (!item) {
-        QMessageBox::warning(this, tr("Warning"), tr("Selected booking information is not available."));
+        NotificationManager::instance().showNotification(tr("Warning"),
+                    tr("Selected booking information is not available."),
+                    nullptr,
+                    NotificationType::Info);
+        // QMessageBox::warning(this, tr("Warning"), tr("Selected booking information is not available."));
         return;
     }
 
@@ -2233,7 +2266,11 @@ void BookingWindow::rescheduleBooking() {
     }
     
     if (!bookingDate.isValid()) {
-        QMessageBox::warning(this, tr("Warning"), tr("Could not determine booking date."));
+        NotificationManager::instance().showNotification(tr("Warning"),
+                    tr("Could not determine booking date."),
+                    nullptr,
+                    NotificationType::Info);
+        // QMessageBox::warning(this, tr("Warning"), tr("Could not determine booking date."));
         return;
     }
 
@@ -2253,14 +2290,22 @@ void BookingWindow::rescheduleBooking() {
         
         QString errorMessage;
         if (m_padelManager->rescheduleBooking(m_selectedBookingId, newStartTime, newEndTime, errorMessage)) {
-            QMessageBox::information(this, tr("Success"), tr("Booking rescheduled successfully."));
+            NotificationManager::instance().showNotification(tr("Success"),
+                    tr("Booking rescheduled successfully."),
+                    nullptr,
+                    NotificationType::Success);
+            // QMessageBox::information(this, tr("Success"), tr("Booking rescheduled successfully."));
 
             refreshBookingsList();
             refreshTimeSlots();
 
             QTimer::singleShot(1000, this, &BookingWindow::refreshTimeSlots);
         } else {
-            QMessageBox::critical(this, tr("Error"), tr("Failed to reschedule booking: %1").arg(errorMessage));
+            NotificationManager::instance().showNotification(tr("Error"),
+                    tr("Failed to reschedule booking: %1").arg(errorMessage),
+                    nullptr,
+                    NotificationType::Error);
+            // QMessageBox::critical(this, tr("Error"), tr("Failed to reschedule booking: %1").arg(errorMessage));
         }
     }
 }
