@@ -1,5 +1,4 @@
 #include "userdatamanager.h"
-#include <QRegularExpression>
 #include <QRegularExpressionValidator>
 #include <QRandomGenerator>
 #include <QFile>
@@ -9,7 +8,6 @@
 #include <QDir>
 #include <QCryptographicHash>
 #include <QDebug>
-#include <QStandardPaths>
 #include <QCoreApplication>
 #include <QFileInfo>
 
@@ -18,7 +16,7 @@ UserDataManager::UserDataManager(QObject* parent)
 {
     // Get the project directory path
     QString projectDir;
-    
+
 #ifdef FORCE_SOURCE_DIR
     // Use the source directory path defined in CMake
     projectDir = QString::fromUtf8(SOURCE_DATA_DIR);
@@ -29,18 +27,18 @@ UserDataManager::UserDataManager(QObject* parent)
     projectDir = QFileInfo(projectDir).dir().absolutePath();
     qDebug() << "Using application directory path:" << projectDir;
 #endif
-    
+
     // Set data directory paths
     dataDir = projectDir + "/project code/Data";
     usersPhotoDir = projectDir + "/project code/UsersPhoto";
-    
+
     qDebug() << "Data directory path:" << dataDir;
     qDebug() << "Users photo directory path:" << usersPhotoDir;
-    
+
     // Create directories if they don't exist
     QDir().mkpath(dataDir);
     QDir().mkpath(usersPhotoDir);
-    
+
     // Initialize empty users.json if it doesn't exist
     QFile usersFile(dataDir + "/users.json");
     if (!usersFile.exists()) {
@@ -48,7 +46,7 @@ UserDataManager::UserDataManager(QObject* parent)
         usersFile.write("[]");
         usersFile.close();
     }
-    
+
     // Initialize empty remembered.json if it doesn't exist
     QFile rememberedFile(dataDir + "/remembered.json");
     if (!rememberedFile.exists()) {
@@ -56,7 +54,7 @@ UserDataManager::UserDataManager(QObject* parent)
         rememberedFile.write("{}");
         rememberedFile.close();
     }
-    
+
     // Initialize data from file
     if (!initializeFromFile()) {
         qDebug() << "Failed to initialize user data from file";
@@ -302,17 +300,17 @@ QJsonObject UserDataManager::userToJson(const User& user)
     json["email"] = user.getEmail();
     json["password"] = user.getPassword();
     json["name"] = user.getName();
-    
+
     // Calculate age from date of birth
     QDate currentDate = QDate::currentDate();
     QDate birthDate = user.getDateOfBirth();
     int age = currentDate.year() - birthDate.year();
-    if (currentDate.month() < birthDate.month() || 
+    if (currentDate.month() < birthDate.month() ||
         (currentDate.month() == birthDate.month() && currentDate.day() < birthDate.day())) {
         age--;
     }
     json["age"] = age;
-    
+
     json["photoPath"] = user.getUserPhotoPath();
     return json;
 }
@@ -324,7 +322,7 @@ User UserDataManager::jsonToUser(const QJsonObject& json)
     user.setEmail(json["email"].toString());
     user.setPassword(json["password"].toString());
     user.setName(json["name"].toString());
-    
+
     // Convert age back to date of birth (approximate)
     int age = json["age"].toInt();
     QDate currentDate = QDate::currentDate();

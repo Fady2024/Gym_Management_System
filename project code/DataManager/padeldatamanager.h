@@ -1,27 +1,14 @@
 #ifndef PADELDATAMANAGER_H
 #define PADELDATAMANAGER_H
 
-#include <QObject>
-#include <QJsonObject>
-#include <QJsonArray>
-#include <QFile>
-#include <QJsonParseError>
-#include <QMutex>
-#include <QDateTime>
-#include <QVector>
 #include <unordered_map>
-#include <QDir>
 #include "../Model/Padel/Court.h"
 #include "../Model/Padel/Booking.h"
-#include "../Model/Gym/member.h"
 #include "../DataManager/memberdatamanager.h"
 #include <QString>
 #include <QVector>
-#include <unordered_map>
-#include <QDir>
 #include <QTimer>
 #include <queue>
-#include <set>
 
 // Structure to store waitlist entries
 struct WaitlistEntry {

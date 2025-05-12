@@ -3,7 +3,6 @@
 
 #include <QJsonObject>
 #include <QJsonArray>
-#include <QFile>
 #include <QJsonParseError>
 #include "../Model/System/user.h"
 #include <QString>

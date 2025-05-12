@@ -1,17 +1,12 @@
 #ifndef CLASSDATAMANAGER_H
 #define CLASSDATAMANAGER_H
 
-#include <QObject>
-#include <QJsonObject>
-#include <QJsonArray>
-#include <QFile>
-#include <QJsonParseError>
+
 #include "../Model/Gym/class.h"
 #include "../DataManager/memberdatamanager.h"
 #include <QString>
 #include <QVector>
 #include <unordered_map>
-#include <QDir>
 #include <QDate>
 
 // Structure to store attendance data
