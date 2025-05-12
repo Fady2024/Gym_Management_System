@@ -119,10 +119,10 @@ int main(int argc, char* argv[])
             // Store the email in a static variable to track account changes
             static QString previousEmail;
             bool isAccountSwitch = !previousEmail.isEmpty() && previousEmail != email;
-            
+
             if (isAccountSwitch) {
                 qDebug() << "Account switch detected! Previous: " << previousEmail << ", New: " << email;
-                
+
                 // Force clearing of all cached data
                 try {
                     mainPage->clearUserData();
@@ -130,7 +130,7 @@ int main(int argc, char* argv[])
                 } catch (const std::exception& e) {
                     qDebug() << "Error clearing user data: " << e.what();
                 }
-                
+
                 // Longer delay to ensure all data is cleared
                 QTimer::singleShot(500, [mainPage, email, stackedWidget, staffHomePage, userDataManager, memberDataManager, isStaff=email.toLower().endsWith("@admin.com") || email.toLower().endsWith("@staff.com")]() {
                     try {
@@ -146,13 +146,13 @@ int main(int argc, char* argv[])
                         } catch (const std::exception& e) {
                             qDebug() << "Exception getting user data: " << e.what();
                         }
-                        
+
                         // For regular users, explicitly check their member status
                         if (!isStaff && user.getId() > 0 && memberDataManager) {
                             try {
                                 bool isMember = memberDataManager->userIsMember(user.getId());
                                 qDebug() << "User membership check during account switch: " << (isMember ? "Is member" : "Not member");
-                                
+
                                 if (isMember) {
                                     int memberId = memberDataManager->getMemberIdByUserId(user.getId());
                                     qDebug() << "Found member ID during account switch: " << memberId;
@@ -161,7 +161,7 @@ int main(int argc, char* argv[])
                                 qDebug() << "Exception checking member status during account switch: " << e.what();
                             }
                         }
-                        
+
                         // Route to appropriate page based on user type
                         if (isStaff) {
                             qDebug() << "Redirecting to staff page after account switch";
@@ -178,7 +178,7 @@ int main(int argc, char* argv[])
                         qDebug() << "Unknown exception during delayed login";
                     }
                 });
-                
+
                 // Update previous email
                 previousEmail = email;
                 return;
@@ -188,11 +188,11 @@ int main(int argc, char* argv[])
             // Get the user data
             User user = userDataManager->getUserData(email);
             qDebug() << "User logged in: " << email << " (ID: " << user.getId() << ")";
-            
+
             // Determine if user is staff or regular user (simple check based on email domain)
             bool isStaff = email.toLower().endsWith("@admin.com") || email.toLower().endsWith("@staff.com");
             qDebug() << "User is staff: " << isStaff;
-            
+
             if (isStaff) {
                 try {
                     qDebug() << "Attempting to handle staff login";
@@ -222,7 +222,7 @@ int main(int argc, char* argv[])
                             qDebug() << "Unknown exception checking member status";
                         }
                         qDebug() << "Skipping automatic member creation - users become members after subscription";
-                        
+
                         qDebug() << "Calling mainPage->handleLogin";
                         try {
                             mainPage->handleLogin(email);
@@ -230,7 +230,7 @@ int main(int argc, char* argv[])
                             qDebug() << "Exception in mainPage->handleLogin: " << e.what();
                             throw;
                         }
-                        
+
                         qDebug() << "Setting current widget to main page";
                         if (stackedWidget->indexOf(mainPage) < 0) {
                             qDebug() << "ERROR: mainPage not found in stackedWidget! Re-adding it.";
