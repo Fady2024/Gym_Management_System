@@ -32,6 +32,7 @@ AvailableClassesScreen::AvailableClassesScreen(ClassDataManager* dataManager, QW
     setupCoaches();
     setupUI();
     refreshClasses();
+
 }
 
 AvailableClassesScreen::~AvailableClassesScreen() = default;
@@ -98,6 +99,7 @@ void AvailableClassesScreen::refreshClasses()
     scrollLayout->setAlignment(Qt::AlignTop);
     scrollLayout->setSpacing(30);
 
+
     QMap<QString,QVector<Class>> byCoach;
     for (auto &c : all) byCoach[c.getCoachName()].append(c);
 
@@ -108,7 +110,7 @@ void AvailableClassesScreen::refreshClasses()
         QGroupBox* group = new QGroupBox(coach.getName());
         group->setStyleSheet(
             "QGroupBox { font-size:18px; font-weight:bold; border:none; margin-top:15px; }"
-            "QGroupBox::title { subcontrol-origin:margin; left:10px; padding:0 5px; color:#2c3e50; }"
+            "QGroupBox::title { subcontrol-origin:margin; left:10px; padding:0 5px; color:#6647D8; }"
         );
         QVBoxLayout* glay = new QVBoxLayout(group);
         glay->setContentsMargins(10,25,10,10);
@@ -138,12 +140,24 @@ void AvailableClassesScreen::createClassCard(const Class &gymClass,
     QWidget *card = new QWidget;
     card->setMinimumWidth(250);
     card->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
-    card->setStyleSheet(
-        "QWidget { background-color:#DFD0B8; border-radius:10px; padding:15px; border:1px solid #393E46; }"
-        "QLabel { font-size:14px; color:black; }"
-        "QLabel#title { font-size:18px; font-weight:bold; color:#2c3e50; }"
-    );
-
+    const QString cardStyle = QString(R"(
+    QWidget {
+        background-color: rgba(139, 92, 246, 0.05); /* Soft lavender */
+        border-radius: 12px;
+        padding: 16px;
+        border: 1px solid #BFAEF5; /* Muted lavender */
+    }
+    QLabel {
+        font-size: 14px;
+        color: #978ADD; /* Dark neutral gray - readable on white & lavender */
+    }
+    QLabel#title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #4B3C9C; /* Deep violet-blue - readable on all */
+    }
+    )");
+    card->setStyleSheet(cardStyle);
     QVBoxLayout *cardLayout = new QVBoxLayout(card);
     cardLayout->setSpacing(12);
     cardLayout->setContentsMargins(15,15,15,15);
@@ -170,7 +184,7 @@ void AvailableClassesScreen::createClassCard(const Class &gymClass,
     int pct = gymClass.getNumOfEnrolled() * 100 / gymClass.getCapacity();
     QString chunkColor = pct<50 ? "#4CAF50" : (pct<80 ? "#FFC107" : "#F44336");
     progressBar->setStyleSheet(QString(
-        "QProgressBar { border:1px solid #393E46; border-radius:5px; height:20px; }"
+        "QProgressBar { border:1px solid #BFAEF5; border-radius:12px; height:20px; color: #978ADD}"
         "QProgressBar::chunk { background-color:%1; border-radius:5px; }"
     ).arg(chunkColor));
 
@@ -186,18 +200,38 @@ void AvailableClassesScreen::createClassCard(const Class &gymClass,
     QPushButton *actionBtn = new QPushButton;
     actionBtn->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     actionBtn->setMinimumHeight(30);
+    actionBtn->setCursor(Qt::PointingHandCursor);
 
     if (isEnrolled) {
         actionBtn->setText("Cancel");
-        actionBtn->setStyleSheet("background-color:#E57373; color:white; border-radius:4px; font-weight:bold;");
         connect(actionBtn, &QPushButton::clicked, [=]() {
             handleUnenroll(gymClass.getId());
         });
+        actionBtn->setStyleSheet(QString(
+        "QPushButton {"
+        " background-color: #E57373;"
+        " color: white;"
+        " border-radius: 4px;"
+        " font-weight: bold;"
+        "}"
+        "QPushButton:hover {"
+        " background-color: #D36464;"
+        "}"));
+
     } else {
         actionBtn->setText(isFull ? "Full" : "Enroll");
         actionBtn->setStyleSheet(QString(
-            "background-color:%1; color:white; border-radius:4px; font-weight:bold;"
-        ).arg(isFull ? "#B0BEC5" : "#81C784"));
+        "QPushButton {"
+        " background-color: %1;"
+        " color: white;"
+        " border-radius: 4px;"
+        " font-weight: bold;"
+        "}"
+        "QPushButton:hover {"
+        " background-color: %2;"
+        "}"
+        ).arg(isFull ? "#B0BEC5" : "#81C784", isFull ? "#839AA5" : "#56AB59"));
+
 
         connect(actionBtn, &QPushButton::clicked, [=]() {
             if (isFull) {
@@ -395,7 +429,52 @@ QWidget* AvailableClassesScreen::ClassesContent() {
 
     scrollArea = new QScrollArea;
     scrollArea->setWidgetResizable(true);
-    scrollArea->setStyleSheet("border:none;");
+    scrollArea->setStyleSheet(QString(R"(
+    QScrollArea {
+        background: transparent;
+    }
+    QScrollBar:vertical {
+        background: rgba(220, 220, 255, 0.1);
+        width: 12px;
+        margin: 0px;
+        border-radius: 6px;
+    }
+    QScrollBar::handle:vertical {
+        background: rgba(139, 92, 246, 0.3);
+        min-height: 20px;
+        border-radius: 6px;
+    }
+    QScrollBar::handle:vertical:hover {
+        background: rgba(139, 92, 246, 0.5);
+    }
+    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+        height: 0px;
+    }
+    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+        background: none;
+    }
+
+    QScrollBar:horizontal {
+        background: rgba(220, 220, 255, 0.1);
+        height: 12px;
+        margin: 0px;
+        border-radius: 6px;
+    }
+    QScrollBar::handle:horizontal {
+        background: rgba(139, 92, 246, 0.3);
+        min-width: 20px;
+        border-radius: 6px;
+    }
+    QScrollBar::handle:horizontal:hover {
+        background: rgba(139, 92, 246, 0.5);
+    }
+    QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+        width: 0px;
+    }
+    QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+        background: none;
+    }
+    )"));
     scrollWidget = new QWidget;
     scrollArea->setWidget(scrollWidget);
     classesLayout->addWidget(scrollArea);
