@@ -1,35 +1,68 @@
 [
     {
         "capacity": 20,
-        "className": "molamola",
-        "coachName": "larry",
-        "from": "Sat May 3 2025",
+        "className": "class 1",
+        "coachName": "John Smith",
+        "from": "Wed May 7 2025",
         "id": 1,
-        "numOfEnrolled": 0,
+        "numOfEnrolled": 1,
         "sessions": [
         ],
-        "to": "Sat May 10 2025"
+        "to": "Wed May 14 2025"
     },
     {
-        "capacity": 23,
-        "className": "class lary",
-        "coachName": "fadfood",
-        "from": "Sat May 3 2025",
+        "capacity": 20,
+        "className": "class 3",
+        "coachName": "Michael Brown",
+        "from": "Wed May 7 2025",
         "id": 2,
-        "numOfEnrolled": 0,
+        "numOfEnrolled": 20,
         "sessions": [
         ],
-        "to": "Fri May 23 2025"
+        "to": "Wed May 14 2025"
     },
     {
-        "capacity": 50,
-        "className": "Class 3",
-        "coachName": "Khyat",
-        "from": "Sat May 3 2025",
+        "capacity": 20,
+        "className": "Class 4",
+        "coachName": "Emily Davis",
+        "from": "Wed May 7 2025",
         "id": 3,
-        "numOfEnrolled": 0,
+        "numOfEnrolled": 20,
         "sessions": [
         ],
-        "to": "Fri May 23 2025"
+        "to": "Wed May 14 2025"
+    },
+    {
+        "capacity": 20,
+        "className": "Class 360",
+        "coachName": "John Smith",
+        "from": "Wed May 7 2025",
+        "id": 4,
+        "numOfEnrolled": 1,
+        "sessions": [
+        ],
+        "to": "Wed May 14 2025"
+    },
+    {
+        "capacity": 20,
+        "className": "class 11",
+        "coachName": "Michael Brown",
+        "from": "Wed May 7 2025",
+        "id": 5,
+        "numOfEnrolled": 1,
+        "sessions": [
+        ],
+        "to": "Wed May 14 2025"
+    },
+    {
+        "capacity": 100,
+        "className": "class 5",
+        "coachName": "Sarah Johnson",
+        "from": "Wed May 7 2025",
+        "id": 6,
+        "numOfEnrolled": 1,
+        "sessions": [
+        ],
+        "to": "Wed May 14 2025"
     }
 ]
