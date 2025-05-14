@@ -115,23 +115,27 @@ void RetrievePage::setupUI()
         tableWidget->setItem(0, 2, new QTableWidgetItem("-"));
     }
     else {
-        tableWidget->setColumnCount(3);
-        tableWidget->setHorizontalHeaderLabels({ tr("ID"), tr("UserId"), tr("ClassId") });
+        tableWidget->setColumnCount(4);
+        tableWidget->setHorizontalHeaderLabels({ tr("ID"), tr("Name"),tr("Email"), tr("ClassId")});
         tableWidget->setRowCount(members.size());
         for (int i = 0; i < members.size(); ++i) {
             const Member& m = members[i];
 
+            const User &u = userDataManager->getUserDataById(members[i].getUserId());
             QTableWidgetItem* idItem = new QTableWidgetItem(QString::number(m.getId()));
-            QTableWidgetItem* userIdItem = new QTableWidgetItem(QString::number(m.getUserId()));
+            QTableWidgetItem* nameItem = new QTableWidgetItem(u.getName());
+            QTableWidgetItem* emailItem = new QTableWidgetItem(u.getEmail());
             QTableWidgetItem* classIdItem = new QTableWidgetItem(QString::number(m.getClassId()));
 
             idItem->setTextAlignment(Qt::AlignCenter);
-            userIdItem->setTextAlignment(Qt::AlignCenter);
+            nameItem->setTextAlignment(Qt::AlignCenter);
+            emailItem->setTextAlignment(Qt::AlignCenter);
             classIdItem->setTextAlignment(Qt::AlignCenter);
 
             tableWidget->setItem(i, 0, idItem);
-            tableWidget->setItem(i, 1, userIdItem);
-            tableWidget->setItem(i, 2, classIdItem);
+            tableWidget->setItem(i, 1, nameItem);
+            tableWidget->setItem(i, 2, emailItem);
+            tableWidget->setItem(i, 3, classIdItem);
         }
     }
 
