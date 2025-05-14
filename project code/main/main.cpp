@@ -122,7 +122,7 @@ int main(int argc, char* argv[])
             
             if (isAccountSwitch) {
                 qDebug() << "Account switch detected! Previous: " << previousEmail << ", New: " << email;
-                
+
                 // Force clearing of all cached data
                 try {
                     mainPage->clearUserData();

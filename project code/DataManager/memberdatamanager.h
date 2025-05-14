@@ -1,11 +1,6 @@
 #ifndef MEMBERDATAMANAGER_H
 #define MEMBERDATAMANAGER_H
 
-#include <QObject>
-#include <QJsonObject>
-#include <QJsonArray>
-#include <QFile>
-#include <QJsonParseError>
 #include <QMutex>
 #include "../Model/Gym/member.h"
 #include "../Model/Gym/subscription.h"
@@ -13,7 +8,6 @@
 #include <QString>
 #include <QVector>
 #include <unordered_map>
-#include <QDir>
 #include <QTimer>
 #include <QCryptographicHash>
 
@@ -51,7 +45,7 @@ public:
     bool deleteMember(int memberId, QString& errorMessage);
     Member getMemberById(int memberId) const;
     QVector<Member> getAllMembers() const;
-    
+
     // User-to-Member conversion
     bool createMemberFromUser(int userId, QString& errorMessage);
     bool createMemberFromUser(const User& user, QString& errorMessage);
@@ -77,17 +71,17 @@ public:
     bool addWorkoutToHistory(int memberId, const QString& workoutType, const QDate& date, QString& errorMessage);
     QVector<QPair<int, QDate>> getWorkoutHistory(int memberId) const;
     QVector<QPair<int, QDate>> getRecentWorkouts(int memberId, int count = 5) const;
-    
+
     // Payment card management
-    bool saveCardData(int memberId, const QString& cardNumber, const QString& expiryDate, 
+    bool saveCardData(int memberId, const QString& cardNumber, const QString& expiryDate,
                       const QString& cardholderName, const QString& cvc, QString& errorMessage);
     bool hasStoredCard(int memberId) const;
     SavedCardData getStoredCard(int memberId) const;
-    
+
     // Payment data storage
-    bool savePaymentData(int memberId, int planId, bool isVIP, double amount, 
+    bool savePaymentData(int memberId, int planId, bool isVIP, double amount,
                          const QString& cardNumber, const QString& expiryDate, const QString& cardholderName,
-                         QString& errorMessage);
+                         QString& errorMessage) const;
 
     // Dependency injection
     void setUserDataManager(UserDataManager* userManager);

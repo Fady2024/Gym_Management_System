@@ -18,6 +18,8 @@
 #include "../Language/LanguageSelector.h"
 #include "../staff/addmemberpage.h"
 #include "Stylesheets/Gym/staffHomePageStyle.h"
+#include "../staff/retrievepage.h"
+#include "../staff/searchmemberpage.h"
 #include <QDebug>
 
 StaffHomePage::StaffHomePage(UserDataManager* userDataManager, MemberDataManager* memberDataManager,
@@ -150,20 +152,21 @@ void StaffHomePage::setupUI()
 
     homeButton = createNavButton(tr("Home"), "🏠");
     addMemberButton = createNavButton(tr("Add Member"), "💪");
-    nutritionButton = createNavButton(tr("Nutrition"), "🥗");
-    profileButton = createNavButton(tr("Profile"), "👤");
+    retrieveButton = createNavButton(tr("Retrieve Members"), "🥗");
+    searchMemberButton = createNavButton(tr("Search Members"), "👤");
     settingsButton = createNavButton(tr("Settings"), "⚙️");
 
     homeButton->setCheckable(true);
     addMemberButton->setCheckable(true);
-    nutritionButton->setCheckable(true);
-    profileButton->setCheckable(true);
+
+    retrieveButton->setCheckable(true);
+    searchMemberButton->setCheckable(true);
     settingsButton->setCheckable(true);
 
     navButtonsLayout->addWidget(homeButton);
     navButtonsLayout->addWidget(addMemberButton);
-    navButtonsLayout->addWidget(nutritionButton);
-    navButtonsLayout->addWidget(profileButton);
+    navButtonsLayout->addWidget(retrieveButton);
+    navButtonsLayout->addWidget(searchMemberButton);
     navButtonsLayout->addWidget(settingsButton);
 
     scrollArea->setWidget(navButtonsContainer);
@@ -214,8 +217,8 @@ void StaffHomePage::setupUI()
 
     connect(homeButton, &QPushButton::clicked, this, &StaffHomePage::handleHomePage);
     connect(addMemberButton, &QPushButton::clicked, this, &StaffHomePage::handleAddMemberPage);
-    connect(nutritionButton, &QPushButton::clicked, this, &StaffHomePage::handleNutritionPage);
-    connect(profileButton, &QPushButton::clicked, this, &StaffHomePage::handleProfilePage);
+    connect(retrieveButton, &QPushButton::clicked, this, &StaffHomePage::handleRetrievePage);
+    connect(searchMemberButton, &QPushButton::clicked, this, &StaffHomePage::handleSearchMemberPage);
     connect(settingsButton, &QPushButton::clicked, this, &StaffHomePage::handleSettingsPage);
 
     // Initialize with home page
@@ -301,15 +304,15 @@ void StaffHomePage::setupPages()
             return;
         }
 
-        nutritionPage = new QWidget;
-        if (!nutritionPage) {
-            qDebug() << "Error: Failed to create nutritionPage";
+        retrievePage = new RetrievePage(userDataManager, memberDataManager, this);
+        if (!retrievePage) {
+            qDebug() << "Error: Failed to create RetrivePage";
             return;
         }
 
-        profilePage = new QWidget;
-        if (!profilePage) {
-            qDebug() << "Error: Failed to create profilePage";
+        searchMemberPage = new SearchMember(userDataManager, memberDataManager, this);
+        if (!searchMemberPage) {
+            qDebug() << "Error: Failed to create SearchMemberPage";
             return;
         }
 
@@ -326,8 +329,8 @@ void StaffHomePage::setupPages()
         qDebug() << "Adding widgets to stackedWidget";
         stackedWidget->addWidget(homePage);
         stackedWidget->addWidget(addMemberPage);
-        stackedWidget->addWidget(nutritionPage);
-        stackedWidget->addWidget(profilePage);
+        stackedWidget->addWidget(retrievePage);
+        stackedWidget->addWidget(searchMemberPage);
         stackedWidget->addWidget(settingsPage);
         qDebug() << "Pages setup completed successfully";
     }
@@ -380,16 +383,16 @@ void StaffHomePage::handleAddMemberPage() const
     updateButtonStates(addMemberButton);
 }
 
-void StaffHomePage::handleNutritionPage() const
+void StaffHomePage::handleRetrievePage() const
 {
-    stackedWidget->setCurrentWidget(nutritionPage);
-    updateButtonStates(nutritionButton);
+    stackedWidget->setCurrentWidget(retrievePage);
+    updateButtonStates(retrieveButton);
 }
 
-void StaffHomePage::handleProfilePage() const
+void StaffHomePage::handleSearchMemberPage() const
 {
-    stackedWidget->setCurrentWidget(profilePage);
-    updateButtonStates(profileButton);
+    stackedWidget->setCurrentWidget(searchMemberPage);
+    updateButtonStates(searchMemberButton);
 }
 
 void StaffHomePage::handleSettingsPage() const
@@ -429,7 +432,7 @@ void StaffHomePage::updateButtonStates(QPushButton* activeButton) const
     try {
         qDebug() << "StaffHomePage::updateButtonStates called";
 
-        if (!homeButton || !addMemberButton || !nutritionButton || !profileButton || !settingsButton) {
+        if (!homeButton || !addMemberButton || !retrieveButton || !searchMemberButton || !settingsButton) {
             qDebug() << "Error: One or more navigation buttons are null";
             return;
         }
@@ -441,8 +444,8 @@ void StaffHomePage::updateButtonStates(QPushButton* activeButton) const
 
         homeButton->setChecked(false);
         addMemberButton->setChecked(false);
-        nutritionButton->setChecked(false);
-        profileButton->setChecked(false);
+        retrieveButton->setChecked(false);
+        searchMemberButton->setChecked(false);
         settingsButton->setChecked(false);
 
         activeButton->setChecked(true);
@@ -497,11 +500,11 @@ void StaffHomePage::clearUserData()
     if (addMemberPage) {
         // Clear addMember page data
     }
-    if (nutritionPage) {
-        // Clear nutrition page data
+    if (retrievePage) {
+        // Clear retrieve page data
     }
-    if (profilePage) {
-        // Clear profile page data
+    if (searchMemberPage) {
+        // Clear search member page data
     }
     if (stackedWidget && homePage) {
         stackedWidget->setCurrentWidget(homePage);
@@ -528,23 +531,23 @@ void StaffHomePage::updateLayout()
 
         homeButton->setStyleSheet(buttonStyle);
         addMemberButton->setStyleSheet(buttonStyle);
-        nutritionButton->setStyleSheet(buttonStyle);
-        profileButton->setStyleSheet(buttonStyle);
+        retrieveButton->setStyleSheet(buttonStyle);
+        searchMemberButton->setStyleSheet(buttonStyle);
         settingsButton->setStyleSheet(buttonStyle);
 
         // Hide button text if very small, keep emoji
         if (size.width() < 600) {
             homeButton->setText("🏠");
             addMemberButton->setText("💪");
-            nutritionButton->setText("🥗");
-            profileButton->setText("👤");
+            retrieveButton->setText("🥗");
+            searchMemberButton->setText("👤");
             settingsButton->setText("⚙️");
         }
         else {
             homeButton->setText(QString("🏠 %1").arg(tr("Home")));
             addMemberButton->setText(QString("💪 %1").arg(tr("Add Member")));
-            nutritionButton->setText(QString("🥗 %1").arg(tr("Nutrition")));
-            profileButton->setText(QString("👤 %1").arg(tr("Profile")));
+            retrieveButton->setText(QString("🥗 %1").arg(tr("Retrieve Members")));
+            searchMemberButton->setText(QString("👤 %1").arg(tr("Search Member")));
             settingsButton->setText(QString("⚙️ %1").arg(tr("Settings")));
         }
     }
@@ -554,14 +557,14 @@ void StaffHomePage::updateLayout()
 
         homeButton->setStyleSheet(buttonStyle);
         addMemberButton->setStyleSheet(buttonStyle);
-        nutritionButton->setStyleSheet(buttonStyle);
-        profileButton->setStyleSheet(buttonStyle);
+        retrieveButton->setStyleSheet(buttonStyle);
+        searchMemberButton->setStyleSheet(buttonStyle);
         settingsButton->setStyleSheet(buttonStyle);
 
         homeButton->setText(QString("🏠 %1").arg(tr("Home")));
         addMemberButton->setText(QString("💪 %1").arg(tr("Add Member")));
-        nutritionButton->setText(QString("🥗 %1").arg(tr("Nutrition")));
-        profileButton->setText(QString("👤 %1").arg(tr("Profile")));
+        retrieveButton->setText(QString("🥗 %1").arg(tr("Retrieve Members")));
+        searchMemberButton->setText(QString("👤 %1").arg(tr("Search Member")));
         settingsButton->setText(QString("⚙️ %1").arg(tr("Settings")));
     }
 
@@ -590,8 +593,8 @@ void StaffHomePage::retranslateUI()
     // Update navigation buttons
     if (homeButton) homeButton->setText(tr("Home"));
     if (addMemberButton) addMemberButton->setText(tr("Add Member"));
-    if (nutritionButton) nutritionButton->setText(tr("Nutrition"));
-    if (profileButton) profileButton->setText(tr("Profile"));
+    if (retrieveButton) retrieveButton->setText(tr("Retrieve Members"));
+    if (searchMemberButton) searchMemberButton->setText(tr("Search Members"));
     if (settingsButton) settingsButton->setText(tr("Settings"));
 
     // Update title

@@ -180,6 +180,10 @@ set(PAYMENT_SOURCES
 set(STAFF_SOURCES
         "project code/staff/addmemberpage.cpp"
         "project code/staff/addmemberpage.h"
+        "project code/staff/retrievepage.cpp"
+        "project code/staff/retrievepage.h"
+        "project code/staff/searchmemberpage.cpp"
+        "project code/staff/searchmemberpage.h"
 )
 # Define project sources
 set(PROJECT_SOURCES
