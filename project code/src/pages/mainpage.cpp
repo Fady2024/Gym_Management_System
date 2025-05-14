@@ -159,8 +159,8 @@ void MainPage::setupUI()
     };
 
     homeButton = createNavButton(tr("Home"), "🏠");
-    workoutButton = createNavButton(tr("Workout"), "💪");
-    nutritionButton = createNavButton(tr("Nutrition"), "🥗");
+    workoutButton = createNavButton(tr("Padel Courts"), "🏸");
+    nutritionButton = createNavButton(tr("Gym Classes"), "🏋️‍♂️");
     profileButton = createNavButton(tr("Profile"), "👤");
     settingsButton = createNavButton(tr("Settings"), "⚙️");
 
@@ -613,14 +613,14 @@ void MainPage::updateLayout()
         // Hide button text if very small, keep emoji
         if (size.width() < 600) {
             homeButton->setText("🏠");
-            workoutButton->setText("💪");
-            nutritionButton->setText("🥗");
+            workoutButton->setText("🏸");
+            nutritionButton->setText("🏋️‍♂️");
             profileButton->setText("👤");
             settingsButton->setText("⚙️");
         } else {
             homeButton->setText(QString("🏠 %1").arg(tr("Home")));
-            workoutButton->setText(QString("💪 %1").arg(tr("Workout")));
-            nutritionButton->setText(QString("🥗 %1").arg(tr("Nutrition")));
+            workoutButton->setText(QString("🏸 %1").arg(tr("Padel Courts")));
+            nutritionButton->setText(QString("️‍️‍🏋️‍♂️ %1").arg(tr("Gym Classes")));
             profileButton->setText(QString("👤 %1").arg(tr("Profile")));
             settingsButton->setText(QString("⚙️ %1").arg(tr("Settings")));
         }
@@ -633,8 +633,8 @@ void MainPage::updateLayout()
         settingsButton->setStyleSheet(buttonStyle);
 
         homeButton->setText(QString("🏠 %1").arg(tr("Home")));
-        workoutButton->setText(QString("💪 %1").arg(tr("Workout")));
-        nutritionButton->setText(QString("🥗 %1").arg(tr("Nutrition")));
+        workoutButton->setText(QString("🏸 %1").arg(tr("Padel Courts")));
+        nutritionButton->setText(QString("️‍️‍🏋️‍♂️ %1").arg(tr("Gym Classes")));
         profileButton->setText(QString("👤 %1").arg(tr("Profile")));
         settingsButton->setText(QString("⚙️ %1").arg(tr("Settings")));
     }
@@ -663,8 +663,8 @@ void MainPage::retranslateUI()
 
     // Update navigation buttons
     if (homeButton) homeButton->setText(tr("Home"));
-    if (workoutButton) workoutButton->setText(tr("Workout"));
-    if (nutritionButton) nutritionButton->setText(tr("Nutrition"));
+    if (workoutButton) workoutButton->setText(tr("Padel Courts"));
+    if (nutritionButton) nutritionButton->setText(tr("Gym Classes"));
     if (profileButton) profileButton->setText(tr("Profile"));
     if (settingsButton) settingsButton->setText(tr("Settings"));
 
