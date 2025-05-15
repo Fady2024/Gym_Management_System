@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
     // stackedWidget->addWidget(splashScreen);
     // stackedWidget->addWidget(languageSelectionPage);
     // stackedWidget->addWidget(onboardingPage);
-    // stackedWidget->addWidget(authPage);
+    stackedWidget->addWidget(authPage);
     stackedWidget->addWidget(mainPage);
     stackedWidget->addWidget(staffHomePage);
 
