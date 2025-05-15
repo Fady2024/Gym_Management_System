@@ -14,7 +14,5 @@ inline const QString subtitleLabelStyle =
 inline const QString descriptionLabelStyle =
     "color: %1; font-size: %2px; background-color: transparent;";
 
-inline const QString timeMultiplierButtonStyle =
-    "font-size: 32px; padding: 10px; background-color: #6B7280";
 
 #endif //HOMEPAGESTYLE_H

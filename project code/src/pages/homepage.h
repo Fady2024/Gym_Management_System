@@ -5,6 +5,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QEvent>
+#include "Stylesheets/System/homepageStyle.h"
 #include "../../UI/Widgets/Clock/Clock.h"
 
 class HomePage : public QWidget
@@ -36,8 +37,6 @@ private:
     QLabel* welcomeLabel{};
     QLabel* subtitleLabel{};
     QLabel* descriptionLabel{};
-    // Side Clock
-    ClockWidget* clockWidget;
 };
 
 #endif // HOMEPAGE_H 

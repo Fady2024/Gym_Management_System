@@ -157,6 +157,7 @@ void MainPage::setupUI()
         button->setStyleSheet(buttonStyle);
         return button;
     };
+    clockWidget = new ClockWidget();
 
     homeButton = createNavButton(tr("Home"), "🏠");
     workoutButton = createNavButton(tr("Padel Courts"), "🏸");
@@ -175,6 +176,8 @@ void MainPage::setupUI()
     navButtonsLayout->addWidget(nutritionButton);
     navButtonsLayout->addWidget(profileButton);
     navButtonsLayout->addWidget(settingsButton);
+    navButtonsLayout->addSpacing(120);
+    navButtonsLayout->addWidget(clockWidget);
 
     scrollArea->setWidget(navButtonsContainer);
 

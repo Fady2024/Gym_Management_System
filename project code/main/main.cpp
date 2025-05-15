@@ -84,10 +84,10 @@ int main(int argc, char* argv[])
     auto mainPage = new MainPage(userDataManager, memberDataManager, classDataManager, padelDataManager);
     auto staffHomePage = new StaffHomePage(userDataManager, memberDataManager, classDataManager, padelDataManager);
     // Add pages to stacked widget
-    stackedWidget->addWidget(splashScreen);
-    stackedWidget->addWidget(languageSelectionPage);
-    stackedWidget->addWidget(onboardingPage);
-    stackedWidget->addWidget(authPage);
+    // stackedWidget->addWidget(splashScreen);
+    // stackedWidget->addWidget(languageSelectionPage);
+    // stackedWidget->addWidget(onboardingPage);
+    // stackedWidget->addWidget(authPage);
     stackedWidget->addWidget(mainPage);
     stackedWidget->addWidget(staffHomePage);
 

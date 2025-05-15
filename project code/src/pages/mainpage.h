@@ -95,6 +95,8 @@ private:
     QScrollArea* scrollArea;
     LanguageSelector* languageSelector;
     NotificationWidget* notificationWidget;
+
+    ClockWidget* clockWidget;
 };
 
 #endif // MAINPAGE_H 

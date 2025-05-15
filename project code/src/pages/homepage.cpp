@@ -3,7 +3,6 @@
 #include <qtimer.h>
 #include "../../Model/System/timeLogic.h"
 #include "Widgets/Notifications/NotificationManager.h"
-#include "Stylesheets/System/homepageStyle.h"
 
 HomePage::HomePage(QWidget *parent)
     : QWidget(parent)
@@ -13,7 +12,6 @@ HomePage::HomePage(QWidget *parent)
 
 void HomePage::setupUI()
 {
-    clockWidget = new ClockWidget(this);
     mainLayout = new QVBoxLayout(this);
     mainLayout->setSpacing(20);
     mainLayout->setContentsMargins(40, 40, 40, 40);
@@ -22,48 +20,19 @@ void HomePage::setupUI()
 
     // Create welcome section with translation
     welcomeLabel = new QLabel;
-    welcomeLabel->setStyleSheet(welcomeLabelStyle.arg("32"));
+    welcomeLabel->setStyleSheet(QString("font-size: %1px; font-weight: bold; background-color: transparent;").arg("32"));
     welcomeLabel->setAlignment(Qt::AlignCenter);
 
     // Create subtitle with translation
     subtitleLabel = new QLabel;
-    subtitleLabel->setStyleSheet(subtitleLabelStyle.arg("#6B7280", "24"));
+    subtitleLabel->setStyleSheet(QString("color: %1; font-size: %2px; background-color: transparent;").arg("#6B7280", "24"));
     subtitleLabel->setAlignment(Qt::AlignCenter);
 
     // Create description with translation
     descriptionLabel = new QLabel;
-    descriptionLabel->setStyleSheet(descriptionLabelStyle.arg("#6B7280", "16"));
+    descriptionLabel->setStyleSheet(QString("color: %1; font-size: %2px; background-color: transparent;").arg("#6B7280", "16"));
     descriptionLabel->setAlignment(Qt::AlignCenter);
     descriptionLabel->setWordWrap(true);
-
-    // Create buttons
-    addTimeMultiplier = new QPushButton(tr(">>"));
-    subTimeMultiplier = new QPushButton(tr("<<"));
-
-    addTimeMultiplier->setStyleSheet(timeMultiplierButtonStyle);
-    subTimeMultiplier->setStyleSheet(timeMultiplierButtonStyle);
-
-    // Connect buttons to slots
-    connect(addTimeMultiplier, &QPushButton::clicked, this, [=]() {
-        timeLogicInstance.setMultiplier(timeLogicInstance.getMultiplier() + 1);
-        NotificationManager::instance().showNotification("Multiplier", "Increase multiplier speed by x1",
-            []() {
-                timeLogicInstance.setMultiplier(timeLogicInstance.getMultiplier() + 1);
-            },NotificationType::Success);
-    });
-    connect(subTimeMultiplier, &QPushButton::clicked, this, [=]() {
-        timeLogicInstance.setMultiplier(timeLogicInstance.getMultiplier() - 1);
-        NotificationManager::instance().showNotification("Multiplier", "Decrease multiplier speed by x1",
-            []() {
-                timeLogicInstance.setMultiplier(timeLogicInstance.getMultiplier() + 1);
-            },NotificationType::Error);
-    });
-
-
-    buttonLayout = new QHBoxLayout(this);
-	buttonLayout->addWidget(subTimeMultiplier);
-    buttonLayout->addSpacing(15);
-	buttonLayout->addWidget(addTimeMultiplier);
 
 
     // Add widgets to layout with proper spacing
@@ -76,9 +45,6 @@ void HomePage::setupUI()
     mainLayout->addSpacing(20);
     mainLayout->addWidget(descriptionLabel);
     mainLayout->addStretch();
-
-    clockWidget->raise();
-    clockWidget->show();
 
     // Set minimum size
     setMinimumSize(800, 600);
@@ -141,16 +107,16 @@ void HomePage::retranslateUI()
 {
     //welcomeLabel->setText(tr("Welcome to FitFlexPro!"));
 
-    QTimer* timer = new QTimer(welcomeLabel); // parented to the label for memory management
-    QObject::connect(timer, &QTimer::timeout, [=]() {
-        welcomeLabel->setText(timeLogicInstance.getFormattedTime() +
-            "   x" +
-            QString::number(timeLogicInstance.getMultiplier())
-            );
-        });
-    timer->start(100); //updates every one second
+    // QTimer* timer = new QTimer(welcomeLabel); // parented to the label for memory management
+    // QObject::connect(timer, &QTimer::timeout, [=]() {
+    //     welcomeLabel->setText(timeLogicInstance.getFormattedTime() +
+    //         "   x" +
+    //         QString::number(timeLogicInstance.getMultiplier())
+    //         );
+    //     });
+    // timer->start(100); //updates every one second
 
-    //welcomeLabel->setText(tr(timeLogicInstance.getFormattedTime().c_str()));
+    welcomeLabel->setText(tr("Welcome to FitFlexPro"));
     subtitleLabel->setText(tr("Your Personal Fitness Journey Starts Here"));
     descriptionLabel->setText(tr("Track your workouts, monitor your nutrition, and achieve your fitness goals with our comprehensive fitness management system."));
-} 
+}

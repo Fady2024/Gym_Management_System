@@ -240,6 +240,8 @@ void BookingWindow::setupUI()
     m_nextWeekButton = new QPushButton("--->", m_section1);
     m_weekRangeLabel = new QLabel(m_section1);
     m_prevWeekButton->setStyleSheet(weekButtonStyle);
+    m_prevWeekButton->setCursor(Qt::PointingHandCursor);
+    m_nextWeekButton->setCursor(Qt::PointingHandCursor);
     m_nextWeekButton->setStyleSheet(weekButtonStyle);
     m_weekRangeLabel->setStyleSheet(weekLabelStyle);
     weekNavLayout->addWidget(m_prevWeekButton);
@@ -414,7 +416,7 @@ void BookingWindow::setupUI()
     bookingsContainer->setObjectName("bookingsContainer");
     bookingsContainer->setStyleSheet(R"(
         QWidget#bookingsContainer {
-            background: rgba(255, 255, 255, 0.6);
+            background: rgba(0, 0, 0, 0.3);
             border-radius: 16px;
             border: 1px solid rgba(139, 92, 246, 0.2);
         }

@@ -1,43 +1,69 @@
-
 #include "Clock.h"
-#include "./Stylesheets/System/clockStyle.h"
-
-int hide_offset = 280;
-int show_offset = 150;
 
 ClockWidget::ClockWidget(QWidget* parent)
-    : QWidget(parent), m_hovered(false)
+    : QWidget(parent)
 {
-    
+    QHBoxLayout* mainLayout = new QHBoxLayout(this);
+
     setFixedSize(500, 60);
-    setAttribute(Qt::WA_Hover);
-    setAttribute(Qt::WA_AlwaysStackOnTop);
-    setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
-    setStyleSheet(clockStyle);
-    
+    this->setStyleSheet(clockStyle);
+
+    // Left buttons
+    QVBoxLayout* leftButtonsLayout = new QVBoxLayout(this);
+    leftButton1 = new QPushButton("<");
+    leftButton2 = new QPushButton("<<");
+    leftButton1->setFixedWidth(30);
+    leftButton2->setFixedWidth(30);
+    leftButton1->setStyleSheet(clockButtonStyle);
+    leftButton2->setStyleSheet(clockButtonStyle);
+    leftButton1->setCursor(Qt::PointingHandCursor);
+    leftButton2->setCursor(Qt::PointingHandCursor);
+    leftButtonsLayout->addWidget(leftButton1);
+    leftButtonsLayout->addWidget(leftButton2);
+
+
     clockLabel = new QLabel(this);
     clockLabel->setAlignment(Qt::AlignCenter);
-    clockLabel->setGeometry(0, 0, width(), height());
-    clockLabel->setStyleSheet("font-size: 18px;");
+    clockLabel->setStyleSheet(clockLabelStyle);
+
+    // Right buttons
+    QVBoxLayout* rightButtonsLayout = new QVBoxLayout(this);
+    rightButton1 = new QPushButton(">");
+    rightButton2 = new QPushButton(">>");
+    rightButton1->setFixedWidth(30);
+    rightButton2->setFixedWidth(30);
+    rightButton1->setStyleSheet(clockButtonStyle);
+    rightButton2->setStyleSheet(clockButtonStyle);
+    rightButton1->setCursor(Qt::PointingHandCursor);
+    rightButton2->setCursor(Qt::PointingHandCursor);
+    rightButtonsLayout->addWidget(rightButton1);
+    rightButtonsLayout->addWidget(rightButton2);
+
 
     updateTimer = new QTimer(this);
     connect(updateTimer, &QTimer::timeout, this, &ClockWidget::updateTime);
     updateTimer->start(100);
 
-    slideAnimation = new QPropertyAnimation(this, "pos");
-    slideAnimation->setDuration(300);
-    connect(slideAnimation, &QPropertyAnimation::valueChanged, this, [this]() {
-        if (m_hovered != underMouse()) {
-            m_hovered = underMouse();
-            if (m_hovered) slideIn();
-            else slideOut();
-        }
-        });
+    mainLayout->addLayout(leftButtonsLayout);
+    mainLayout->addWidget(clockLabel);
+    mainLayout->addLayout(rightButtonsLayout);
 
-    // Start hidden (only 50px visible)
-    m_hiddenPos = QPoint(parent->width() + hide_offset, (parent->height() - height()) / 2);
-    m_shownPos = QPoint(parent->width() - show_offset, (parent->height() - height()) / 2);
-    move(m_hiddenPos);
+
+    // Connect buttons to slots
+    connect(leftButton1, &QPushButton::clicked, this, [=]() {
+        timeLogicInstance.incrementDays(1);
+    });
+    connect(leftButton2, &QPushButton::clicked, this, [=]() {
+        timeLogicInstance.setMultiplier(timeLogicInstance.getMultiplier() - 5);
+    });
+    connect(rightButton1, &QPushButton::clicked, this, [=]() {
+        timeLogicInstance.setMultiplier(timeLogicInstance.getMultiplier() + 1);
+    });
+    connect(rightButton2, &QPushButton::clicked, this, [=]() {
+        timeLogicInstance.incrementDays(1);
+    });
+
+
 }
 void ClockWidget::updateTime()
 {
@@ -48,62 +74,3 @@ void ClockWidget::updateTime()
         );
 }
 
-void ClockWidget::showEvent(QShowEvent* event)
-{
-    QWidget::showEvent(event);
-    // Update positions in case parent size changed
-    m_hiddenPos = QPoint(parentWidget()->width() + hide_offset, (parentWidget()->height() - height()) / 2);
-    m_shownPos = QPoint(parentWidget()->width() - show_offset, (parentWidget()->height() - height()) / 2);
-    move(m_hiddenPos);
-}
-bool ClockWidget::event(QEvent* event)
-{
-    if (event->type() == QEvent::MouseMove) {
-        if (auto* mouseEvent = dynamic_cast<QMouseEvent*>(event)) {
-            m_hovered = rect().contains(mouseEvent->pos());
-            m_hovered ? slideIn() : slideOut();
-        }
-    }
-    else if (event->type() == QEvent::Enter) {
-        m_hovered = true;
-        slideIn();
-    }
-    else if (event->type() == QEvent::Leave) {
-        m_hovered = false;
-        slideOut();
-    }
-    return QWidget::event(event);
-}
-
-void ClockWidget::slideIn()
-{
-    if (slideAnimation->state() == QPropertyAnimation::Running)
-        slideAnimation->stop();
-
-    slideAnimation->setStartValue(pos());
-    slideAnimation->setEndValue(m_shownPos);
-    slideAnimation->start();
-}
-
-void ClockWidget::slideOut()
-{
-    if (slideAnimation->state() == QPropertyAnimation::Running)
-        slideAnimation->stop();
-
-    slideAnimation->setStartValue(pos());
-    slideAnimation->setEndValue(m_hiddenPos);
-    slideAnimation->start();
-}
-
-void ClockWidget::resizeEvent(QResizeEvent* event)
-{
-    QWidget::resizeEvent(event);
-    // Update positions when widget resizes
-    m_hiddenPos = QPoint(parentWidget()->width() + hide_offset, (parentWidget()->height() - height()) / 2);
-    m_shownPos = QPoint(parentWidget()->width() - show_offset, (parentWidget()->height() - height()) / 2);
-
-    if (m_hovered)
-        move(m_shownPos);
-    else
-        move(m_hiddenPos);
-}

@@ -17,7 +17,7 @@ TimeLogic::~TimeLogic() {
 void TimeLogic::incrementTime() {
     while (true) {
         this_thread::sleep_for(chrono::milliseconds(int(1000 / multiplier))); // Sleep based on speed multiplier
-		currentTime = currentTime.addDays(1);
+		currentTime = currentTime.addSecs(1);
         cout << currentTime.toString().toStdString() << endl; // Print formatted time
     }
 }
@@ -26,7 +26,13 @@ float TimeLogic::getMultiplier() {
 }
 // Function to set the speed multiplier
 void TimeLogic::setMultiplier(float newMultiplier) {
-    multiplier = newMultiplier;
+    if (newMultiplier > 0.0) {
+        multiplier = newMultiplier;
+    }
+    else multiplier = 1.0;
+}
+void TimeLogic::incrementDays(int i) {
+    currentTime = currentTime.addDays(i);
 }
 /*
 * Date components

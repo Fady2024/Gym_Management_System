@@ -17,6 +17,7 @@ public:
     TimeLogic();
     ~TimeLogic();
     float getMultiplier();
+    void incrementDays(int i);
     void setMultiplier(float newMultiplier);
     QDateTime getCurrentTime();
 	QString getFormattedTime();
