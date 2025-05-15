@@ -11,24 +11,17 @@
 #include <QFormLayout>
 #include <QLineEdit>
 #include <QSpinBox>
-#include <QDialogButtonBox>
 #include <QMessageBox>
 #include <QProgressBar>
 #include <QComboBox>
 #include <QDateEdit>
 #include <QGroupBox>
-#include <QHBoxLayout>
-
 #include "Widgets/Notifications/NotificationManager.h"
 
 AvailableClassesScreen::AvailableClassesScreen(ClassDataManager* dataManager, QWidget *parent)
-    : QWidget(parent), classDataManager(dataManager)
+    : QWidget(parent), classDataManager(dataManager), userDataManager(nullptr), memberDataManager(nullptr),
+      isDarkTheme(true)
 {
-    //dummy current user
-    currentUser = User("Alice Example", "alice@example.com", "passw0rd", ":/avatars/alice.png", QDate(1995,6,1));
-    currentUser.setId(1);
-    currentMember = Member(1, currentUser.getId(), -1);
-
     setupCoaches();
     setupUI();
     refreshClasses();
@@ -36,6 +29,84 @@ AvailableClassesScreen::AvailableClassesScreen(ClassDataManager* dataManager, QW
 }
 
 AvailableClassesScreen::~AvailableClassesScreen() = default;
+
+void AvailableClassesScreen::setCurrentUserEmail(const QString& email)
+{
+    currentUserEmail = email;
+    loadUserData();
+}
+
+void AvailableClassesScreen::setUserDataManager(UserDataManager* manager)
+{
+    userDataManager = manager;
+    if (!currentUserEmail.isEmpty() && userDataManager) {
+        loadUserData();
+    }
+}
+
+void AvailableClassesScreen::setMemberDataManager(MemberDataManager* manager)
+{
+    memberDataManager = manager;
+    if (!currentUserEmail.isEmpty() && userDataManager && memberDataManager) {
+        loadUserData();
+    }
+}
+
+void AvailableClassesScreen::loadUserData()
+{
+    if (currentUserEmail.isEmpty() || !userDataManager) {
+        return;
+    }
+    currentUser = userDataManager->getUserData(currentUserEmail);
+
+    if (currentUser.getId() <= 0) {
+        return;
+    }
+    
+    if (userNameLabel) {
+        userNameLabel->setText(QString("Hello, %1!").arg(currentUser.getName()));
+    }
+    
+    if (memberDataManager) {
+        bool isMember = memberDataManager->userIsMember(currentUser.getId());
+        if (isMember) {
+            int memberId = memberDataManager->getMemberIdByUserId(currentUser.getId());
+            currentMember = memberDataManager->getMemberById(memberId);
+        } else {
+            currentMember = Member(0, currentUser.getId(), -1);
+        }
+    }
+
+    updateTheme(isDarkTheme);
+    refreshClasses();
+}
+
+void AvailableClassesScreen::updateTheme(bool isDark)
+{
+    isDarkTheme = isDark;
+    
+    // Update text color based on theme
+    QString userNameColor = isDark ? "#FFFFFF" : "#333333";
+    QString enrolledClassColor = isDark ? "#AAAAAA" : "#555555";
+    
+    if (userNameLabel) {
+        userNameLabel->setStyleSheet(QString("font-size:20px; font-weight:bold; color:%1;").arg(userNameColor));
+    }
+    
+    if (enrolledClassesLabel) {
+        enrolledClassesLabel->setStyleSheet(QString("color:%1;").arg(enrolledClassColor));
+    }
+
+    QString coachTitleColor = isDark ? "#A78CF6" : "#6647D8";
+    QString groupBoxStyle = QString(
+        "QGroupBox { font-size:18px; font-weight:bold; border:none; margin-top:15px; }"
+        "QGroupBox::title { subcontrol-origin:margin; left:10px; padding:0 5px; color:%1; }"
+    ).arg(coachTitleColor);
+    QList<QGroupBox*> groupBoxes = findChildren<QGroupBox*>();
+    for (QGroupBox* box : groupBoxes) {
+        box->setStyleSheet(groupBoxStyle);
+    }
+}
 
 void AvailableClassesScreen::setupCoaches()
 {
@@ -79,6 +150,13 @@ void AvailableClassesScreen::setupUI()
 
 void AvailableClassesScreen::refreshClasses()
 {
+    if (currentUser.getId() <= 0) {
+        if (enrolledClassesLabel) {
+            enrolledClassesLabel->setText("Please log in to view your classes.");
+        }
+        return;
+    }
+
     auto all = classDataManager->getAllClasses();
     QStringList names;
     for (auto &c : all) {
@@ -88,17 +166,21 @@ void AvailableClassesScreen::refreshClasses()
             names << c.getClassName();
         }
     }
-    if (names.isEmpty())
-        enrolledClassesLabel->setText("You’re not enrolled in any classes yet.");
-    else
+    
+    if (names.isEmpty()) {
+        enrolledClassesLabel->setText("You're not enrolled in any classes yet.");
+    } else {
         enrolledClassesLabel->setText(QString("Your classes: %1").arg(names.join(", ")));
+    }
 
-    delete scrollArea->widget();
+    if (scrollArea && scrollArea->widget()) {
+        delete scrollArea->widget();
+    }
+    
     scrollWidget = new QWidget;
     QVBoxLayout* scrollLayout = new QVBoxLayout(scrollWidget);
     scrollLayout->setAlignment(Qt::AlignTop);
     scrollLayout->setSpacing(30);
-
 
     QMap<QString,QVector<Class>> byCoach;
     for (auto &c : all) byCoach[c.getCoachName()].append(c);
@@ -108,10 +190,12 @@ void AvailableClassesScreen::refreshClasses()
         if (classesFor.isEmpty()) continue;
 
         QGroupBox* group = new QGroupBox(coach.getName());
-        group->setStyleSheet(
+        QString groupBoxStyle = QString(
             "QGroupBox { font-size:18px; font-weight:bold; border:none; margin-top:15px; }"
-            "QGroupBox::title { subcontrol-origin:margin; left:10px; padding:0 5px; color:#6647D8; }"
-        );
+            "QGroupBox::title { subcontrol-origin:margin; left:10px; padding:0 5px; color:%1; }"
+        ).arg(isDarkTheme ? "#A78CF6" : "#6647D8");
+        
+        group->setStyleSheet(groupBoxStyle);
         QVBoxLayout* glay = new QVBoxLayout(group);
         glay->setContentsMargins(10,25,10,10);
         glay->setSpacing(20);
@@ -317,7 +401,7 @@ void AvailableClassesScreen::handleWaitlist(int classId)
         QString className = classDataManager->getClassById(classId).getClassName();
         NotificationManager::instance().showNotification(
             tr("Waitlist"),
-            tr("You’ve been added to the waitlist for \"%1\".").arg(className),
+            tr("You've been added to the waitlist for \"%1\".").arg(className),
             nullptr,
             NotificationType::Success
         );

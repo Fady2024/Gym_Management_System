@@ -3,15 +3,14 @@
 #ifndef AVAILABLECLASSESSCREEN_H
 #define AVAILABLECLASSESSCREEN_H
 
-#include <QWidget>
-#include <QVector>
-#include <QSet>
 #include <QStackedWidget>
 #include "classdatamanager.h"
 #include "../../../Model/Gym/staff.h"
 #include "../../../Model/System/user.h"
 #include "../../../Model/Gym/member.h"
 #include "../UI/leftsidebar.h"
+#include "../../../DataManager/userdatamanager.h"
+#include "../../../DataManager/memberdatamanager.h"
 
 class QGridLayout;
 class QPushButton;
@@ -26,11 +25,17 @@ class AvailableClassesScreen : public QWidget
 public:
     explicit AvailableClassesScreen(ClassDataManager* dataManager, QWidget *parent = nullptr);
     ~AvailableClassesScreen();
+    void setCurrentUserEmail(const QString& email);
+    void setUserDataManager(UserDataManager* manager);
+    void setMemberDataManager(MemberDataManager* manager);
+    void updateTheme(bool isDark);
+
 private slots:
     void handleEnrollment(int classId);
     void handleUnenroll(int classId);
     void handleWaitlist(int classId);
     void showAddClassDialog();
+    void loadUserData();
 
 private:
     void setupUI();
@@ -45,6 +50,8 @@ private:
 
     QStackedWidget*    contentStack;
     ClassDataManager*  classDataManager;
+    UserDataManager*   userDataManager;
+    MemberDataManager* memberDataManager;
     QScrollArea*       scrollArea;
     QWidget*           scrollWidget;
     QPushButton*       addClassButton;
@@ -58,8 +65,10 @@ private:
     User               currentUser;
     Member             currentMember;
     QSet<int>          enrolledClassIds;
+    QString            currentUserEmail;
 
     LeftSidebar*       leftSidebar;
+    bool               isDarkTheme;
 };
 
 #endif
