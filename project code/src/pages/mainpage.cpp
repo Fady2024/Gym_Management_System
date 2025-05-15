@@ -406,6 +406,11 @@ void MainPage::handleNutritionPage() const
 {
     stackedWidget->setCurrentWidget(nutritionPage);
     updateButtonStates(nutritionButton);
+    if (nutritionPage && !currentUserEmail.isEmpty()) {
+        nutritionPage->setUserDataManager(userDataManager);
+        nutritionPage->setMemberDataManager(memberDataManager);
+        nutritionPage->setCurrentUserEmail(currentUserEmail);
+    }
 }
 
 void MainPage::handleProfilePage() const
@@ -439,6 +444,7 @@ void MainPage::updateTheme(bool isDark)
 
     homePage->updateTheme(isDark);
     workoutPage->updateTheme(isDark);
+    nutritionPage->updateTheme(isDark);
     settingsPage->updateTheme(isDark);
 }
 
