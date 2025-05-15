@@ -1,58 +1,69 @@
 #include "timeLogic.h"
+#include <QDebug>
+#include <QThread>
 
-using namespace std;
-
-// Constructor: starts the background thread to increment time  
-TimeLogic::TimeLogic() {  
-   currentTime = QDateTime::currentDateTime();
-   multiplier = 1.0;  
-   timeThread = thread(&TimeLogic::incrementTime, this); // Creates a thread running incrementTime in this object  
+TimeLogic::TimeLogic()
+    : multiplier(1.0f), paused(false), running(true) {
+    currentTime = QDateTime::currentDateTime();
+    start();  // Start the thread
 }
 
 TimeLogic::~TimeLogic() {
-    if (timeThread.joinable()) {
-        timeThread.join(); // Ensure clean shutdown
+    {
+        QMutexLocker locker(&mutex);
+        running = false;
+        paused = false;
+    }
+    pauseCond.wakeAll(); // In case it's paused
+    wait(); // Wait for thread to finish
+}
+
+void TimeLogic::run() {
+    while (true) {
+        {
+            QMutexLocker locker(&mutex);
+            if (!running)
+                break;
+            if (paused)
+                pauseCond.wait(&mutex);
+        }
+
+        QThread::msleep(static_cast<unsigned long>(1000.0 / multiplier));
+
+        {
+            QMutexLocker locker(&mutex);
+            currentTime = currentTime.addSecs(1);
+            qDebug() << currentTime.toString("ddd MMM dd hh:mm:ss yyyy");
+        }
     }
 }
-void TimeLogic::incrementTime() {
-    while (true) {
-        this_thread::sleep_for(chrono::milliseconds(int(1000 / multiplier))); // Sleep based on speed multiplier
-		currentTime = currentTime.addSecs(1);
-        cout << currentTime.toString().toStdString() << endl; // Print formatted time
-    }
+
+void TimeLogic::pauseTime() {
+    QMutexLocker locker(&mutex);
+    paused = !paused;
+    if (!paused)
+        pauseCond.wakeAll();
+}
+
+void TimeLogic::setMultiplier(float m) {
+    QMutexLocker locker(&mutex);
+    multiplier = (m > 0.0f) ? m : 1.0f;
 }
 float TimeLogic::getMultiplier() {
     return multiplier;
 }
-// Function to set the speed multiplier
-void TimeLogic::setMultiplier(float newMultiplier) {
-    if (newMultiplier > 0.0) {
-        multiplier = newMultiplier;
-    }
-    else multiplier = 1.0;
-}
 void TimeLogic::incrementDays(int i) {
+    QMutexLocker locker(&mutex);
     currentTime = currentTime.addDays(i);
 }
-/*
-* Date components
-    int year       = getCurrentTime().date().year();        // e.g., 2025
-    int month      = getCurrentTime().date().month();       // [1, 12]
-    int day        = getCurrentTime().date().day();         // [1, 31]
-    int dayOfWeek  = getCurrentTime().date().dayOfWeek();   // [1, 7] (Monday = 1)
-    int dayOfYear  = getCurrentTime().date().dayOfYear();   // [1, 365 or 366]
 
-* Time components
-    int hour       = getCurrentTime().time().hour();        // [0, 23]
-    int minute     = getCurrentTime().time().minute();      // [0, 59]
-    int second     = getCurrentTime().time().second();      // [0, 59]
-    int msec       = getCurrentTime().time().msec();        // [0, 999]
-*/
 QDateTime TimeLogic::getCurrentTime() {
+    QMutexLocker locker(&mutex);
     return currentTime;
 }
-// Format: "Wed Oct 04 14:48:00 2023"
+
 QString TimeLogic::getFormattedTime() {
-	return currentTime.toString("ddd MMM dd hh:mm:ss yyyy");
+    QMutexLocker locker(&mutex);
+    return currentTime.toString("ddd MMM dd hh:mm:ss yyyy");
 }
-TimeLogic timeLogicInstance; // Global instance of TimeLogic
+TimeLogic timeLogicInstance;

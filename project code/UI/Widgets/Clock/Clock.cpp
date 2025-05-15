@@ -10,8 +10,8 @@ ClockWidget::ClockWidget(QWidget* parent)
 
     // Left buttons
     QVBoxLayout* leftButtonsLayout = new QVBoxLayout(this);
-    leftButton1 = new QPushButton("<");
-    leftButton2 = new QPushButton("<<");
+    leftButton1 = new QPushButton("ǁǁ");
+    leftButton2 = new QPushButton("⏴");
     leftButton1->setFixedWidth(30);
     leftButton2->setFixedWidth(30);
     leftButton1->setStyleSheet(clockButtonStyle);
@@ -28,8 +28,8 @@ ClockWidget::ClockWidget(QWidget* parent)
 
     // Right buttons
     QVBoxLayout* rightButtonsLayout = new QVBoxLayout(this);
-    rightButton1 = new QPushButton(">");
-    rightButton2 = new QPushButton(">>");
+    rightButton1 = new QPushButton("»");
+    rightButton2 = new QPushButton("⏵");
     rightButton1->setFixedWidth(30);
     rightButton2->setFixedWidth(30);
     rightButton1->setStyleSheet(clockButtonStyle);
@@ -51,16 +51,16 @@ ClockWidget::ClockWidget(QWidget* parent)
 
     // Connect buttons to slots
     connect(leftButton1, &QPushButton::clicked, this, [=]() {
-        timeLogicInstance.incrementDays(1);
+        timeLogicInstance.pauseTime();
     });
     connect(leftButton2, &QPushButton::clicked, this, [=]() {
-        timeLogicInstance.setMultiplier(timeLogicInstance.getMultiplier() - 5);
+        timeLogicInstance.setMultiplier(timeLogicInstance.getMultiplier() - 1);
     });
     connect(rightButton1, &QPushButton::clicked, this, [=]() {
-        timeLogicInstance.setMultiplier(timeLogicInstance.getMultiplier() + 1);
+        timeLogicInstance.incrementDays(1);
     });
     connect(rightButton2, &QPushButton::clicked, this, [=]() {
-        timeLogicInstance.incrementDays(1);
+        timeLogicInstance.setMultiplier(timeLogicInstance.getMultiplier() + 1);
     });
 
 

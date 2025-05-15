@@ -20,6 +20,8 @@
 #include <QLineEdit>
 #include <QFormLayout>
 
+#include "addmemberpage.h"
+
 class RetrievePage : public QWidget
 {
     Q_OBJECT
@@ -46,6 +48,8 @@ private:
     QWidget* customContent;
     bool isDarkTheme;
     int currentUserId;
+
+    AddMemberPage* addMemberPage;
 };
 
 #endif // RETRIEVEPAGE_H

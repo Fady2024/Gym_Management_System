@@ -36,7 +36,8 @@ void RetrievePage::setupUI()
 
     // Sidebar
     leftSidebar = new LeftSidebar(this);
-    leftSidebar->addButton(":/Images/custom.png", tr("Custom"), "custom");
+    leftSidebar->addButton(":/Images/member-search.png", tr("Retrieve Members"), "custom");
+    leftSidebar->addButton(":/Images/add-member.png", tr("Add Members"), "add-member");
     connect(leftSidebar, &LeftSidebar::pageChanged, this, &RetrievePage::handlePageChange);
 
     contentStack = new QStackedWidget;
@@ -62,9 +63,10 @@ void RetrievePage::setupUI()
     cardContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     cardContainer->setStyleSheet(R"(
         QWidget#cardContainer {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 24px;
-            border: 1px solid rgba(0, 0, 0, 0.1);
+            background-color: rgba(139, 92, 246, 0.05); /* Soft lavender */
+            border-radius: 20px;
+            padding: 16px;
+            border: 1px solid #BFAEF5; /* Muted lavender */
         }
     )");
 
@@ -122,6 +124,8 @@ void RetrievePage::setupUI()
     leftSidebar->setActiveButton("custom");
     handlePageChange("custom");
 
+    //leftSideBar Pages
+    addMemberPage = new AddMemberPage(userDataManager, memberManager, this);
     // Connect search
     connect(searchEdit, &QLineEdit::textChanged, this, &RetrievePage::populateTable);
     populateTable(); // Populate initially with all members
@@ -304,5 +308,8 @@ void RetrievePage::handlePageChange(const QString& pageId)
     if (pageId == "custom") {
         contentStack->setCurrentWidget(customContent);
         populateTable();
+    }
+    if (pageId == "add-member") {
+        contentStack->setCurrentWidget(addMemberPage);
     }
 }

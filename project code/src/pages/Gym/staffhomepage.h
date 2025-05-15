@@ -11,6 +11,7 @@
 #include "../DataManager/classdatamanager.h"
 #include "../DataManager/padeldatamanager.h"
 #include "homepage.h"
+#include "Widgets/Clock/Clock.h"
 #include "settingspage.h"
 #include "../staff/addmemberpage.h"
 #include "../staff/retrievepage.h"
@@ -91,6 +92,8 @@ private:
     QLabel* titleLabel;
     QScrollArea* scrollArea;
     LanguageSelector* languageSelector;
+
+    ClockWidget* clockWidget;
 };
 
 #endif // STAFFHOMEPAGE_H 

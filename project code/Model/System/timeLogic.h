@@ -5,20 +5,30 @@
 #include <atomic>
 #include <chrono>
 #include <iostream>
+#include <QMutex>
+#include <QWaitCondition>
 #include <QDateTime>
+#include <QThread>
 using namespace std;
-class TimeLogic {
+class TimeLogic : public QThread {
+    Q_OBJECT
+
 private:
     QDateTime currentTime;
     float multiplier;
-    thread timeThread;
-    void incrementTime();
+    bool paused;
+    bool running;
+    QMutex mutex;
+    QWaitCondition pauseCond;
+
+    void run() override;
 public:
     TimeLogic();
     ~TimeLogic();
+    void pauseTime();
     float getMultiplier();
-    void incrementDays(int i);
     void setMultiplier(float newMultiplier);
+    void incrementDays(int i);
     QDateTime getCurrentTime();
 	QString getFormattedTime();
 };

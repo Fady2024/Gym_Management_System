@@ -176,7 +176,7 @@ void MainPage::setupUI()
     navButtonsLayout->addWidget(nutritionButton);
     navButtonsLayout->addWidget(profileButton);
     navButtonsLayout->addWidget(settingsButton);
-    navButtonsLayout->addSpacing(120);
+    navButtonsLayout->addStretch();
     navButtonsLayout->addWidget(clockWidget);
 
     scrollArea->setWidget(navButtonsContainer);

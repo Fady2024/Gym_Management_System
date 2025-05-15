@@ -149,6 +149,7 @@ void StaffHomePage::setupUI()
         button->setStyleSheet(normalButtonStyle);
         return button;
         };
+    clockWidget = new ClockWidget();
 
     homeButton = createNavButton(tr("Home"), "🏠");
     addMemberButton = createNavButton(tr("Add Member"), "💪");
@@ -168,6 +169,8 @@ void StaffHomePage::setupUI()
     navButtonsLayout->addWidget(retrieveButton);
     navButtonsLayout->addWidget(searchMemberButton);
     navButtonsLayout->addWidget(settingsButton);
+    navButtonsLayout->addStretch(1);
+    navButtonsLayout->addWidget(clockWidget);
 
     scrollArea->setWidget(navButtonsContainer);
 

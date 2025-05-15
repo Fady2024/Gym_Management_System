@@ -45,6 +45,8 @@
         <file>Images/de.png</file>
         <file>Images/muscle.png</file>
         <file>Images/whistle.png</file>
+        <file>Images/add-member.png</file>
+        <file>Images/member-search.png</file>
         <file>translations/fitflexpro_en.qm</file>
         <file>translations/fitflexpro_fr.qm</file>
         <file>translations/fitflexpro_de.qm</file>

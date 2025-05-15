@@ -18,7 +18,7 @@ font-weight: bold;
 inline QString clockButtonStyle = R"(
 QPushButton {
     background-color: transparent;
-    color: rgba(98, 38, 182, 0.8);
+    color: rgba(191, 174, 245, 0.8);
     border: none;
     font-size: 15px;
     border-radius: 12px;
