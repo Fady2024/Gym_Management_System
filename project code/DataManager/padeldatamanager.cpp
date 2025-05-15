@@ -773,6 +773,22 @@ QVector<Booking> PadelDataManager::getBookingsByDate(const QDate& date) const {
     return result;
 }
 
+QVector<Booking> PadelDataManager::getBookingsForTimeSlot(int courtId, const QDateTime& startTime, const QDateTime& endTime) {
+    QMutexLocker locker(&mutex);
+    QVector<Booking> results;
+
+    for (const auto& pair : bookingsById) {
+        const Booking& b = pair.second;
+        if (!b.isCancelled() &&
+            b.getCourtId() == courtId &&
+            b.getStartTime() < endTime &&
+            b.getEndTime() > startTime) {
+            results.append(b);
+        }
+    }
+    return results;
+}
+
 bool PadelDataManager::isCourtAvailable(int courtId, const QDateTime& startTime,
                                       const QDateTime& endTime) const {
     QMutexLocker locker(&mutex);

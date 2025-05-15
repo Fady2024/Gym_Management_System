@@ -9,6 +9,8 @@
 #include <QVector>
 #include <QHeaderView>
 #include <QDebug>
+#include <QLineEdit>
+#include <QFormLayout>
 
 RetrievePage::RetrievePage(UserDataManager* userDataManager, MemberDataManager* memberManager, QWidget* parent)
     : QWidget(parent)
@@ -20,6 +22,8 @@ RetrievePage::RetrievePage(UserDataManager* userDataManager, MemberDataManager* 
     , customContent(nullptr)
     , isDarkTheme(false)
     , currentUserId(0)
+    , searchEdit(nullptr)
+    , tableWidget(nullptr)
 {
     setupUI();
 }
@@ -30,23 +34,20 @@ void RetrievePage::setupUI()
     mainLayout->setSpacing(0);
     mainLayout->setContentsMargins(0, 0, 0, 0);
 
-    // Create and setup left sidebar
+    // Sidebar
     leftSidebar = new LeftSidebar(this);
     leftSidebar->addButton(":/Images/custom.png", tr("Custom"), "custom");
     connect(leftSidebar, &LeftSidebar::pageChanged, this, &RetrievePage::handlePageChange);
 
-    // Content area
     contentStack = new QStackedWidget;
     contentStack->setStyleSheet("QStackedWidget { background: transparent; }");
 
-    // Custom content
     customContent = new QWidget;
     QVBoxLayout* customLayout = new QVBoxLayout(customContent);
     customLayout->setSpacing(0);
     customLayout->setContentsMargins(0, 0, 0, 0);
     customLayout->setAlignment(Qt::AlignCenter);
 
-    // Create a container widget for centering
     QWidget* centerContainer = new QWidget;
     centerContainer->setStyleSheet("background: transparent;");
     QVBoxLayout* centerLayout = new QVBoxLayout(centerContainer);
@@ -54,7 +55,6 @@ void RetrievePage::setupUI()
     centerLayout->setContentsMargins(24, 24, 24, 24);
     centerLayout->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
 
-    // Card container setup
     QWidget* cardContainer = new QWidget;
     cardContainer->setObjectName("cardContainer");
     cardContainer->setMinimumWidth(480);
@@ -73,11 +73,23 @@ void RetrievePage::setupUI()
     cardLayout->setContentsMargins(32, 32, 32, 32);
     cardLayout->setAlignment(Qt::AlignHCenter);
 
-    // Add table widget for QVector display
-    QTableWidget* tableWidget = new QTableWidget;
+    // Search bar
+    searchEdit = new QLineEdit;
+    searchEdit->setPlaceholderText("Search by name or email...");
+    searchEdit->setClearButtonEnabled(true);
+    searchEdit->setStyleSheet("padding: 8px; font-size: 16px; color: #111827;");
+    cardLayout->addWidget(searchEdit);
+
+    // Table setup
+    tableWidget = new QTableWidget;
     tableWidget->setObjectName("dataTable");
-    tableWidget->setMinimumSize(400, 200); // Ensure table is visible
+    tableWidget->setMinimumSize(400, 200);
     tableWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    tableWidget->setColumnCount(4);
+    tableWidget->setHorizontalHeaderLabels({ tr("ID"), tr("Name"), tr("Email"), tr("ClassId") });
+    tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    tableWidget->verticalHeader()->setVisible(false);
+    tableWidget->setShowGrid(true);
     tableWidget->setStyleSheet(QString(R"(
         QTableWidget {
             background: transparent;
@@ -99,65 +111,71 @@ void RetrievePage::setupUI()
     isDarkTheme ? "#4B5563" : "#D1D5DB",
     isDarkTheme ? "rgba(55, 65, 81, 0.95)" : "rgba(229, 231, 235, 0.95)"));
 
-    // Setup table columns
-    tableWidget->setColumnCount(2);
-    tableWidget->setHorizontalHeaderLabels({ tr("Index"), tr("Value") });
-    tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    tableWidget->verticalHeader()->setVisible(false);
-    tableWidget->setShowGrid(true);
-
-    QVector<Member> members = memberManager->getAllMembers();
-
-    if (members.isEmpty()) {
-        tableWidget->setRowCount(1);
-        tableWidget->setItem(0, 0, new QTableWidgetItem("-"));
-        tableWidget->setItem(0, 1, new QTableWidgetItem("No data"));
-        tableWidget->setItem(0, 2, new QTableWidgetItem("-"));
-    }
-    else {
-        tableWidget->setColumnCount(4);
-        tableWidget->setHorizontalHeaderLabels({ tr("ID"), tr("Name"),tr("Email"), tr("ClassId")});
-        tableWidget->setRowCount(members.size());
-        for (int i = 0; i < members.size(); ++i) {
-            const Member& m = members[i];
-
-            const User &u = userDataManager->getUserDataById(members[i].getUserId());
-            QTableWidgetItem* idItem = new QTableWidgetItem(QString::number(m.getId()));
-            QTableWidgetItem* nameItem = new QTableWidgetItem(u.getName());
-            QTableWidgetItem* emailItem = new QTableWidgetItem(u.getEmail());
-            QTableWidgetItem* classIdItem = new QTableWidgetItem(QString::number(m.getClassId()));
-
-            idItem->setTextAlignment(Qt::AlignCenter);
-            nameItem->setTextAlignment(Qt::AlignCenter);
-            emailItem->setTextAlignment(Qt::AlignCenter);
-            classIdItem->setTextAlignment(Qt::AlignCenter);
-
-            tableWidget->setItem(i, 0, idItem);
-            tableWidget->setItem(i, 1, nameItem);
-            tableWidget->setItem(i, 2, emailItem);
-            tableWidget->setItem(i, 3, classIdItem);
-        }
-    }
-
-
-    // Debug output to verify population
-    //qDebug() << "Table populated with" << data.size() << "rows";
-
     cardLayout->addWidget(tableWidget);
     centerLayout->addWidget(cardContainer);
     customLayout->addWidget(centerContainer);
-
     contentStack->addWidget(customContent);
 
-    // Add widgets to main layout
     mainLayout->addWidget(leftSidebar);
-    mainLayout->addWidget(contentStack, 1); // Stretch content area
+    mainLayout->addWidget(contentStack, 1);
 
-    // Initialize with custom tab
     leftSidebar->setActiveButton("custom");
     handlePageChange("custom");
+
+    // Connect search
+    connect(searchEdit, &QLineEdit::textChanged, this, &RetrievePage::populateTable);
+    populateTable(); // Populate initially with all members
 }
 
+void RetrievePage::populateTable(const QString& filter)
+{
+    QVector<Member> allMembers = memberManager->getAllMembers();
+    QVector<Member> filteredMembers;
+
+    if (filter.trimmed().isEmpty()) {
+        filteredMembers = allMembers;
+    }
+    else {
+        for (const Member& m : allMembers) {
+            const User& u = userDataManager->getUserDataById(m.getUserId());
+            if (u.getName().contains(filter, Qt::CaseInsensitive) ||
+                u.getEmail().contains(filter, Qt::CaseInsensitive)) {
+                filteredMembers.append(m);
+            }
+        }
+    }
+
+    tableWidget->clearContents();
+    tableWidget->setRowCount(filteredMembers.isEmpty() ? 1 : filteredMembers.size());
+
+    if (filteredMembers.isEmpty()) {
+        tableWidget->setItem(0, 0, new QTableWidgetItem("-"));
+        tableWidget->setItem(0, 1, new QTableWidgetItem("No data"));
+        tableWidget->setItem(0, 2, new QTableWidgetItem("-"));
+        tableWidget->setItem(0, 3, new QTableWidgetItem("-"));
+        return;
+    }
+
+    for (int i = 0; i < filteredMembers.size(); ++i) {
+        const Member& m = filteredMembers[i];
+        const User& u = userDataManager->getUserDataById(m.getUserId());
+
+        QTableWidgetItem* idItem = new QTableWidgetItem(QString::number(m.getId()));
+        QTableWidgetItem* nameItem = new QTableWidgetItem(u.getName());
+        QTableWidgetItem* emailItem = new QTableWidgetItem(u.getEmail());
+        QTableWidgetItem* classIdItem = new QTableWidgetItem(QString::number(m.getClassId()));
+
+        idItem->setTextAlignment(Qt::AlignCenter);
+        nameItem->setTextAlignment(Qt::AlignCenter);
+        emailItem->setTextAlignment(Qt::AlignCenter);
+        classIdItem->setTextAlignment(Qt::AlignCenter);
+
+        tableWidget->setItem(i, 0, idItem);
+        tableWidget->setItem(i, 1, nameItem);
+        tableWidget->setItem(i, 2, emailItem);
+        tableWidget->setItem(i, 3, classIdItem);
+    }
+}
 void RetrievePage::showMessageDialog(const QString& message, bool isError)
 {
     QDialog* dialog = new QDialog(this);
@@ -239,13 +257,6 @@ void RetrievePage::showMessageDialog(const QString& message, bool isError)
     dialog->deleteLater();
 }
 
-void RetrievePage::handlePageChange(const QString& pageId)
-{
-    if (pageId == "custom") {
-        contentStack->setCurrentWidget(customContent);
-    }
-}
-
 void RetrievePage::updateTheme(bool isDark)
 {
     isDarkTheme = isDark;
@@ -286,5 +297,12 @@ void RetrievePage::updateTheme(bool isDark)
         )").arg(isDark ? "#F9FAFB" : "#111827",
     isDark ? "#4B5563" : "#D1D5DB",
     isDark ? "rgba(55, 65, 81, 0.95)" : "rgba(229, 231, 235, 0.95)"));
+    }
+}
+void RetrievePage::handlePageChange(const QString& pageId)
+{
+    if (pageId == "custom") {
+        contentStack->setCurrentWidget(customContent);
+        populateTable();
     }
 }
