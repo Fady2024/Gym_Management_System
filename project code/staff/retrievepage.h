@@ -7,6 +7,18 @@
 #include "LeftSidebar.h"
 #include "UserDataManager.h"
 #include "MemberDataManager.h"
+#include <QVBoxLayout>
+#include <QLabel>
+#include <QDialog>
+#include <QPropertyAnimation>
+#include <QGraphicsOpacityEffect>
+#include <QTimer>
+#include <QTableWidget>
+#include <QVector>
+#include <QHeaderView>
+#include <QDebug>
+#include <QLineEdit>
+#include <QFormLayout>
 
 class RetrievePage : public QWidget
 {
@@ -22,7 +34,10 @@ private slots:
 private:
     void setupUI();
     void showMessageDialog(const QString& message, bool isError = false);
+    void populateTable(const QString& filter = QString());
 
+    QLineEdit* searchEdit;
+    QTableWidget* tableWidget;
     UserDataManager* userDataManager;
     MemberDataManager* memberManager;
     QHBoxLayout* mainLayout;
