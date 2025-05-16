@@ -17,6 +17,7 @@
 #include <QDateEdit>
 #include <QGroupBox>
 #include <QRandomGenerator>
+#include <QTimer>
 
 #include "Widgets/Notifications/NotificationManager.h"
 #include "Widgets/WorkoutProgressPage.h"
@@ -25,17 +26,63 @@ AvailableClassesScreen::AvailableClassesScreen(ClassDataManager* dataManager, QW
     : QWidget(parent), classDataManager(dataManager), userDataManager(nullptr), memberDataManager(nullptr),
       workoutManager(nullptr), isDarkTheme(true)
 {
+    std::cout << "\n=== AvailableClassesScreen Constructor Start ===" << std::endl;
     qDebug() << "Initializing AvailableClassesScreen";
-    setupCoaches();
-    setupUI();
     
-    // Explicitly ensure we're showing the classes page
-    if (contentStack) {
-        qDebug() << "Setting initial page to Classes";
-        contentStack->setCurrentIndex(0);  // Force classes page
-        leftSidebar->setActiveButton("classes");
-        refreshClasses();
+    if (!dataManager) {
+        std::cout << "Warning: classDataManager is null!" << std::endl;
     }
+    
+    setupCoaches();
+    std::cout << "Coaches setup completed" << std::endl;
+    
+    setupUI();
+    std::cout << "UI setup completed" << std::endl;
+
+    // Check content stack index immediately after UI setup
+    std::cout << "Initial content stack index after UI setup: " << contentStack->currentIndex() << std::endl;
+    std::cout << "Current widget class name: " << contentStack->currentWidget()->metaObject()->className() << std::endl;
+    
+    // Explicitly ensure we're showing the classes page AFTER UI setup
+    QTimer::singleShot(0, this, [this]() {
+        std::cout << "\n=== Delayed Initialization Start ===" << std::endl;
+        qDebug() << "Delayed initialization - forcing classes page";
+        
+        // Force a complete rebuild of the classes page
+        std::cout << "Creating new classes widget" << std::endl;
+        QWidget* classesWidget = ClassesContent();
+        
+        std::cout << "Removing old classes widget" << std::endl;
+        QWidget* oldClassesWidget = contentStack->widget(0);
+        contentStack->removeWidget(oldClassesWidget);
+        oldClassesWidget->deleteLater();
+        
+        std::cout << "Inserting new classes widget" << std::endl;
+        contentStack->insertWidget(0, classesWidget);
+        
+        std::cout << "Setting current index to 0" << std::endl;
+        contentStack->setCurrentIndex(0);  // Force classes page
+        
+        std::cout << "Setting active button to classes" << std::endl;
+        leftSidebar->setActiveButton("classes");
+        
+        if (contentStack->currentWidget()) {
+            std::cout << "Updating current widget" << std::endl;
+            contentStack->currentWidget()->update();
+        }
+        
+        std::cout << "Refreshing classes" << std::endl;
+        refreshClasses();
+        
+        std::cout << "Final update" << std::endl;
+        update();
+        
+        std::cout << "Final content stack index: " << contentStack->currentIndex() << std::endl;
+        std::cout << "Final widget class name: " << contentStack->currentWidget()->metaObject()->className() << std::endl;
+        std::cout << "=== Delayed Initialization Complete ===\n" << std::endl;
+    });
+    
+    std::cout << "=== AvailableClassesScreen Constructor Complete ===\n" << std::endl;
 }
 
 AvailableClassesScreen::~AvailableClassesScreen() = default;
@@ -182,12 +229,14 @@ void AvailableClassesScreen::setupCoaches()
 
 void AvailableClassesScreen::setupUI()
 {
+    std::cout << "\n=== Starting setupUI ===" << std::endl;
     qDebug() << "Setting up UI";
-    
+
     //main horizontal layout (leftsidebar + contentStack)
     mainHLayout = new QHBoxLayout(this);
     mainHLayout->setContentsMargins(0, 0, 0, 0);
     mainHLayout->setSpacing(0);
+    std::cout << "Main layout created" << std::endl;
 
     //create and define sidebar buttons (also it's initial theme)
     leftSidebar = new LeftSidebar();
@@ -196,30 +245,54 @@ void AvailableClassesScreen::setupUI()
     leftSidebar->addButton(":/Images/team.png", "Add Class", "add-classes");
     leftSidebar->updateTheme(true);
     mainHLayout->addWidget(leftSidebar);
-    
-    // Create content stack and add pages in correct order
+    std::cout << "Sidebar created and buttons added" << std::endl;
+
+    // Create content stack
     contentStack = new QStackedWidget();
+    std::cout << "Content stack created" << std::endl;
     
-    // Create and add pages in specific order
+    // Create pages first
+    std::cout << "Creating pages:" << std::endl;
+    std::cout << "1. Creating Classes page" << std::endl;
     QWidget* classesPage = ClassesContent();
+    std::cout << "2. Creating Workouts page" << std::endl;
     QWidget* workoutsPage = WorkoutsContent();
+    std::cout << "3. Creating History page" << std::endl;
     QWidget* historyPage = ExtraContent();
-    
+
+    // Add pages in specific order
+    std::cout << "Adding pages to stack:" << std::endl;
     contentStack->addWidget(classesPage);    // Index 0 - Classes
     contentStack->addWidget(workoutsPage);   // Index 1 - Workouts
     contentStack->addWidget(historyPage);    // Index 2 - History
-    
+    std::cout << "All pages added to stack" << std::endl;
+
     mainHLayout->addWidget(contentStack);
+    std::cout << "Content stack added to main layout" << std::endl;
 
-    // Explicitly set to show classes page first
-    contentStack->setCurrentWidget(classesPage);
+    // Important: Set the current index AFTER all pages are added
+    contentStack->setCurrentIndex(0);  // Explicitly set to classes page
     leftSidebar->setActiveButton("classes");
+    std::cout << "Current index set to 0 (Classes) and active button set" << std::endl;
 
-    // Connect signal after setting initial state
-    connect(leftSidebar, &LeftSidebar::pageChanged, this, &AvailableClassesScreen::handlePageChange);
+    // Connect signal AFTER setting initial state to avoid triggering during setup
+    QObject::disconnect(leftSidebar, &LeftSidebar::pageChanged, this, &AvailableClassesScreen::handlePageChange);
+    QObject::connect(leftSidebar, &LeftSidebar::pageChanged, this, &AvailableClassesScreen::handlePageChange);
+    std::cout << "Signal connections established" << std::endl;
 
     setLayout(mainHLayout);
+    std::cout << "Main layout set" << std::endl;
+    
     qDebug() << "UI Setup complete - Current page index:" << contentStack->currentIndex();
+    std::cout << "Current widget class name: " << contentStack->currentWidget()->metaObject()->className() << std::endl;
+    
+    // Force an immediate update of the current widget
+    if (contentStack->currentWidget()) {
+        contentStack->currentWidget()->update();
+        std::cout << "Current widget updated" << std::endl;
+    }
+    
+    std::cout << "=== setupUI Complete ===\n" << std::endl;
 }
 
 void AvailableClassesScreen::refreshClasses()
@@ -1143,66 +1216,67 @@ QWidget* AvailableClassesScreen::ExtraContent() {
     return historyContent;
 }
 void AvailableClassesScreen::handlePageChange(const QString& pageID) {
-    qDebug() << "=== Page Change Requested ===";
+    std::cout << "\n=== Page Change Requested ===" << std::endl;
     qDebug() << "Current page index:" << contentStack->currentIndex();
     qDebug() << "Requested page:" << pageID;
     qDebug() << "Current workoutManager:" << workoutManager;
 
-    // Refresh data before updating pages
-    refreshClasses(); // Ensure classes data is up to date
-
-    // First, ensure all pages are up to date
-    if (contentStack && contentStack->count() > 0) {
-        qDebug() << "Refreshing pages - Stack count:" << contentStack->count();
-        // Force an update of the scroll area for classes page
-        if (scrollArea && scrollArea->widget()) {
-            scrollArea->widget()->update();
-        }
-    }
-
-    // Then change to the requested page
+    // Map page IDs to indices
+    int targetIndex = 0; // Default to Classes
+    
     if (pageID == "classes") {
-        // Update Classes page (index 0)
-        QWidget* classesWidget = ClassesContent();
-        QWidget* oldClassesWidget = contentStack->widget(0);
-        contentStack->removeWidget(oldClassesWidget);
-        oldClassesWidget->deleteLater();
-        contentStack->insertWidget(0, classesWidget);
-
-        qDebug() << "Switching to Classes page";
-        contentStack->setCurrentIndex(0);
-        // Additional refresh for classes page
-        if (scrollArea && scrollArea->widget()) {
-            scrollArea->widget()->update();
-            scrollArea->viewport()->update();
-        }
+        targetIndex = 0;
+        std::cout << "Switching to Classes page (index 0)" << std::endl;
+    } else if (pageID == "workouts") {
+        targetIndex = 1;
+        std::cout << "Switching to Workouts page (index 1)" << std::endl;
+    } else if (pageID == "add-classes") {
+        targetIndex = 2;
+        std::cout << "Switching to History page (index 2)" << std::endl;
     }
-    else if (pageID == "workouts") {
-        // Update Workouts page (index 1)
-        QWidget* workoutsWidget = WorkoutsContent();
-        QWidget* oldWorkoutsWidget = contentStack->widget(1);
-        contentStack->removeWidget(oldWorkoutsWidget);
-        oldWorkoutsWidget->deleteLater();
-        contentStack->insertWidget(1, workoutsWidget);
-        qDebug() << "Switching to Workouts page";
-        contentStack->setCurrentIndex(1);
+    
+    std::cout << "Current index before change: " << contentStack->currentIndex() << std::endl;
+    std::cout << "Target index: " << targetIndex << std::endl;
+    
+    // First, recreate the target page to ensure it's up-to-date
+    QWidget* newWidget = nullptr;
+    
+    std::cout << "Creating new widget for target page" << std::endl;
+    switch (targetIndex) {
+        case 0:
+            std::cout << "Creating Classes content" << std::endl;
+            newWidget = ClassesContent();
+            break;
+        case 1:
+            std::cout << "Creating Workouts content" << std::endl;
+            newWidget = WorkoutsContent();
+            break;
+        case 2:
+            std::cout << "Creating History content" << std::endl;
+            newWidget = ExtraContent();
+            break;
     }
-    else if (pageID == "add-classes") {
-        qDebug() << "Switching to History page";
-        // Update History page (index 2)
-        QWidget* historyWidget = ExtraContent();
-        QWidget* oldHistoryWidget = contentStack->widget(2);
-        contentStack->removeWidget(oldHistoryWidget);
-        oldHistoryWidget->deleteLater();
-        contentStack->insertWidget(2, historyWidget);
-        contentStack->setCurrentIndex(2);
+    
+    if (newWidget) {
+        std::cout << "Replacing widget at index " << targetIndex << std::endl;
+        // Replace the widget at the target index
+        QWidget* oldWidget = contentStack->widget(targetIndex);
+        contentStack->removeWidget(oldWidget);
+        oldWidget->deleteLater();
+        contentStack->insertWidget(targetIndex, newWidget);
     }
-
-    // Force immediate update
-    contentStack->currentWidget()->update();
+    
+    // Set to the target index
+    std::cout << "Setting current index to " << targetIndex << std::endl;
+    contentStack->setCurrentIndex(targetIndex);
+    
+    // Force updates
+    std::cout << "Refreshing classes" << std::endl;
+    refreshClasses();
     update();
     
-    qDebug() << "=== Page Change Complete ===";
-    qDebug() << "New current index:" << contentStack->currentIndex();
+    std::cout << "Final current index: " << contentStack->currentIndex() << std::endl;
+    std::cout << "Final widget class name: " << contentStack->currentWidget()->metaObject()->className() << std::endl;
+    std::cout << "=== Page Change Complete ===\n" << std::endl;
 }
 

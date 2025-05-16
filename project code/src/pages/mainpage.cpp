@@ -19,6 +19,7 @@
 #include <QDebug>
 #include <QTimer>
 #include <QDir>
+#include <iostream>
 
 MainPage::MainPage(UserDataManager* userDataManager, MemberDataManager* memberDataManager,
                    ClassDataManager* classDataManager, PadelDataManager* padelDataManager, QWidget* parent)
@@ -327,6 +328,14 @@ void MainPage::setupPages()
             return;
         }
         
+        // Initialize user data for nutritionPage
+        nutritionPage->setUserDataManager(userDataManager);
+        nutritionPage->setMemberDataManager(memberDataManager);
+        if (!currentUserEmail.isEmpty()) {
+            qDebug() << "Setting initial user email for nutritionPage:" << currentUserEmail;
+            nutritionPage->setCurrentUserEmail(currentUserEmail);
+        }
+        
         // Initialize workout manager for nutritionPage
         qDebug() << "========== Creating WorkoutDataManager ==========";
         qDebug() << "Current directory:" << QDir::currentPath();
@@ -418,13 +427,36 @@ void MainPage::handleWorkoutPage() const
 
 void MainPage::handleNutritionPage() const
 {
-    stackedWidget->setCurrentWidget(nutritionPage);
-    updateButtonStates(nutritionButton);
-    if (nutritionPage && !currentUserEmail.isEmpty()) {
+    std::cout << "\n=== Starting handleNutritionPage ===" << std::endl;
+    qDebug() << "handleNutritionPage called";
+    
+    if (!stackedWidget) {
+        std::cout << "Error: stackedWidget is null!" << std::endl;
+        return;
+    }
+    
+    std::cout << "Current stack index before change: " << stackedWidget->currentIndex() << std::endl;
+    
+    // Use the existing nutritionPage instead of creating a new one
+    if (nutritionPage) {
+        std::cout << "Using existing nutritionPage" << std::endl;
+        // Update user data
         nutritionPage->setUserDataManager(userDataManager);
         nutritionPage->setMemberDataManager(memberDataManager);
-        nutritionPage->setCurrentUserEmail(currentUserEmail);
+        if (!currentUserEmail.isEmpty()) {
+            std::cout << "Setting current user email: " << currentUserEmail.toStdString() << std::endl;
+            nutritionPage->setCurrentUserEmail(currentUserEmail);
+        }
+        
+        // Switch to the page
+        stackedWidget->setCurrentWidget(nutritionPage);
+        updateButtonStates(nutritionButton);
+    } else {
+        std::cout << "Error: nutritionPage is null!" << std::endl;
     }
+    
+    std::cout << "Current stack index after change: " << stackedWidget->currentIndex() << std::endl;
+    std::cout << "=== Finished handleNutritionPage ===\n" << std::endl;
 }
 
 void MainPage::handleProfilePage() const
@@ -514,6 +546,15 @@ void MainPage::handleLogin(const QString& email)
 
         qDebug() << "About to emit userDataLoaded signal";
         emit userDataLoaded(email);
+        
+        // Update nutrition page with new user data
+        if (nutritionPage) {
+            qDebug() << "Updating nutritionPage with new user data";
+            nutritionPage->setUserDataManager(userDataManager);
+            nutritionPage->setMemberDataManager(memberDataManager);
+            nutritionPage->setCurrentUserEmail(email);
+        }
+        
         if (settingsPage) {
             settingsPage->loadUserData(email);
             if (auto subscriptionStatusPage = settingsPage->findChild<SubscriptionStatusPage*>()) {
