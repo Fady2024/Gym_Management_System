@@ -1,0 +1,88 @@
+{
+    "logs": [
+        {
+            "classId": 4,
+            "completedExercises": [
+                {
+                    "completed": true,
+                    "name": "Push-ups"
+                },
+                {
+                    "completed": true,
+                    "name": "Dumbbell Rows"
+                },
+                {
+                    "completed": true,
+                    "name": "Squats"
+                }
+            ],
+            "timestamp": "2025-05-16T19:19:49",
+            "totalCaloriesBurnt": 300,
+            "userId": 4,
+            "workoutId": 1
+        },
+        {
+            "classId": 4,
+            "completedExercises": [
+                {
+                    "completed": true,
+                    "name": "Planks"
+                },
+                {
+                    "completed": true,
+                    "name": "Russian Twists"
+                },
+                {
+                    "completed": true,
+                    "name": "Leg Raises"
+                }
+            ],
+            "timestamp": "2025-05-18T19:19:57",
+            "totalCaloriesBurnt": 200,
+            "userId": 4,
+            "workoutId": 3
+        },
+        {
+            "classId": 4,
+            "completedExercises": [
+                {
+                    "completed": true,
+                    "name": "Planks"
+                },
+                {
+                    "completed": true,
+                    "name": "Russian Twists"
+                },
+                {
+                    "completed": true,
+                    "name": "Leg Raises"
+                }
+            ],
+            "timestamp": "2025-05-17T19:30:09",
+            "totalCaloriesBurnt": 200,
+            "userId": 4,
+            "workoutId": 3
+        },
+        {
+            "classId": 4,
+            "completedExercises": [
+                {
+                    "completed": true,
+                    "name": "Push-ups"
+                },
+                {
+                    "completed": true,
+                    "name": "Dumbbell Rows"
+                },
+                {
+                    "completed": true,
+                    "name": "Squats"
+                }
+            ],
+            "timestamp": "2025-05-20T19:58:34",
+            "totalCaloriesBurnt": 300,
+            "userId": 4,
+            "workoutId": 1
+        }
+    ]
+}

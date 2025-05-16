@@ -18,6 +18,7 @@
 #include "../Language/LanguageSelector.h"
 #include <QDebug>
 #include <QTimer>
+#include <QDir>
 
 MainPage::MainPage(UserDataManager* userDataManager, MemberDataManager* memberDataManager,
                    ClassDataManager* classDataManager, PadelDataManager* padelDataManager, QWidget* parent)
@@ -325,6 +326,19 @@ void MainPage::setupPages()
             qDebug() << "Error: Failed to create nutritionPage";
             return;
         }
+        
+        // Initialize workout manager for nutritionPage
+        qDebug() << "========== Creating WorkoutDataManager ==========";
+        qDebug() << "Current directory:" << QDir::currentPath();
+        WorkoutDataManager* workoutManager = new WorkoutDataManager(this);
+        if (workoutManager->getAllWorkouts().isEmpty()) {
+            qDebug() << "WARNING: No workouts loaded in WorkoutDataManager";
+        } else {
+            qDebug() << "Successfully created WorkoutDataManager with" << workoutManager->getAllWorkouts().size() << "workouts";
+        }
+        nutritionPage->setWorkoutDataManager(workoutManager);
+        qDebug() << "Set WorkoutDataManager to nutritionPage";
+        qDebug() << "========== WorkoutDataManager setup completed ==========";
 
         profilePage = new QWidget;
         if (!profilePage) {

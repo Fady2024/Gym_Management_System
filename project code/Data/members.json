@@ -12,7 +12,7 @@
         "userId": 2
     },
     {
-        "classId": -1,
+        "classId": 4,
         "id": 2,
         "subscription": {
             "active": true,
