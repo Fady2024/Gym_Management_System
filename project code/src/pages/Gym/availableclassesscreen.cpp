@@ -72,8 +72,10 @@ void AvailableClassesScreen::loadUserData()
         if (isMember) {
             int memberId = memberDataManager->getMemberIdByUserId(currentUser.getId());
             currentMember = memberDataManager->getMemberById(memberId);
+            qDebug() << "Loaded member data - Member ID:" << memberId << "Class ID:" << currentMember.getClassId();
         } else {
             currentMember = Member(0, currentUser.getId(), -1);
+            qDebug() << "User is not a member";
         }
     }
 
@@ -159,18 +161,30 @@ void AvailableClassesScreen::refreshClasses()
 
     auto all = classDataManager->getAllClasses();
     QStringList names;
-    for (auto &c : all) {
-        if (classDataManager->getClassById(c.getId())
-            .isMemberEnrolled(currentUser.getId()))
-        {
-            names << c.getClassName();
+
+    // Check if member is enrolled in any class
+    if (currentMember.getClassId() > 0) {
+        Class enrolledClass = classDataManager->getClassById(currentMember.getClassId());
+        if (enrolledClass.getId() > 0) { // Check if class exists
+            names << enrolledClass.getClassName();
+            qDebug() << "Found enrolled class:" << enrolledClass.getClassName() << "with ID:" << enrolledClass.getId();
         }
     }
-    
+
+    // Also check class's enrolled members list
+    for (const auto& gymClass : all) {
+        if (gymClass.isMemberEnrolled(currentUser.getId()) && !names.contains(gymClass.getClassName())) {
+            names << gymClass.getClassName();
+            qDebug() << "Found additional enrollment in class:" << gymClass.getClassName() << "with ID:" << gymClass.getId();
+        }
+    }
+
     if (names.isEmpty()) {
         enrolledClassesLabel->setText("You're not enrolled in any classes yet.");
+        qDebug() << "No enrolled classes found for user ID:" << currentUser.getId();
     } else {
         enrolledClassesLabel->setText(QString("Your classes: %1").arg(names.join(", ")));
+        qDebug() << "Found enrolled classes:" << names;
     }
 
     if (scrollArea && scrollArea->widget()) {
@@ -277,9 +291,22 @@ void AvailableClassesScreen::createClassCard(const Class &gymClass,
     cardLayout->addWidget(progressBar);
 
     bool isFull = classDataManager->isClassFull(gymClass.getId());
-    bool isEnrolled = classDataManager
-                         ->getClassById(gymClass.getId())
-                         .isMemberEnrolled(currentUser.getId());
+    
+    // Get member ID from user ID
+    int memberId = -1;
+    if (memberDataManager && currentUser.getId() > 0) {
+        memberId = memberDataManager->getMemberIdByUserId(currentUser.getId());
+    }
+    
+    // Check if this class is the member's enrolled class
+    bool isEnrolled = (memberId > 0 && 
+                      ((currentMember.getClassId() == gymClass.getId()) || 
+                       gymClass.isMemberEnrolled(memberId)));
+
+    qDebug() << "Class:" << gymClass.getClassName() << "ID:" << gymClass.getId() 
+             << "Member ID:" << memberId 
+             << "Current Member Class ID:" << currentMember.getClassId() 
+             << "Is Enrolled:" << isEnrolled;
 
     QPushButton *actionBtn = new QPushButton;
     actionBtn->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
@@ -343,9 +370,38 @@ void AvailableClassesScreen::createClassCard(const Class &gymClass,
 
 void AvailableClassesScreen::handleEnrollment(int classId)
 {
-    QString error;
-    if (!classDataManager->enrollMember(classId, currentUser.getId(), error)) {
+    // Get member ID from user ID
+    int memberId = -1;
+    if (memberDataManager && currentUser.getId() > 0) {
+        memberId = memberDataManager->getMemberIdByUserId(currentUser.getId());
+    }
 
+    if (memberId <= 0) {
+        NotificationManager::instance().showNotification(
+            tr("Enrollment Failed"),
+            "You must be a member to enroll in classes",
+            nullptr,
+            NotificationType::Error
+        );
+        return;
+    }
+
+    // Check if member is already enrolled in any class
+    if (currentMember.getClassId() > 0) {
+        Class currentClass = classDataManager->getClassById(currentMember.getClassId());
+        if (currentClass.getId() > 0) {
+            NotificationManager::instance().showNotification(
+                tr("Enrollment Failed"),
+                tr("You are already enrolled in \"%1\". Please unenroll from it first.").arg(currentClass.getClassName()),
+                nullptr,
+                NotificationType::Error
+            );
+            return;
+        }
+    }
+
+    QString error;
+    if (!classDataManager->enrollMember(classId, memberId, error)) {
         NotificationManager::instance().showNotification(
             tr("Enrollment Failed"),
             error.toUtf8().constData(),
@@ -353,6 +409,8 @@ void AvailableClassesScreen::handleEnrollment(int classId)
             NotificationType::Error
         );
     } else {
+        // Update current member data after successful enrollment
+        currentMember = memberDataManager->getMemberById(memberId);
 
         QString className = classDataManager->getClassById(classId).getClassName();
         NotificationManager::instance().showNotification(
@@ -367,8 +425,24 @@ void AvailableClassesScreen::handleEnrollment(int classId)
 
 void AvailableClassesScreen::handleUnenroll(int classId)
 {
+    // Get member ID from user ID
+    int memberId = -1;
+    if (memberDataManager && currentUser.getId() > 0) {
+        memberId = memberDataManager->getMemberIdByUserId(currentUser.getId());
+    }
+
+    if (memberId <= 0) {
+        NotificationManager::instance().showNotification(
+            tr("Unenroll Failed"),
+            "You must be a member to unenroll from classes",
+            nullptr,
+            NotificationType::Error
+        );
+        return;
+    }
+
     QString error;
-    if (!classDataManager->unenrollMember(classId, currentUser.getId(), error)) {
+    if (!classDataManager->unenrollMember(classId, memberId, error)) {
         NotificationManager::instance().showNotification(
             tr("Unenroll Failed"),
             error.toUtf8().constData(),
@@ -376,6 +450,9 @@ void AvailableClassesScreen::handleUnenroll(int classId)
             NotificationType::Error
         );
     } else {
+        // Update current member data after successful unenrollment
+        currentMember = memberDataManager->getMemberById(memberId);
+
         QString className = classDataManager->getClassById(classId).getClassName();
         NotificationManager::instance().showNotification(
             tr("Cancelled"),

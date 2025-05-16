@@ -290,6 +290,15 @@ bool ClassDataManager::enrollMember(int classId, int memberId, QString& errorMes
         }
     }
 
+    // Update member's class ID in MemberDataManager
+    Member member = memberDataManager->getMemberById(memberId);
+    member.setClassId(classId);
+    QString memberUpdateError;
+    if (!memberDataManager->updateMember(member, memberUpdateError)) {
+        errorMessage = "Failed to update member data: " + memberUpdateError;
+        return false;
+    }
+
     gymClass.addMember(memberId);
     gymClass.setNumOfEnrolled(gymClass.getNumOfEnrolled() + 1);
     dataModified = true;
@@ -304,13 +313,17 @@ bool ClassDataManager::unenrollMember(int classId, int memberId, QString& errorM
     }
 
     Class& gymClass = it->second;
-    if (!gymClass.isMemberEnrolled(memberId)) {
-        errorMessage = "You are not enrolled in this class";
+
+    // Update member's class ID in MemberDataManager
+    Member member = memberDataManager->getMemberById(memberId);
+    member.setClassId(-1); // -1 indicates no class
+    QString memberUpdateError;
+    if (!memberDataManager->updateMember(member, memberUpdateError)) {
+        errorMessage = "Failed to update member data: " + memberUpdateError;
         return false;
     }
 
     gymClass.removeMember(memberId);
-
     int newCount = gymClass.getNumOfEnrolled() - 1;
     gymClass.setNumOfEnrolled(qMax(0, newCount));
 
