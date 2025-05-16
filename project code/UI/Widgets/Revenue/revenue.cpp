@@ -16,9 +16,19 @@ Revenue::Revenue(UserDataManager* userDataManager, MemberDataManager* memberData
     , userManager(userDataManager)
     , memberManager(memberDataManager)
     , classManager(classDataManager)
+    , membershipLabel(nullptr)
+    , classLabel(nullptr)
+    , courtLabel(nullptr)
+    , growthLabel(nullptr)
+    , membershipBar(nullptr)
+    , classBar(nullptr)
+    , courtBar(nullptr)
+    , growthBar(nullptr)
+    , padelManager(nullptr)
 {
     setupUI();
-
+    // Call updateData after UI is set up
+    QTimer::singleShot(0, this, &Revenue::updateData);
 }
 
 void Revenue::setupUI()
@@ -44,6 +54,8 @@ void Revenue::setupUI()
         QProgressBar* bar = new QProgressBar;
         bar->setFixedHeight(4);
         bar->setTextVisible(false);
+        bar->setRange(0, 100);  // Ensure range is set
+        bar->setValue(0);       // Set initial value
         
         layout->addWidget(label);
         layout->addWidget(bar);
@@ -89,76 +101,124 @@ void Revenue::updateMetrics(QLabel* label, QProgressBar* bar, const QString& tex
     }
 }
 
-// void Revenue::updateData()
-// {
-//     if (!memberManager || !classManager || !userManager) return;
-//
-//     // Membership metrics
-//     QVector<User> allUsers = userManager->getAllUsers();
-//     int totalMembers = 0, vipMembers = 0;
-//     for (const User& user : allUsers) {
-//         if (memberManager->userIsMember(user.getId())) {
-//             totalMembers++;
-//             if (memberManager->isVIPMember(user.getId())) vipMembers++;
-//         }
-//     }
-//     int vipPercentage = totalMembers > 0 ? (vipMembers * 100) / totalMembers : 0;
-//     updateMetrics(membershipLabel, membershipBar,
-//         QString("Members: %1\nVIP: %2%").arg(totalMembers).arg(vipPercentage),
-//         vipPercentage);
-//
-//     // Class metrics
-//     QVector<Class> allClasses = classManager->getAllClasses();
-//     int totalAttendance = 0, totalCapacity = 0;
-//     QDate currentDate = QDate::currentDate();
-//     QDate monthStart = QDate(currentDate.year(), currentDate.month(), 1);
-//
-//     for (const Class& gymClass : allClasses) {
-//         QVector<AttendanceRecord> records = classManager->getAttendanceRecords(
-//             gymClass.getId(), monthStart, currentDate);
-//         for (const AttendanceRecord& record : records) {
-//             if (record.attended) totalAttendance++;
-//             totalCapacity++;
-//         }
-//     }
-//
-//     int attendanceRate = totalCapacity > 0 ? (totalAttendance * 100) / totalCapacity : 0;
-//     updateMetrics(classLabel, classBar,
-//         QString("Classes: %1\nAttendance: %2%").arg(allClasses.size()).arg(attendanceRate),
-//         attendanceRate);
-//
-//     // Court metrics
-//     int totalBookings = 0, vipBookings = 0;
-//     double revenue = 0;
-//     QVector<Booking> bookings = padelManager->getBookingsByDate(QDate::currentDate());
-//     for (const Booking& booking : bookings) {
-//         if (!booking.isCancelled()) {
-//             totalBookings++;
-//             if (booking.isVip()) vipBookings++;
-//             revenue += booking.getPrice();
-//         }
-//     }
-//     int vipRate = totalBookings > 0 ? (vipBookings * 100) / totalBookings : 0;
-//     updateMetrics(courtLabel, courtBar,
-//         QString("Bookings: %1\nRevenue: $%2").arg(totalBookings).arg(revenue, 0, 'f', 2),
-//         vipRate);
-//
-//     // Growth metrics
-//     int previousMembers = 0;
-//     QDate lastMonth = QDate::currentDate().addMonths(-1);
-//     for (const User& user : allUsers) {
-//         if (memberManager->userIsMember(user.getId())) {
-//             const Member& member = memberManager->getMemberByUserId(user.getId());
-//             if (member.getSubscription().getStartDate() < lastMonth) {
-//                 previousMembers++;
-//             }
-//         }
-//     }
-//     int growthRate = previousMembers > 0 ? ((totalMembers - previousMembers) * 100) / previousMembers : 0;
-//     updateMetrics(growthLabel, growthBar,
-//         QString("Growth: %1%\nNew: %2").arg(growthRate).arg(totalMembers - previousMembers),
-//         growthRate > 0 ? growthRate : 0);
-// }
+void Revenue::updateData()
+{
+    // Check all required pointers
+    if (!memberManager || !classManager || !userManager || 
+        !membershipLabel || !classLabel || !courtLabel || !growthLabel ||
+        !membershipBar || !classBar || !courtBar || !growthBar) {
+        qDebug() << "Required pointers not initialized in updateData()";
+        return;
+    }
+
+    try {
+        QDate currentDate = timeLogicInstance.getCurrentTime().date();
+        QDate monthStart(currentDate.year(), currentDate.month(), 1);
+        QDate previousMonthStart = monthStart.addMonths(-1);
+
+        // Get reports
+        QVector<MonthlyReport> currentMonthReports = classManager->getMonthlyReports(monthStart, currentDate);
+        MonthlyReport currentReport;
+
+        // Generate report if none exists
+        if (currentMonthReports.isEmpty()) {
+            currentReport = classManager->generateMonthlyReport(monthStart);
+        } else {
+            currentReport = currentMonthReports.first();
+        }
+
+        // Get member data
+        QVector<User> allUsers = userManager->getAllUsers();
+        int totalMembers = 0, vipMembers = 0;
+        
+        for (const User& user : allUsers) {
+            if (user.getId() > 0 && memberManager->userIsMember(user.getId())) {
+                totalMembers++;
+                if (memberManager->isVIPMember(user.getId())) {
+                    vipMembers++;
+                }
+            }
+        }
+
+        // Update UI with validated data
+        int vipPercentage = totalMembers > 0 ? (vipMembers * 100) / totalMembers : 0;
+        updateMetrics(membershipLabel, membershipBar,
+            QString("Members: %1\nVIP: %2%").arg(totalMembers).arg(vipPercentage),
+            qBound(0, vipPercentage, 100));
+
+        int attendanceRate = currentReport.totalClassesHeld > 0 ? 
+            (currentReport.totalAttendance * 100) / (currentReport.totalClassesHeld * 30) : 0;
+        updateMetrics(classLabel, classBar,
+            QString("Classes: %1\nRevenue: $%2")
+                .arg(currentReport.totalClassesHeld)
+                .arg(currentReport.totalRevenue, 0, 'f', 2),
+            qBound(0, attendanceRate, 100));
+
+        int activeRate = totalMembers > 0 ? 
+            (currentReport.totalActiveMembers * 100) / totalMembers : 0;
+        updateMetrics(courtLabel, courtBar,
+            QString("Active Members: %1\nRevenue/Member: $%2")
+                .arg(currentReport.totalActiveMembers)
+                .arg(totalMembers > 0 ? currentReport.totalRevenue / totalMembers : 0, 0, 'f', 2),
+            qBound(0, activeRate, 100));
+
+        // Calculate growth
+        QVector<MonthlyReport> previousMonthReports = classManager->getMonthlyReports(
+            previousMonthStart, monthStart.addDays(-1));
+        
+        double revenueGrowth = 0;
+        int memberGrowth = 0;
+        
+        if (!previousMonthReports.isEmpty()) {
+            const MonthlyReport& prevReport = previousMonthReports.first();
+            if (prevReport.totalRevenue > 0) {
+                revenueGrowth = ((currentReport.totalRevenue - prevReport.totalRevenue) * 100) 
+                               / prevReport.totalRevenue;
+            }
+            if (prevReport.totalActiveMembers > 0) {
+                memberGrowth = ((currentReport.totalActiveMembers - prevReport.totalActiveMembers) * 100) 
+                              / prevReport.totalActiveMembers;
+            }
+        }
+
+        updateMetrics(growthLabel, growthBar,
+            QString("Revenue Growth: %1%\nMember Growth: %2%")
+                .arg(revenueGrowth, 0, 'f', 1)
+                .arg(memberGrowth),
+            qBound(0, static_cast<int>(revenueGrowth), 100));
+
+
+        //PADEL COURTS DATA
+        if (padelManager) {
+            int totalCourts = padelManager->getAllCourts().size();
+            int bookedCourts = padelManager->getBookedCourtsCount();
+            int courtUtilization = totalCourts > 0 ? (bookedCourts * 100) / totalCourts : 0;
+            
+            // Calculate VIP booking rate
+            int totalBookings = 0;
+            int vipBookings = 0;
+            QVector<Booking> allBookings = padelManager->getAllBookings();
+            for (const Booking& booking : allBookings) {
+                if (!booking.isCancelled()) {
+                    totalBookings++;
+                    if (booking.isVip()) {
+                        vipBookings++;
+                    }
+                }
+            }
+            int vipBookingRate = totalBookings > 0 ? (vipBookings * 100) / totalBookings : 0;
+            
+            updateMetrics(courtLabel, courtBar,
+                QString("Court Utilization: %1%\nVIP Bookings: %2%")
+                    .arg(courtUtilization)
+                    .arg(vipBookingRate),
+                courtUtilization);
+        }
+
+    } catch (const std::exception& e) {
+        qDebug() << "Error updating revenue data:" << e.what();
+    }
+}
 
 void Revenue::updateTheme(bool isDark)
 {

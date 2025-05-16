@@ -477,7 +477,17 @@ MonthlyReport ClassDataManager::generateMonthlyReport(const QDate& month) const 
     QDate endDate = startDate.addMonths(1).addDays(-1);
 
     std::set<int> activeMembers;
+    QMap<QString, int> attendanceByClass;
+    QMap<QString, double> revenueByClass;
 
+    // First pass: collect all unique class names
+    for (const auto& classPair : classesById) {
+        const Class& gymClass = classPair.second;
+        attendanceByClass[gymClass.getClassName()] = 0;
+        revenueByClass[gymClass.getClassName()] = 0.0;
+    }
+
+    // Second pass: aggregate data
     for (const auto& classPair : classesById) {
         const Class& gymClass = classPair.second;
         QString className = gymClass.getClassName();
@@ -487,50 +497,77 @@ MonthlyReport ClassDataManager::generateMonthlyReport(const QDate& month) const 
         if (!classRecords.isEmpty()) {
             report.totalClassesHeld++;
             
-            int classAttendance = 0;
-            double classRevenue = 0.0;
-            
             for (const auto& record : classRecords) {
                 if (record.attended) {
-                    classAttendance++;
+                    attendanceByClass[className]++;
+                    revenueByClass[className] += record.amountPaid;
                     activeMembers.insert(record.memberId);
-                    classRevenue += record.amountPaid;
+                    
+                    report.totalAttendance++;
+                    report.totalRevenue += record.amountPaid;
                 }
             }
-            
-            report.totalAttendance += classAttendance;
-            report.totalRevenue += classRevenue;
-            
-            report.classAttendance.append(qMakePair(className, classAttendance));
-            report.classRevenue.append(qMakePair(className, classRevenue));
+        }
+    }
+
+    // Convert maps to report format
+    for (auto it = attendanceByClass.begin(); it != attendanceByClass.end(); ++it) {
+        if (it.value() > 0) {  // Only include classes with attendance
+            report.classAttendance.append(qMakePair(it.key(), it.value()));
+        }
+    }
+
+    for (auto it = revenueByClass.begin(); it != revenueByClass.end(); ++it) {
+        if (it.value() > 0) {  // Only include classes with revenue
+            report.classRevenue.append(qMakePair(it.key(), it.value()));
         }
     }
 
     report.totalActiveMembers = static_cast<int>(activeMembers.size());
+    
+    // Save the report immediately
+    QString errorMsg;
+    saveMonthlyReport(report, errorMsg);
+    
     return report;
 }
 
 bool ClassDataManager::saveMonthlyReport(const MonthlyReport& report, QString& errorMessage) const {
+    // First load existing reports
+    QVector<MonthlyReport> existingReports = getMonthlyReports(QDate(1970, 1, 1), QDate(2100, 12, 31));
+    
+    // Remove any existing report for the same month
+    for (int i = 0; i < existingReports.size(); ++i) {
+        if (existingReports[i].month.year() == report.month.year() && 
+            existingReports[i].month.month() == report.month.month()) {
+            existingReports.removeAt(i);
+            break;
+        }
+    }
+    
+    // Add the new report
+    existingReports.append(report);
+
+    // Save all reports
     QFile file(QDir(dataDir).filePath("monthly_reports.json"));
-    if (!file.open(QIODevice::ReadWrite)) {
-        errorMessage = "Could not open monthly reports file";
+    if (!file.open(QIODevice::WriteOnly)) {
+        errorMessage = "Could not open monthly reports file for writing";
         return false;
     }
 
     QJsonArray reportsArray;
-    if (file.size() > 0) {
-        QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
-        if (doc.isArray()) {
-            reportsArray = doc.array();
-        }
+    for (const MonthlyReport& r : existingReports) {
+        reportsArray.append(monthlyReportToJson(r));
     }
-
-    reportsArray.append(monthlyReportToJson(report));
     
-    file.resize(0);
-    file.write(QJsonDocument(reportsArray).toJson());
+    QJsonDocument doc(reportsArray);
+    if (file.write(doc.toJson()) == -1) {
+        errorMessage = "Failed to write to monthly reports file";
+        file.close();
+        return false;
+    }
+    
     file.close();
-    
     return true;
 }
 
@@ -539,21 +576,44 @@ QVector<MonthlyReport> ClassDataManager::getMonthlyReports(const QDate& startDat
     QFile file(QDir(dataDir).filePath("monthly_reports.json"));
     
     if (!file.open(QIODevice::ReadOnly)) {
+        // create file if not created
+        if (!file.exists()) {
+            file.open(QIODevice::WriteOnly);
+            file.write("[]");
+            file.close();
+            return result;
+        }
         return result;
     }
 
-    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &parseError);
+    file.close();
+
+    if (parseError.error != QJsonParseError::NoError) {
+        qDebug() << "Error parsing monthly reports:" << parseError.errorString();
+        return result;
+    }
+
     if (!doc.isArray()) {
+        qDebug() << "Monthly reports file does not contain a JSON array";
         return result;
     }
 
     QJsonArray reportsArray = doc.array();
     for (const QJsonValue& value : reportsArray) {
+        if (!value.isObject()) continue;
+        
         MonthlyReport report = jsonToMonthlyReport(value.toObject());
         if (report.month >= startDate && report.month <= endDate) {
             result.append(report);
         }
     }
+    // sort by date
+    std::sort(result.begin(), result.end(), 
+              [](const MonthlyReport& a, const MonthlyReport& b) {
+                  return a.month < b.month;
+              });
 
     return result;
 }
@@ -662,42 +722,6 @@ bool ClassDataManager::saveAttendanceRecords() const {
     }
 
     file.write(QJsonDocument(recordsArray).toJson());
-    file.close();
-    return true;
-}
-
-bool ClassDataManager::loadMonthlyReports() {
-    QFile file(QDir(dataDir).filePath("monthly_reports.json"));
-    if (!file.open(QIODevice::ReadOnly)) {
-        return false;
-    }
-
-    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
-    if (!doc.isArray()) {
-        return false;
-    }
-
-    monthlyReports.clear();
-    QJsonArray reportsArray = doc.array();
-    for (const QJsonValue& value : reportsArray) {
-        monthlyReports.push_back(jsonToMonthlyReport(value.toObject()));
-    }
-
-    return true;
-}
-
-bool ClassDataManager::saveMonthlyReports() const {
-    QFile file(QDir(dataDir).filePath("monthly_reports.json"));
-    if (!file.open(QIODevice::WriteOnly)) {
-        return false;
-    }
-
-    QJsonArray reportsArray;
-    for (const auto& report : monthlyReports) {
-        reportsArray.append(monthlyReportToJson(report));
-    }
-
-    file.write(QJsonDocument(reportsArray).toJson());
     file.close();
     return true;
 } 
