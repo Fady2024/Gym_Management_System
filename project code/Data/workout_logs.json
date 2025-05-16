@@ -41,6 +41,27 @@
             "totalCaloriesBurnt": 200,
             "userId": 4,
             "workoutId": 3
+        },
+        {
+            "classId": 4,
+            "completedExercises": [
+                {
+                    "completed": true,
+                    "name": "Planks"
+                },
+                {
+                    "completed": true,
+                    "name": "Russian Twists"
+                },
+                {
+                    "completed": true,
+                    "name": "Leg Raises"
+                }
+            ],
+            "timestamp": "2025-05-17T19:30:09",
+            "totalCaloriesBurnt": 200,
+            "userId": 4,
+            "workoutId": 3
         }
     ]
 }

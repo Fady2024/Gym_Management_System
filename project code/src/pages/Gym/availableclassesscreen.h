@@ -29,7 +29,7 @@ public:
     void setCurrentUserEmail(const QString& email);
     void setUserDataManager(UserDataManager* manager);
     void setMemberDataManager(MemberDataManager* manager);
-    void setWorkoutDataManager(WorkoutDataManager* manager) { workoutManager = manager; }
+    void setWorkoutDataManager(WorkoutDataManager* manager);
     void updateTheme(bool isDark);
 
 private slots:

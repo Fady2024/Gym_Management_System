@@ -54,6 +54,39 @@ void AvailableClassesScreen::setMemberDataManager(MemberDataManager* manager)
     }
 }
 
+void AvailableClassesScreen::setWorkoutDataManager(WorkoutDataManager* manager) {
+    qDebug() << "Setting workout manager:" << manager;
+    workoutManager = manager;
+    
+    // Refresh all pages with the new workout manager
+    if (contentStack && contentStack->count() > 0) {
+        qDebug() << "Refreshing all pages with new workout manager";
+        
+        // Update Classes page (index 0)
+        QWidget* classesWidget = ClassesContent();
+        QWidget* oldClassesWidget = contentStack->widget(0);
+        contentStack->removeWidget(oldClassesWidget);
+        oldClassesWidget->deleteLater();
+        contentStack->insertWidget(0, classesWidget);
+        
+        // Update Workouts page (index 1)
+        QWidget* workoutsWidget = WorkoutsContent();
+        QWidget* oldWorkoutsWidget = contentStack->widget(1);
+        contentStack->removeWidget(oldWorkoutsWidget);
+        oldWorkoutsWidget->deleteLater();
+        contentStack->insertWidget(1, workoutsWidget);
+        
+        // Update History page (index 2)
+        QWidget* historyWidget = ExtraContent();
+        QWidget* oldHistoryWidget = contentStack->widget(2);
+        contentStack->removeWidget(oldHistoryWidget);
+        oldHistoryWidget->deleteLater();
+        contentStack->insertWidget(2, historyWidget);
+        
+        qDebug() << "All pages refreshed with new workout manager";
+    }
+}
+
 void AvailableClassesScreen::loadUserData()
 {
     if (currentUserEmail.isEmpty() || !userDataManager) {
@@ -864,12 +897,188 @@ QWidget* AvailableClassesScreen::WorkoutsContent() {
     return workoutsContent;
 }
 QWidget* AvailableClassesScreen::ExtraContent() {
-    QWidget* Content = new QWidget();
-    QLabel* Label = new QLabel("THIS IS AN EXTRA PAGE (ADD YOUR PAGE LATER)", Content);
-    return Content;
+    std::cout << "\n=== Starting ExtraContent() function ===" << std::endl;
+    qDebug() << "Starting ExtraContent() function";
 
+    // Create main widget and layout
+    QWidget* historyContent = new QWidget();
+    QVBoxLayout* mainLayout = new QVBoxLayout(historyContent);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+    mainLayout->setSpacing(20);
+
+    // Add title
+    QLabel* titleLabel = new QLabel("Workout History");
+    titleLabel->setStyleSheet("font-size: 24px; font-weight: bold; color: #6647D8;");
+    mainLayout->addWidget(titleLabel);
+
+    // Check if workout manager exists
+    std::cout << "Checking workout manager..." << std::endl;
+    qDebug() << "Checking workout manager, pointer value:" << workoutManager;
+    if (!workoutManager) {
+        std::cout << "ERROR: workoutManager is null!" << std::endl;
+        qDebug() << "ERROR: workoutManager is null!";
+        QLabel* errorLabel = new QLabel("Workout system is currently unavailable.");
+        errorLabel->setStyleSheet("color: red;");
+        mainLayout->addWidget(errorLabel);
+        return historyContent;
+    }
+    std::cout << "Workout manager is valid" << std::endl;
+
+    // Check if user is logged in
+    std::cout << "Checking user login status... User ID:" << currentUser.getId() << std::endl;
+    qDebug() << "Current user ID:" << currentUser.getId();
+    if (currentUser.getId() <= 0) {
+        std::cout << "ERROR: User not logged in!" << std::endl;
+        qDebug() << "ERROR: User not logged in!";
+        QLabel* loginLabel = new QLabel("Please log in to view your workout history.");
+        loginLabel->setStyleSheet("color: #666; font-size: 16px;");
+        mainLayout->addWidget(loginLabel);
+        return historyContent;
+    }
+    std::cout << "User is logged in with ID:" << currentUser.getId() << std::endl;
+
+    // Get user's workout logs
+    std::cout << "Fetching workout logs for user ID:" << currentUser.getId() << std::endl;
+    QVector<WorkoutLog> userLogs = workoutManager->getUserWorkoutLogs(currentUser.getId());
+    qDebug() << "Found" << userLogs.size() << "workout logs for user";
+    std::cout << "Found " << userLogs.size() << " workout logs" << std::endl;
+
+    // Create scroll area
+    QScrollArea* scrollArea = new QScrollArea();
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setStyleSheet(
+        "QScrollArea { border: none; background: transparent; }"
+        "QScrollBar:vertical {"
+        "    background: rgba(220, 220, 255, 0.1);"
+        "    width: 12px;"
+        "    margin: 0px;"
+        "    border-radius: 6px;"
+        "}"
+        "QScrollBar::handle:vertical {"
+        "    background: rgba(139, 92, 246, 0.3);"
+        "    min-height: 20px;"
+        "    border-radius: 6px;"
+        "}"
+    );
+
+    // Create content widget for scroll area
+    QWidget* scrollContent = new QWidget();
+    QVBoxLayout* scrollLayout = new QVBoxLayout(scrollContent);
+    scrollLayout->setSpacing(15);
+
+    if (userLogs.isEmpty()) {
+        std::cout << "No workout logs found for user" << std::endl;
+        QLabel* noLogsLabel = new QLabel("No workout history found. Start training to see your progress!");
+        noLogsLabel->setStyleSheet("color: #666; font-size: 16px;");
+        noLogsLabel->setWordWrap(true);
+        mainLayout->addWidget(noLogsLabel);
+    } else {
+        std::cout << "Creating statistics section..." << std::endl;
+        // Add statistics section
+        QWidget* statsCard = new QWidget();
+        statsCard->setStyleSheet(
+            "QWidget { background: rgba(102, 71, 216, 0.1); border-radius: 10px; padding: 15px; }"
+        );
+        QVBoxLayout* statsLayout = new QVBoxLayout(statsCard);
+        
+        // Total workouts completed
+        int totalWorkouts = workoutManager->getTotalWorkoutsCompleted(currentUser.getId());
+        std::cout << "Total workouts completed: " << totalWorkouts << std::endl;
+        QLabel* totalWorkoutsLabel = new QLabel(QString("Total Workouts Completed: %1").arg(totalWorkouts));
+        totalWorkoutsLabel->setStyleSheet("font-size: 16px; font-weight: bold; color: #6647D8;");
+        statsLayout->addWidget(totalWorkoutsLabel);
+        
+        // Total calories burnt
+        int totalCalories = workoutManager->getTotalCaloriesBurnt(currentUser.getId());
+        std::cout << "Total calories burnt: " << totalCalories << std::endl;
+        QLabel* totalCaloriesLabel = new QLabel(QString("Total Calories Burnt: %1").arg(totalCalories));
+        totalCaloriesLabel->setStyleSheet("font-size: 16px; font-weight: bold; color: #6647D8;");
+        statsLayout->addWidget(totalCaloriesLabel);
+        
+        scrollLayout->addWidget(statsCard);
+
+        // Add workout history cards
+        std::cout << "Creating workout history cards..." << std::endl;
+        for (const WorkoutLog& log : userLogs) {
+            std::cout << "Creating card for workout ID: " << log.workoutId << std::endl;
+            QWidget* card = new QWidget();
+            card->setStyleSheet(
+                "QWidget { background: white; border-radius: 10px; padding: 15px; }"
+                "QWidget:hover { background: #f8f8ff; }"
+            );
+            QVBoxLayout* cardLayout = new QVBoxLayout(card);
+
+            // Get workout details
+            Workout workout = workoutManager->getWorkoutById(log.workoutId);
+            std::cout << "Workout name: " << workout.name.toStdString() << std::endl;
+            
+            // Workout name and date
+            QLabel* workoutLabel = new QLabel(QString("<b>%1</b>").arg(workout.name));
+            workoutLabel->setStyleSheet("font-size: 18px; color: #333;");
+            cardLayout->addWidget(workoutLabel);
+
+            QLabel* dateLabel = new QLabel(log.timestamp.toString("MMMM d, yyyy 'at' h:mm ap"));
+            dateLabel->setStyleSheet("color: #666; margin-bottom: 10px;");
+            cardLayout->addWidget(dateLabel);
+
+            // Calories burnt
+            QLabel* caloriesLabel = new QLabel(QString("Calories Burnt: %1").arg(log.totalCaloriesBurnt));
+            caloriesLabel->setStyleSheet("color: #6647D8; font-weight: bold;");
+            cardLayout->addWidget(caloriesLabel);
+
+            // Completed exercises
+            QLabel* exercisesLabel = new QLabel("Completed Exercises:");
+            exercisesLabel->setStyleSheet("color: #333; margin-top: 10px;");
+            cardLayout->addWidget(exercisesLabel);
+
+            for (const auto& exercise : log.completedExercises) {
+                QString status = exercise.second ? "✅" : "❌";
+                QLabel* exerciseLabel = new QLabel(QString("%1 %2").arg(status, exercise.first));
+                exerciseLabel->setStyleSheet("color: #555; margin-left: 20px;");
+                cardLayout->addWidget(exerciseLabel);
+            }
+
+            scrollLayout->addWidget(card);
+        }
+    }
+
+    // Add scroll area to main layout
+    scrollArea->setWidget(scrollContent);
+    mainLayout->addWidget(scrollArea);
+
+    std::cout << "=== ExtraContent() function completed ===" << std::endl;
+    qDebug() << "ExtraContent() function completed";
+    return historyContent;
 }
 void AvailableClassesScreen::handlePageChange(const QString& pageID) {
+    qDebug() << "Handling page change to:" << pageID;
+    qDebug() << "Current workoutManager:" << workoutManager;
+
+    // First, ensure all pages are up to date
+    if (contentStack->count() > 0) {
+        // Update Classes page (index 0)
+        QWidget* classesWidget = ClassesContent();
+        QWidget* oldClassesWidget = contentStack->widget(0);
+        contentStack->removeWidget(oldClassesWidget);
+        oldClassesWidget->deleteLater();
+        contentStack->insertWidget(0, classesWidget);
+        
+        // Update Workouts page (index 1)
+        QWidget* workoutsWidget = WorkoutsContent();
+        QWidget* oldWorkoutsWidget = contentStack->widget(1);
+        contentStack->removeWidget(oldWorkoutsWidget);
+        oldWorkoutsWidget->deleteLater();
+        contentStack->insertWidget(1, workoutsWidget);
+        
+        // Update History page (index 2)
+        QWidget* historyWidget = ExtraContent();
+        QWidget* oldHistoryWidget = contentStack->widget(2);
+        contentStack->removeWidget(oldHistoryWidget);
+        oldHistoryWidget->deleteLater();
+        contentStack->insertWidget(2, historyWidget);
+    }
+
+    // Then change to the requested page
     if (pageID == "classes") {
         contentStack->setCurrentIndex(0);
     }
