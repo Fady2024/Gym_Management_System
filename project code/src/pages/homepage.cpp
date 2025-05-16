@@ -20,17 +20,17 @@ void HomePage::setupUI()
 
     // Create welcome section with translation
     welcomeLabel = new QLabel;
-    welcomeLabel->setStyleSheet(QString("font-size: %1px; font-weight: bold; background-color: transparent;").arg("32"));
+    welcomeLabel->setStyleSheet("font-size: 32px; font-weight: bold; background-color: transparent;");
     welcomeLabel->setAlignment(Qt::AlignCenter);
 
     // Create subtitle with translation
     subtitleLabel = new QLabel;
-    subtitleLabel->setStyleSheet(QString("color: %1; font-size: %2px; background-color: transparent;").arg("#6B7280", "24"));
+    subtitleLabel->setStyleSheet("font-size: 24px; color: #6B7280; background-color: transparent;");
     subtitleLabel->setAlignment(Qt::AlignCenter);
 
     // Create description with translation
     descriptionLabel = new QLabel;
-    descriptionLabel->setStyleSheet(QString("color: %1; font-size: %2px; background-color: transparent;").arg("#6B7280", "16"));
+    descriptionLabel->setStyleSheet("font-size: 16px; color: #6B7280; background-color: transparent;");
     descriptionLabel->setAlignment(Qt::AlignCenter);
     descriptionLabel->setWordWrap(true);
 
@@ -59,9 +59,12 @@ void HomePage::updateTheme(bool isDark) const
     const QString subtitleColor = isDark ? "#9CA3AF" : "#6B7280";
     const QString descriptionColor = isDark ? "#9CA3AF" : "#6B7280";
 
-    welcomeLabel->setStyleSheet(welcomeLabelStyleWithColor.arg(titleColor,"32"));
-    subtitleLabel->setStyleSheet(subtitleLabelStyle.arg(subtitleColor,"24"));
-    descriptionLabel->setStyleSheet(descriptionLabelStyle.arg(descriptionColor,"16"));
+    welcomeLabel->setStyleSheet(QString("color: %1; font-size: 32px; font-weight: bold; background-color: transparent;")
+        .arg(titleColor));
+    subtitleLabel->setStyleSheet(QString("color: %1; font-size: 24px; background-color: transparent;")
+        .arg(subtitleColor));
+    descriptionLabel->setStyleSheet(QString("color: %1; font-size: 16px; background-color: transparent;")
+        .arg(descriptionColor));
 }
 
 void HomePage::resizeEvent(QResizeEvent* event)
@@ -98,9 +101,17 @@ void HomePage::updateLayout()
     const QString subtitleColor = subtitleLabel->palette().color(QPalette::WindowText).name();
     const QString descriptionColor = descriptionLabel->palette().color(QPalette::WindowText).name();
 
-    welcomeLabel->setStyleSheet(welcomeLabelStyleWithColor.arg(titleColor,titleSize));
-    subtitleLabel->setStyleSheet(subtitleLabelStyle.arg(subtitleColor,subtitleSize));
-    descriptionLabel->setStyleSheet(descriptionLabelStyle.arg(descriptionColor,descriptionSize));
+    welcomeLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold; background-color: transparent;")
+        .arg(titleColor)
+        .arg(titleSize));
+
+    subtitleLabel->setStyleSheet(QString("color: %1; font-size: %2px; background-color: transparent;")
+        .arg(subtitleColor)
+        .arg(subtitleSize));
+
+    descriptionLabel->setStyleSheet(QString("color: %1; font-size: %2px; background-color: transparent;")
+        .arg(descriptionColor)
+        .arg(descriptionSize));
 }
 
 void HomePage::retranslateUI()

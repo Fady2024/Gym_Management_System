@@ -441,7 +441,7 @@ void PaymentPage::updateTheme(bool isDark)
         "PaymentPage {"
         "   background-color: %1;"
         "}"
-    ).arg(isDark ? "#111827" : "#F9FAFB"));
+    ).arg(isDark ? "#111827" : "#F0F4FA"));
 
     // Get all container widgets that need color updates
     QList<QWidget*> allContainers = findChildren<QWidget*>();
@@ -454,7 +454,7 @@ void PaymentPage::updateTheme(bool isDark)
                 "   background-color: %1;"
                 "   border-radius: 16px;"
                 "}"
-            ).arg(isDark ? "#1E293B" : "#FFFFFF"));
+            ).arg(isDark ? "#1E293B" : "#E1E9F5"));
         }
         else if (container->objectName() == "paymentCard") {
             container->setStyleSheet(QString(

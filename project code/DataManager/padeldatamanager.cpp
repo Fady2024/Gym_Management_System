@@ -818,16 +818,8 @@ bool PadelDataManager::isCourtAvailable(int courtId, const QDateTime& startTime,
             continue;
         }
 
-        QDate bookingDate = booking.getStartTime().date();
-        QDate requestDate = startTime.date();
-
-        if (!bookingDate.isValid() || !requestDate.isValid() || bookingDate != requestDate) {
-            continue;
-        }
-
-        bool overlap = (booking.getStartTime() <= endTime && booking.getEndTime() >= startTime);
-
-        if (overlap) {
+        // Check if the booking is for the same time slot
+        if (booking.getStartTime() >= startTime && booking.getEndTime() <= endTime) {
             currentBookings++;
         }
     }
@@ -1708,7 +1700,7 @@ QVector<Court> PadelDataManager::getAvailableCourts(const QDateTime& startTime, 
     for (const auto& pair : courtsById) {
         const Court& court = pair.second;
 
-        if (!location.isEmpty() && court.getLocation() != location) {
+        if (court.getLocation() != location) {
             continue;
         }
 

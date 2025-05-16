@@ -36,19 +36,20 @@ inline const QString timeSlotsTitleStyle = "font-weight: bold; "
                                            "color: #4F46E5;";
 
 inline const QString calendarCornerLabelStyle = "font-weight: bold; "
-                                                "background-color: #4F46E5; "
-                                                "color: white; "
+                                                "background-color: #4769E6; "
+                                                "color: %1; "
+                                                "font-size: 15px; "
                                                 "padding: 5px;";
 inline const QString calendarTimeLabelStyle = "font-weight: bold; "
-                                              "background-color: #4F46E5; "
-                                              "color: white; "
+                                              "background-color: %1; "
+                                              "color: %2; "
                                               "padding: 2px; "
                                               "font-size: 15px; "
                                               "min-width: 80px;";
 
 inline const QString calendarDayLabelStyle = "font-weight: bold; "
-                                              "background-color: #4F46E5; "
-                                              "color: white; "
+                                              "background-color: %1; "
+                                              "color: %2; "
                                               "padding: 5px; "
                                               "font-size: 15px; "
                                               "min-width: 60px;";
@@ -60,11 +61,29 @@ inline const QString bookingsTitleStyle = "font-size: 18px; "
                                           "font-weight: bold; "
                                           "color: #4F46E5;";
 
-inline const QString bookingsListStyle = "border-radius: 4px; "
-                                         "border: 1px solid #D1D5DB;";
+inline const QString bookingsListStyle = R"(
+                            QListWidget {
+                                background-color: transparent;
+                                border: none;
+                                font-family: 'DejaVu Sans';
+                                font-size: 16px;
+                                color: %1;
+                            }
+                            QListWidget::item {
+                                padding: 8px;
+                                margin: 2px 0;
+                                border-radius: 4px;
+                                background-color: rgba(%2, 0.1);
+                            }
+                            QListWidget::item:selected {
+                                background-color: rgba(139, 92, 246, 0.2);
+                                color: %1;
+                            }
+                        )";
 
 inline const QString cancelButtonStyle = "background-color: #EF4444; "
                                          "color: white; "
+                                         "font-size: 16px; "
                                          "padding: 8px; "
                                          "border-radius: 4px;";
 

@@ -199,7 +199,7 @@ namespace UIUtils {
             "   box-shadow: 0 10px 25px rgba(0, 0, 0, %4);"
             "}"
         ).arg(
-            isDark ? "rgba(30, 41, 59, 0.95)" : "rgba(255, 255, 255, 0.95)",
+            isDark ? "rgba(30, 41, 59, 0.95)" : "rgba(225, 233, 245, 0.95)",
             isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
             isDark ? "#e2e8f0" : "#1e293b",
             isDark ? "0.3" : "0.1"

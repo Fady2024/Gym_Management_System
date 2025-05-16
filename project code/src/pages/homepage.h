@@ -5,7 +5,6 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QEvent>
-#include "Stylesheets/System/homepageStyle.h"
 #include "../../UI/Widgets/Clock/Clock.h"
 
 class HomePage : public QWidget

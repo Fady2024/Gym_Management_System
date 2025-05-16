@@ -91,12 +91,12 @@ void LanguageSelector::updateTheme(bool isDark)
             selection-color: %10;
         }
     )")
-    .arg(isDark ? "#1F2937" : "#FFFFFF")  // Background
+    .arg(isDark ? "#1F2937" : "#E1E9F5")  // Background
     .arg(isDark ? "#F9FAFB" : "#111827")  // Text color
     .arg(isDark ? "#374151" : "#E5E7EB")  // Border
     .arg(isDark ? "#374151" : "#F3F4F6")  // Hover background
     .arg(isDark ? "#4B5563" : "#D1D5DB")  // Hover border
-    .arg(isDark ? "#1F2937" : "#FFFFFF")  // Dropdown background
+    .arg(isDark ? "#1F2937" : "#E1E9F5")  // Dropdown background
     .arg(isDark ? "#F9FAFB" : "#111827")  // Dropdown text
     .arg(isDark ? "#374151" : "#E5E7EB")  // Dropdown border
     .arg(isDark ? "#4B5563" : "#EEF2FF")  // Selection background
