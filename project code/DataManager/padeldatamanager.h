@@ -34,6 +34,7 @@ public:
     bool addCourt(const Court& court, QString& errorMessage);
     bool updateCourt(const Court& court, QString& errorMessage);
     bool deleteCourt(int courtId, QString& errorMessage);
+    int getBookedCourtsCount() const;
     Court getCourtById(int courtId) const;
     QVector<Court> getAllCourts() const;
     QVector<Court> getCourtsByLocation(const QString& location) const;

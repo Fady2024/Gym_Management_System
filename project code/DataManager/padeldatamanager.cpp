@@ -2130,3 +2130,17 @@ Court PadelDataManager::findClosestAvailableCourt(int originalCourtId, const QDa
 
     return Court();
 }
+int PadelDataManager::getBookedCourtsCount() const {
+    QMutexLocker locker(&mutex);
+    int bookedCount = 0;
+
+    std::set<int> courtsWithBookings;
+    for (const auto& pair : bookingsById) {
+        const Booking& booking = pair.second;
+        if (!booking.isCancelled()) {
+            courtsWithBookings.insert(booking.getCourtId());
+        }
+    }
+
+    return static_cast<int>(courtsWithBookings.size());
+}
