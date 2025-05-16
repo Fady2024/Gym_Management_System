@@ -13,9 +13,8 @@
 #include "homepage.h"
 #include "Widgets/Clock/Clock.h"
 #include "settingspage.h"
-#include "../staff/addmemberpage.h"
 #include "../staff/retrievepage.h"
-#include "../staff/searchmemberpage.h"
+#include "../UI/Widgets/Revenue/revenue.h"
 #include <QLabel>
 #include "../Language/LanguageSelector.h"
 
@@ -50,9 +49,8 @@ protected:
     }
 
 private slots:
-    void handleAddMemberPage() const;
+    void handleAnalyticsPage() const;
     void handleRetrievePage() const;
-    void handleSearchMemberPage() const;
     void handleSettingsPage() const;
     void toggleTheme();
     void onLanguageChanged(const QString& language);
@@ -77,16 +75,14 @@ private:
 
     // Navigation buttons
     QPushButton* homeButton;
-    QPushButton* addMemberButton;
+    QPushButton* analyticsButton;
     QPushButton* retrieveButton;
-    QPushButton* searchMemberButton;
     QPushButton* settingsButton;
 
     // Pages
     HomePage* homePage;
-    QWidget* addMemberPage;
+    Revenue* analyticsPage;
     QWidget* retrievePage;
-    QWidget* searchMemberPage;
     SettingsPage* settingsPage;
 
     QLabel* titleLabel;

@@ -34,12 +34,11 @@ AddMemberPage::AddMemberPage(UserDataManager* userDataManager, MemberDataManager
 }
 void AddMemberPage::setupUI()
 {
-    auto* centralWidget = new QWidget(this);
-    setCentralWidget(centralWidget);
-
-    auto* mainVLayout = new QVBoxLayout(centralWidget);
-    mainVLayout->setSpacing(0);
-    mainVLayout->setContentsMargins(0, 0, 0, 0);
+    // Create central widget and main layout
+    QWidget* centralWidget = new QWidget(this);
+    QVBoxLayout* mainLayout = new QVBoxLayout(centralWidget);
+    mainLayout->setSpacing(20);
+    mainLayout->setContentsMargins(24, 24, 24, 24);
 
     // Content Area
     auto* contentWidget = new QWidget;
@@ -71,7 +70,6 @@ void AddMemberPage::setupUI()
     profileImageButton->setIcon(UIUtils::getIcon("person.png", 50));
     profileImageButton->setIconSize(QSize(50, 50));
     profileImageButton->setStyleSheet(UIUtils::getProfileUploadStyle(isDarkTheme));
-    //mainVLayout->addWidget(profileImageButton, 0, Qt::AlignCenter);
     connect(profileImageButton, &QPushButton::clicked, this, &AddMemberPage::selectProfileImage);
 
     auto* uploadLabel = new QLabel(tr("Upload Photo"));
@@ -147,11 +145,17 @@ void AddMemberPage::setupUI()
     contentLayout->addStretch();
     contentLayout->addWidget(formContainer);
     contentLayout->addStretch();
-    mainVLayout->addWidget(contentWidget);
+    mainLayout->addWidget(contentWidget);
+
+    setCentralWidget(centralWidget);
 }
 void AddMemberPage::handleAddMember(){}
 void AddMemberPage::selectProfileImage(){}
 void AddMemberPage::retranslateUI(){}
 void AddMemberPage::setupGlassEffect(){}
 void AddMemberPage::setupMessageWidget(){}
-void AddMemberPage::updateTheme(bool){}
+void AddMemberPage::updateTheme(bool isDark)
+{
+    isDarkTheme = isDark;
+    // ... rest of the theme update code ...
+}

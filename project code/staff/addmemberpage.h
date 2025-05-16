@@ -58,10 +58,6 @@ private:
     QWidget* messageWidget;
     QLabel* messageText;
     QLabel* messageIcon;
-    //QSequentialAnimationGroup* messageAnimation;
-    //QPropertyAnimation* slideAnimation;
-    //QPropertyAnimation* shakeAnimation;
-    //QPropertyAnimation* fadeAnimation;
     QTimer* messageTimer;
 };
 

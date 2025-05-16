@@ -12,6 +12,7 @@
 #include <QLineEdit>
 #include <QFormLayout>
 
+
 RetrievePage::RetrievePage(UserDataManager* userDataManager, MemberDataManager* memberManager, QWidget* parent)
     : QWidget(parent)
     , userDataManager(userDataManager)
@@ -43,6 +44,11 @@ void RetrievePage::setupUI()
     contentStack = new QStackedWidget;
     contentStack->setStyleSheet("QStackedWidget { background: transparent; }");
 
+    // Initialize addMemberPage early
+    addMemberPage = new AddMemberPage(userDataManager, memberManager, this);
+    contentStack->addWidget(addMemberPage);
+
+    // Rest of the custom content setup
     customContent = new QWidget;
     QVBoxLayout* customLayout = new QVBoxLayout(customContent);
     customLayout->setSpacing(0);
@@ -124,8 +130,6 @@ void RetrievePage::setupUI()
     leftSidebar->setActiveButton("custom");
     handlePageChange("custom");
 
-    //leftSideBar Pages
-    addMemberPage = new AddMemberPage(userDataManager, memberManager, this);
     // Connect search
     connect(searchEdit, &QLineEdit::textChanged, this, &RetrievePage::populateTable);
     populateTable(); // Populate initially with all members
@@ -180,6 +184,7 @@ void RetrievePage::populateTable(const QString& filter)
         tableWidget->setItem(i, 3, classIdItem);
     }
 }
+
 void RetrievePage::showMessageDialog(const QString& message, bool isError)
 {
     QDialog* dialog = new QDialog(this);
@@ -300,9 +305,10 @@ void RetrievePage::updateTheme(bool isDark)
             }
         )").arg(isDark ? "#F9FAFB" : "#111827",
     isDark ? "#4B5563" : "#D1D5DB",
-    isDark ? "rgba(55, 65, 81, 0.95)" : "rgba(229, 231, 235, 0.95)"));
+    isDarkTheme ? "rgba(55, 65, 81, 0.95)" : "rgba(229, 231, 235, 0.95)"));
     }
 }
+
 void RetrievePage::handlePageChange(const QString& pageId)
 {
     if (pageId == "custom") {

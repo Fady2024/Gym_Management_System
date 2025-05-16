@@ -156,6 +156,8 @@ set(UI_SOURCES
         "project code/UI/leftsidebar.h"
         "project code/UI/Widgets/Notifications/Notifications.cpp"
         "project code/UI/Widgets/Notifications/Notifications.h"
+        "project code/UI/Widgets/Revenue/revenue.cpp"
+        "project code/UI/Widgets/Revenue/revenue.h"
 )
 
 set(LANGUAGE_SOURCES
