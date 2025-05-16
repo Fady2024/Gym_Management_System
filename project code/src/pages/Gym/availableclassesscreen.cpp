@@ -16,6 +16,8 @@
 #include <QComboBox>
 #include <QDateEdit>
 #include <QGroupBox>
+#include <QRandomGenerator>
+
 #include "Widgets/Notifications/NotificationManager.h"
 #include "Widgets/WorkoutProgressPage.h"
 
@@ -77,6 +79,24 @@ void AvailableClassesScreen::loadUserData()
             currentMember = Member(0, currentUser.getId(), -1);
             qDebug() << "User is not a member";
         }
+    }
+
+    // Refresh all content when user data changes
+    if (contentStack) {
+        qDebug() << "Refreshing content after user data loaded";
+        int currentIndex = contentStack->currentIndex();
+        
+        // Refresh workouts page (index 1)
+        QWidget* workoutsWidget = WorkoutsContent();
+        if (contentStack->count() > 1) {
+            QWidget* oldWidget = contentStack->widget(1);
+            contentStack->removeWidget(oldWidget);
+            oldWidget->deleteLater();
+        }
+        contentStack->insertWidget(1, workoutsWidget);
+        
+        // Set current index back to what it was
+        contentStack->setCurrentIndex(currentIndex);
     }
 
     updateTheme(isDarkTheme);
@@ -642,14 +662,206 @@ QWidget* AvailableClassesScreen::ClassesContent() {
 
     return classesContent; //returns the widget (page) pointer to be added to stacked widgets
 }
-//EXAMPLE FUNCTION FOR A SECOND PAGE (CHANGE LATER)
 QWidget* AvailableClassesScreen::WorkoutsContent() {
-    auto* workoutPage = new WorkoutProgressPage();
-    workoutPage->setWorkoutDataManager(workoutManager);
-    workoutPage->setClassDataManager(classDataManager);
-    workoutPage->setUserId(currentUser.getId());
-    workoutPage->updateTheme(isDarkTheme);
-    return workoutPage;
+    qDebug() << "Starting WorkoutsContent() function";
+    
+    // Create main widget and layout
+    QWidget* workoutsContent = new QWidget();
+    QVBoxLayout* mainLayout = new QVBoxLayout(workoutsContent);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+    mainLayout->setSpacing(20);
+
+    // Add title
+    QLabel* titleLabel = new QLabel("Monthly Workout Schedule");
+    titleLabel->setStyleSheet("font-size: 24px; font-weight: bold; color: #6647D8;");
+    mainLayout->addWidget(titleLabel);
+
+    // Create scroll area
+    QScrollArea* scrollArea = new QScrollArea();
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setStyleSheet(
+        "QScrollArea { border: none; background: transparent; }"
+        "QScrollBar:vertical {"
+        "    background: rgba(220, 220, 255, 0.1);"
+        "    width: 12px;"
+        "    margin: 0px;"
+        "    border-radius: 6px;"
+        "}"
+        "QScrollBar::handle:vertical {"
+        "    background: rgba(139, 92, 246, 0.3);"
+        "    min-height: 20px;"
+        "    border-radius: 6px;"
+        "}"
+    );
+
+    // Create content widget for scroll area
+    QWidget* scrollContent = new QWidget();
+    QVBoxLayout* scrollLayout = new QVBoxLayout(scrollContent);
+    scrollLayout->setSpacing(15);
+
+    // Check if workout manager exists
+    if (!workoutManager) {
+        qDebug() << "ERROR: workoutManager is null!";
+        QLabel* errorLabel = new QLabel("Workout system is currently unavailable.");
+        errorLabel->setStyleSheet("color: red;");
+        mainLayout->addWidget(errorLabel);
+        return workoutsContent;
+    }
+
+    // Get all available workouts
+    QVector<Workout> allWorkouts = workoutManager->getAllWorkouts();
+    if (allWorkouts.isEmpty()) {
+        qDebug() << "ERROR: No workouts found in the system!";
+        QLabel* errorLabel = new QLabel("No workouts available.");
+        errorLabel->setStyleSheet("color: red;");
+        mainLayout->addWidget(errorLabel);
+        return workoutsContent;
+    }
+
+    qDebug() << "Found" << allWorkouts.size() << "workouts in the system";
+
+    // Get date range (today to end of month)
+    QDate today = QDate::currentDate();
+    QDate endOfMonth = QDate(today.year(), today.month(), today.daysInMonth());
+    
+    // For each day from today to end of month
+    for (QDate date = today; date <= endOfMonth; date = date.addDays(1)) {
+        qDebug() << "Processing date:" << date.toString();
+        
+        // Create a flag to check if we should skip this date
+        bool skipDate = false;
+
+        // Skip if workout is already completed for this date (only if user is logged in)
+        if (currentUser.getId() > 0) {
+            QVector<WorkoutLog> logs = workoutManager->getUserWorkoutLogsByDateRange(
+                currentUser.getId(), date, date);
+            if (!logs.isEmpty()) {
+                qDebug() << "Workout already completed for" << date.toString();
+                skipDate = true;
+            }
+        }
+
+        // Continue to next date if we should skip this one
+        if (skipDate) {
+            continue;
+        }
+
+        // Select random workout for this day
+        int randomIndex = QRandomGenerator::global()->bounded(allWorkouts.size());
+        const Workout& workout = allWorkouts[randomIndex];
+        qDebug() << "Selected workout:" << workout.name << "for date:" << date.toString();
+
+        // Create workout card
+        QWidget* card = new QWidget();
+        card->setObjectName("workoutCard");
+        card->setStyleSheet(
+            "QWidget#workoutCard {"
+            "    background-color: rgba(139, 92, 246, 0.05);"
+            "    border: 1px solid #BFAEF5;"
+            "    border-radius: 12px;"
+            "    padding: 15px;"
+            "}"
+        );
+
+        QVBoxLayout* cardLayout = new QVBoxLayout(card);
+        
+        // Add date header
+        QLabel* dateLabel = new QLabel(date.toString("dddd, MMMM d"));
+        dateLabel->setStyleSheet("font-size: 18px; font-weight: bold; color: #6647D8;");
+        cardLayout->addWidget(dateLabel);
+
+        // Add workout details
+        QLabel* workoutLabel = new QLabel(QString("<b>%1</b>").arg(workout.name));
+        workoutLabel->setStyleSheet("font-size: 16px; color: #4B3C9C;");
+        cardLayout->addWidget(workoutLabel);
+
+        QLabel* detailsLabel = new QLabel(
+            QString("Duration: %1 min | Calories: %2 | Difficulty: %3")
+                .arg(workout.duration)
+                .arg(workout.totalCalories)
+                .arg(workout.difficulty)
+        );
+        detailsLabel->setStyleSheet("color: #666666;");
+        cardLayout->addWidget(detailsLabel);
+
+        // Add exercise list
+        QString exerciseText = "<ul style='margin: 5px 0; color: #666666;'>";
+        for (const Exercise& exercise : workout.exercises) {
+            exerciseText += QString("<li>%1 - %2 sets x %3</li>")
+                .arg(exercise.name)
+                .arg(exercise.sets)
+                .arg(exercise.reps);
+        }
+        exerciseText += "</ul>";
+        
+        QLabel* exercisesLabel = new QLabel(exerciseText);
+        exercisesLabel->setTextFormat(Qt::RichText);
+        cardLayout->addWidget(exercisesLabel);
+
+        // Add train button (only if user is logged in)
+        QPushButton* trainButton = new QPushButton(currentUser.getId() > 0 ? "Complete Workout" : "Log in to Train");
+        trainButton->setCursor(Qt::PointingHandCursor);
+        trainButton->setStyleSheet(
+            "QPushButton {"
+            "    background-color: #81C784;"
+            "    color: white;"
+            "    border: none;"
+            "    padding: 8px 16px;"
+            "    border-radius: 4px;"
+            "    font-weight: bold;"
+            "}"
+            "QPushButton:hover {"
+            "    background-color: #66BB6A;"
+            "}"
+        );
+
+        // Connect button to log workout
+        connect(trainButton, &QPushButton::clicked, [this, workout, card, date]() {
+            qDebug() << "Logging workout:" << workout.name << "for date:" << date.toString();
+            
+            if (!workoutManager || currentUser.getId() <= 0) {
+                QMessageBox::warning(this, "Error", "Please log in to complete workouts.");
+                return;
+            }
+
+            WorkoutLog log;
+            log.userId = currentUser.getId();
+            log.workoutId = workout.id;
+            log.timestamp = QDateTime(date, QTime::currentTime());
+            log.totalCaloriesBurnt = workout.totalCalories;
+            log.classId = currentMember.getClassId();
+
+            // Mark all exercises as completed
+            for (const Exercise& exercise : workout.exercises) {
+                log.completedExercises.append(qMakePair(exercise.name, true));
+            }
+
+            QString errorMessage;
+            if (workoutManager->logWorkout(log, errorMessage)) {
+                QMessageBox::information(this, "Success", 
+                    QString("Completed workout: %1\nCalories burned: %2")
+                    .arg(workout.name)
+                    .arg(workout.totalCalories));
+                
+                // Remove the card
+                card->hide();
+                card->deleteLater();
+            } else {
+                QMessageBox::warning(this, "Error", 
+                    QString("Failed to log workout: %1").arg(errorMessage));
+            }
+        });
+
+        cardLayout->addWidget(trainButton);
+        scrollLayout->addWidget(card);
+    }
+
+    // Add scroll area to main layout
+    scrollArea->setWidget(scrollContent);
+    mainLayout->addWidget(scrollArea);
+
+    qDebug() << "WorkoutsContent() function completed";
+    return workoutsContent;
 }
 QWidget* AvailableClassesScreen::ExtraContent() {
     QWidget* Content = new QWidget();

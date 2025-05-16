@@ -1,85 +1,85 @@
 {
-  "workouts": [
-    {
-      "id": 1,
-      "name": "Full Body Strength",
-      "exercises": [
+    "workouts": [
         {
-          "name": "Push-ups",
-          "sets": 3,
-          "reps": "12-15",
-          "caloriesPerSet": 8
+            "difficulty": "intermediate",
+            "duration": 45,
+            "exercises": [
+                {
+                    "caloriesPerSet": 8,
+                    "name": "Push-ups",
+                    "reps": "12-15",
+                    "sets": 3
+                },
+                {
+                    "caloriesPerSet": 6,
+                    "name": "Dumbbell Rows",
+                    "reps": "12",
+                    "sets": 3
+                },
+                {
+                    "caloriesPerSet": 10,
+                    "name": "Squats",
+                    "reps": "15",
+                    "sets": 4
+                }
+            ],
+            "id": 1,
+            "name": "Full Body Strength",
+            "totalCalories": 300
         },
         {
-          "name": "Dumbbell Rows",
-          "sets": 3,
-          "reps": "12",
-          "caloriesPerSet": 6
+            "difficulty": "advanced",
+            "duration": 30,
+            "exercises": [
+                {
+                    "caloriesPerSet": 10,
+                    "name": "Burpees",
+                    "reps": "10",
+                    "sets": 4
+                },
+                {
+                    "caloriesPerSet": 8,
+                    "name": "Mountain Climbers",
+                    "reps": "30 seconds",
+                    "sets": 3
+                },
+                {
+                    "caloriesPerSet": 12,
+                    "name": "Jump Rope",
+                    "reps": "1 minute",
+                    "sets": 4
+                }
+            ],
+            "id": 2,
+            "name": "HIIT Cardio",
+            "totalCalories": 250
         },
         {
-          "name": "Squats",
-          "sets": 4,
-          "reps": "15",
-          "caloriesPerSet": 10
+            "difficulty": "beginner",
+            "duration": 25,
+            "exercises": [
+                {
+                    "caloriesPerSet": 6,
+                    "name": "Planks",
+                    "reps": "45 seconds",
+                    "sets": 3
+                },
+                {
+                    "caloriesPerSet": 7,
+                    "name": "Russian Twists",
+                    "reps": "20 each side",
+                    "sets": 3
+                },
+                {
+                    "caloriesPerSet": 5,
+                    "name": "Leg Raises",
+                    "reps": "15",
+                    "sets": 3
+                }
+            ],
+            "id": 3,
+            "name": "Core Focus",
+            "totalCalories": 200
         }
-      ],
-      "duration": 45,
-      "totalCalories": 300,
-      "difficulty": "intermediate"
-    },
-    {
-      "id": 2,
-      "name": "HIIT Cardio",
-      "exercises": [
-        {
-          "name": "Burpees",
-          "sets": 4,
-          "reps": "10",
-          "caloriesPerSet": 10
-        },
-        {
-          "name": "Mountain Climbers",
-          "sets": 3,
-          "reps": "30 seconds",
-          "caloriesPerSet": 8
-        },
-        {
-          "name": "Jump Rope",
-          "sets": 4,
-          "reps": "1 minute",
-          "caloriesPerSet": 12
-        }
-      ],
-      "duration": 30,
-      "totalCalories": 250,
-      "difficulty": "advanced"
-    },
-    {
-      "id": 3,
-      "name": "Core Focus",
-      "exercises": [
-        {
-          "name": "Planks",
-          "sets": 3,
-          "reps": "45 seconds",
-          "caloriesPerSet": 6
-        },
-        {
-          "name": "Russian Twists",
-          "sets": 3,
-          "reps": "20 each side",
-          "caloriesPerSet": 7
-        },
-        {
-          "name": "Leg Raises",
-          "sets": 3,
-          "reps": "15",
-          "caloriesPerSet": 5
-        }
-      ],
-      "duration": 25,
-      "totalCalories": 200,
-      "difficulty": "beginner"
-    }
-  ]
-} 
+    ]
+}

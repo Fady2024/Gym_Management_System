@@ -38,7 +38,7 @@
         "coachName": "John Smith",
         "from": "Wed May 7 2025",
         "id": 4,
-        "numOfEnrolled": 1,
+        "numOfEnrolled": 2,
         "sessions": [
         ],
         "to": "Wed May 14 2025"
@@ -71,7 +71,7 @@
         "coachName": "Sarah Johnson",
         "from": "Fri May 16 2025",
         "id": 7,
-        "numOfEnrolled": 2,
+        "numOfEnrolled": 1,
         "sessions": [
         ],
         "to": "Fri May 23 2025"

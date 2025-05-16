@@ -1,15 +1,58 @@
 #include "workoutdatamanager.h"
+
+#include <iostream>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QDir>
+#include <QDebug>
 
 WorkoutDataManager::WorkoutDataManager(QObject* parent)
     : QObject(parent)
-    , dataDir("project code/Data/")
+    , dataDir(QDir(QDir::currentPath()).absoluteFilePath("../project code/Data"))
 {
-    initializeFromFile();
+    qDebug() << "========== WorkoutDataManager constructor called ==========";
+    qDebug() << "Current directory:" << QDir::currentPath();
+    qDebug() << "Data directory:" << dataDir;
+    
+    // Ensure data directory exists
+    QDir dir(dataDir);
+    if (!dir.exists()) {
+        qDebug() << "ERROR: Data directory does not exist:" << dataDir;
+        qDebug() << "Trying alternative path...";
+        // Try alternative path
+        dataDir = QDir(QDir::currentPath()).absoluteFilePath("../../project code/Data");
+        dir.setPath(dataDir);
+        qDebug() << "Alternative data directory:" << dataDir;
+        qDebug() << "Alternative directory exists:" << dir.exists();
+    }
+    
+    if (!dir.exists()) {
+        qDebug() << "ERROR: Could not find Data directory in either location";
+        return;
+    }
+    
+    // Check if key files exist
+    QString workoutsPath = dir.absoluteFilePath("workouts.json");
+    QString logsPath = dir.absoluteFilePath("workout_logs.json");
+    
+    qDebug() << "Workouts file path:" << workoutsPath;
+    qDebug() << "Workouts file exists:" << QFile::exists(workoutsPath);
+    qDebug() << "Logs file path:" << logsPath;
+    qDebug() << "Logs file exists:" << QFile::exists(logsPath);
+    
+    bool initialized = initializeFromFile();
+    qDebug() << "Initialization result:" << (initialized ? "SUCCESS" : "FAILED");
+    
+    if (!initialized) {
+        qDebug() << "Failed to initialize workout data from files";
+        std::cout << "FAILED WORKOUT";
+    } else {
+        qDebug() << "Successfully loaded" << workouts.size() << "workouts";
+        std::cout << "WORKOUT loaded " << workouts.size();
+    }
+    qDebug() << "========== WorkoutDataManager constructor finished ==========";
 }
 
 WorkoutDataManager::~WorkoutDataManager() {
@@ -19,7 +62,15 @@ WorkoutDataManager::~WorkoutDataManager() {
 }
 
 bool WorkoutDataManager::initializeFromFile() {
-    return loadWorkouts() && loadWorkoutLogs();
+    qDebug() << "========== Initializing workout data from files... ==========";
+    bool workoutsLoaded = loadWorkouts();
+    qDebug() << "Workouts loaded:" << workoutsLoaded;
+    
+    bool logsLoaded = loadWorkoutLogs();
+    qDebug() << "Logs loaded:" << logsLoaded;
+    
+    qDebug() << "========== Workout data initialization " << (workoutsLoaded && logsLoaded ? "SUCCEEDED" : "FAILED") << " ==========";
+    return workoutsLoaded && logsLoaded;
 }
 
 bool WorkoutDataManager::saveToFile() {
@@ -27,30 +78,75 @@ bool WorkoutDataManager::saveToFile() {
 }
 
 bool WorkoutDataManager::loadWorkouts() {
-    QFile file(dataDir + "workouts.json");
+    QDir dir(dataDir);
+    QString filePath = dir.absoluteFilePath("workouts.json");
+    qDebug() << "========== Loading workouts from:" << filePath << "==========";
+    
+    if (!QFile::exists(filePath)) {
+        qDebug() << "ERROR: Workouts file doesn't exist at path:" << filePath;
+        return false;
+    }
+    
+    QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly)) {
+        qDebug() << "ERROR: Failed to open workouts file:" << file.errorString();
+        qDebug() << "File path:" << filePath;
+        qDebug() << "Current directory:" << QDir::currentPath();
+        qDebug() << "File permissions:" << file.permissions();
         return false;
     }
 
     QByteArray data = file.readAll();
-    QJsonDocument doc = QJsonDocument::fromJson(data);
+    file.close();
+    
+    if (data.isEmpty()) {
+        qDebug() << "ERROR: Workouts file is empty";
+        return false;
+    }
+    
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
     if (doc.isNull()) {
+        qDebug() << "ERROR: Failed to parse workouts JSON data";
+        qDebug() << "Parse error:" << parseError.errorString();
+        qDebug() << "Error offset:" << parseError.offset;
+        qDebug() << "File content:" << data;
+        return false;
+    }
+
+    if (!doc.isObject()) {
+        qDebug() << "ERROR: JSON document is not an object";
         return false;
     }
 
     QJsonObject root = doc.object();
+    if (!root.contains("workouts")) {
+        qDebug() << "ERROR: JSON does not contain 'workouts' key";
+        return false;
+    }
+
     QJsonArray workoutsArray = root["workouts"].toArray();
     workouts.clear();
 
     for (const QJsonValue& value : workoutsArray) {
+        if (!value.isObject()) {
+            qDebug() << "WARNING: Skipping invalid workout entry (not an object)";
+            continue;
+        }
         workouts.append(jsonToWorkout(value.toObject()));
     }
 
+    qDebug() << "Successfully loaded" << workouts.size() << "workouts";
+    if (!workouts.isEmpty()) {
+        qDebug() << "First workout name:" << workouts.first().name;
+        qDebug() << "First workout exercises:" << workouts.first().exercises.size();
+    }
+    qDebug() << "========== Workouts loading completed ==========";
     return true;
 }
 
 bool WorkoutDataManager::saveWorkouts() const {
-    QFile file(dataDir + "workouts.json");
+    QFile file(QDir(dataDir).absoluteFilePath("workouts.json"));
     if (!file.open(QIODevice::WriteOnly)) {
         return false;
     }
@@ -69,30 +165,89 @@ bool WorkoutDataManager::saveWorkouts() const {
 }
 
 bool WorkoutDataManager::loadWorkoutLogs() {
-    QFile file(dataDir + "workout_logs.json");
+    QDir dir(dataDir);
+    QString filePath = dir.absoluteFilePath("workout_logs.json");
+    qDebug() << "========== Loading workout logs from:" << filePath << "==========";
+    
+    // Check if file exists
+    bool fileExists = QFile::exists(filePath);
+    qDebug() << "Workout logs file exists:" << fileExists;
+    
+    QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly)) {
+        qDebug() << "Failed to open workout logs file:" << file.errorString();
+        qDebug() << "File path:" << filePath;
+        qDebug() << "Current directory:" << QDir::currentPath();
+        qDebug() << "File permissions:" << file.permissions();
+        
+        // Create a default empty workout_logs.json file
+        QJsonObject root;
+        root["logs"] = QJsonArray();
+        
+        QFile defaultFile(filePath);
+        if (defaultFile.open(QIODevice::WriteOnly)) {
+            QJsonDocument doc(root);
+            defaultFile.write(doc.toJson());
+            defaultFile.close();
+            
+            workoutLogs.clear();
+            qDebug() << "Created default empty workout logs file at:" << filePath;
+            qDebug() << "========== Workout logs loading completed with default file ==========";
+            return true;
+        }
+        
+        qDebug() << "ERROR: Failed to create default workout logs file";
+        qDebug() << "========== Workout logs loading FAILED ==========";
         return false;
     }
 
     QByteArray data = file.readAll();
-    QJsonDocument doc = QJsonDocument::fromJson(data);
+    file.close();
+    
+    if (data.isEmpty()) {
+        qDebug() << "ERROR: Workout logs file is empty";
+        return false;
+    }
+    
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
     if (doc.isNull()) {
+        qDebug() << "ERROR: Failed to parse workout logs JSON data";
+        qDebug() << "Parse error:" << parseError.errorString();
+        qDebug() << "Error offset:" << parseError.offset;
+        qDebug() << "File content:" << data;
+        return false;
+    }
+
+    if (!doc.isObject()) {
+        qDebug() << "ERROR: JSON document is not an object";
         return false;
     }
 
     QJsonObject root = doc.object();
+    if (!root.contains("logs")) {
+        qDebug() << "ERROR: JSON does not contain 'logs' key";
+        return false;
+    }
+
     QJsonArray logsArray = root["logs"].toArray();
     workoutLogs.clear();
 
     for (const QJsonValue& value : logsArray) {
+        if (!value.isObject()) {
+            qDebug() << "WARNING: Skipping invalid workout log entry (not an object)";
+            continue;
+        }
         workoutLogs.append(jsonToWorkoutLog(value.toObject()));
     }
 
+    qDebug() << "Successfully loaded" << workoutLogs.size() << "workout logs";
+    qDebug() << "========== Workout logs loading completed ==========";
     return true;
 }
 
 bool WorkoutDataManager::saveWorkoutLogs() const {
-    QFile file(dataDir + "workout_logs.json");
+    QFile file(QDir(dataDir).absoluteFilePath("workout_logs.json"));
     if (!file.open(QIODevice::WriteOnly)) {
         return false;
     }
