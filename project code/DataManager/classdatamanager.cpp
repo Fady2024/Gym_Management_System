@@ -261,6 +261,14 @@ bool ClassDataManager::enrollMember(int classId, int memberId, QString& errorMes
         return false;
     }
 
+    // Check if member is already enrolled in any class
+    for (const auto& pair : classesById) {
+        if (pair.second.isMemberEnrolled(memberId)) {
+            errorMessage = "You are already enrolled in another class. Please unenroll from it first.";
+            return false;
+        }
+    }
+
     Class& gymClass = it->second;
     if (gymClass.isFull()) {
         if (memberDataManager->isVIPMember(memberId)) {
