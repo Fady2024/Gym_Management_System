@@ -219,7 +219,6 @@ void AvailableClassesScreen::setupUI()
     connect(leftSidebar, &LeftSidebar::pageChanged, this, &AvailableClassesScreen::handlePageChange);
 
     setLayout(mainHLayout);
-    
     qDebug() << "UI Setup complete - Current page index:" << contentStack->currentIndex();
 }
 
@@ -1155,28 +1154,6 @@ void AvailableClassesScreen::handlePageChange(const QString& pageID) {
     // First, ensure all pages are up to date
     if (contentStack && contentStack->count() > 0) {
         qDebug() << "Refreshing pages - Stack count:" << contentStack->count();
-        
-        // Update Classes page (index 0)
-        QWidget* classesWidget = ClassesContent();
-        QWidget* oldClassesWidget = contentStack->widget(0);
-        contentStack->removeWidget(oldClassesWidget);
-        oldClassesWidget->deleteLater();
-        contentStack->insertWidget(0, classesWidget);
-        
-        // Update Workouts page (index 1)
-        QWidget* workoutsWidget = WorkoutsContent();
-        QWidget* oldWorkoutsWidget = contentStack->widget(1);
-        contentStack->removeWidget(oldWorkoutsWidget);
-        oldWorkoutsWidget->deleteLater();
-        contentStack->insertWidget(1, workoutsWidget);
-        
-        // Update History page (index 2)
-        QWidget* historyWidget = ExtraContent();
-        QWidget* oldHistoryWidget = contentStack->widget(2);
-        contentStack->removeWidget(oldHistoryWidget);
-        oldHistoryWidget->deleteLater();
-        contentStack->insertWidget(2, historyWidget);
-
         // Force an update of the scroll area for classes page
         if (scrollArea && scrollArea->widget()) {
             scrollArea->widget()->update();
@@ -1185,6 +1162,13 @@ void AvailableClassesScreen::handlePageChange(const QString& pageID) {
 
     // Then change to the requested page
     if (pageID == "classes") {
+        // Update Classes page (index 0)
+        QWidget* classesWidget = ClassesContent();
+        QWidget* oldClassesWidget = contentStack->widget(0);
+        contentStack->removeWidget(oldClassesWidget);
+        oldClassesWidget->deleteLater();
+        contentStack->insertWidget(0, classesWidget);
+
         qDebug() << "Switching to Classes page";
         contentStack->setCurrentIndex(0);
         // Additional refresh for classes page
@@ -1194,11 +1178,23 @@ void AvailableClassesScreen::handlePageChange(const QString& pageID) {
         }
     }
     else if (pageID == "workouts") {
+        // Update Workouts page (index 1)
+        QWidget* workoutsWidget = WorkoutsContent();
+        QWidget* oldWorkoutsWidget = contentStack->widget(1);
+        contentStack->removeWidget(oldWorkoutsWidget);
+        oldWorkoutsWidget->deleteLater();
+        contentStack->insertWidget(1, workoutsWidget);
         qDebug() << "Switching to Workouts page";
         contentStack->setCurrentIndex(1);
     }
     else if (pageID == "add-classes") {
         qDebug() << "Switching to History page";
+        // Update History page (index 2)
+        QWidget* historyWidget = ExtraContent();
+        QWidget* oldHistoryWidget = contentStack->widget(2);
+        contentStack->removeWidget(oldHistoryWidget);
+        oldHistoryWidget->deleteLater();
+        contentStack->insertWidget(2, historyWidget);
         contentStack->setCurrentIndex(2);
     }
 
