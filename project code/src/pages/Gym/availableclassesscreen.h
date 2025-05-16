@@ -11,6 +11,7 @@
 #include "../UI/leftsidebar.h"
 #include "../../../DataManager/userdatamanager.h"
 #include "../../../DataManager/memberdatamanager.h"
+#include "../../../DataManager/workoutdatamanager.h"
 
 class QGridLayout;
 class QPushButton;
@@ -28,6 +29,7 @@ public:
     void setCurrentUserEmail(const QString& email);
     void setUserDataManager(UserDataManager* manager);
     void setMemberDataManager(MemberDataManager* manager);
+    void setWorkoutDataManager(WorkoutDataManager* manager) { workoutManager = manager; }
     void updateTheme(bool isDark);
 
 private slots:
@@ -52,6 +54,7 @@ private:
     ClassDataManager*  classDataManager;
     UserDataManager*   userDataManager;
     MemberDataManager* memberDataManager;
+    WorkoutDataManager* workoutManager;
     QScrollArea*       scrollArea;
     QWidget*           scrollWidget;
     QPushButton*       addClassButton;

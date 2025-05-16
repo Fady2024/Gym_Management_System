@@ -17,15 +17,15 @@
 #include <QDateEdit>
 #include <QGroupBox>
 #include "Widgets/Notifications/NotificationManager.h"
+#include "Widgets/WorkoutProgressPage.h"
 
 AvailableClassesScreen::AvailableClassesScreen(ClassDataManager* dataManager, QWidget *parent)
     : QWidget(parent), classDataManager(dataManager), userDataManager(nullptr), memberDataManager(nullptr),
-      isDarkTheme(true)
+      workoutManager(nullptr), isDarkTheme(true)
 {
     setupCoaches();
     setupUI();
     refreshClasses();
-
 }
 
 AvailableClassesScreen::~AvailableClassesScreen() = default;
@@ -127,7 +127,7 @@ void AvailableClassesScreen::setupUI()
     //create and define sidebar buttons (also it's initial theme)
     leftSidebar = new LeftSidebar();
     leftSidebar->addButton(":/Images/whistle.png", "Gym Classes", "classes");
-    leftSidebar->addButton(":/Images/muscle.png", "Workouts", "workouts");
+    leftSidebar->addButton(":/Images/dumbbell.png", "Workouts", "workouts");
     leftSidebar->addButton(":/Images/team.png", "Add Class", "add-classes");
     leftSidebar->updateTheme(true); //HAS TO BE RE-IMPLEMENTED WHEN ADDING DARK THEME TO THIS PAGE (ALWAYS SET TO TRUE FOR NOW)
     mainHLayout->addWidget(leftSidebar);
@@ -567,9 +567,12 @@ QWidget* AvailableClassesScreen::ClassesContent() {
 }
 //EXAMPLE FUNCTION FOR A SECOND PAGE (CHANGE LATER)
 QWidget* AvailableClassesScreen::WorkoutsContent() {
-    QWidget* workoutsContent = new QWidget();
-    QLabel* workoutsLabel = new QLabel("THIS IS WORKOUTS PAGE (ADD YOUR PAGE LATER)", workoutsContent);
-    return workoutsContent;
+    auto* workoutPage = new WorkoutProgressPage();
+    workoutPage->setWorkoutDataManager(workoutManager);
+    workoutPage->setClassDataManager(classDataManager);
+    workoutPage->setUserId(currentUser.getId());
+    workoutPage->updateTheme(isDarkTheme);
+    return workoutPage;
 }
 QWidget* AvailableClassesScreen::ExtraContent() {
     QWidget* Content = new QWidget();

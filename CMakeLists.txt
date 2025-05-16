@@ -50,6 +50,8 @@ set(DATA_FILES
         "project code/Data/remembered.json"
         "project code/Data/saved_cards.json"
         "project code/Data/classes.json"
+        "project code/Data/workouts.json"
+        "project code/Data/workout_logs.json"
 )
 
 # Find required Qt6 components
@@ -58,6 +60,7 @@ find_package(Qt6 COMPONENTS
         Gui
         Widgets
         LinguistTools
+        Charts
         REQUIRED)
 
 # Set up translations
@@ -118,6 +121,8 @@ set(DATA_MANAGER_SOURCES
         "project code/DataManager/classdatamanager.h"
         "project code/DataManager/padeldatamanager.cpp"
         "project code/DataManager/padeldatamanager.h"
+        "project code/DataManager/workoutdatamanager.cpp"
+        "project code/DataManager/workoutdatamanager.h"
 )
 
 set(MODEL_SOURCES
@@ -156,6 +161,8 @@ set(UI_SOURCES
         "project code/UI/leftsidebar.h"
         "project code/UI/Widgets/Notifications/Notifications.cpp"
         "project code/UI/Widgets/Notifications/Notifications.h"
+        "project code/UI/Widgets/WorkoutProgressPage.cpp"
+        "project code/UI/Widgets/WorkoutProgressPage.h"
 )
 
 set(LANGUAGE_SOURCES
@@ -267,6 +274,7 @@ target_link_libraries(DS_Project PRIVATE
         Qt6::Core
         Qt6::Gui
         Qt6::Widgets
+        Qt6::Charts
 )
 
 # Windows-specific DLL handling
@@ -286,6 +294,7 @@ if(WIN32)
             "${QT_INSTALL_PATH}/bin/Qt6Core${DEBUG_SUFFIX}.dll"
             "${QT_INSTALL_PATH}/bin/Qt6Gui${DEBUG_SUFFIX}.dll"
             "${QT_INSTALL_PATH}/bin/Qt6Widgets${DEBUG_SUFFIX}.dll"
+            "${QT_INSTALL_PATH}/bin/Qt6Charts${DEBUG_SUFFIX}.dll"
             "$<TARGET_FILE_DIR:DS_Project>/"
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${QT_INSTALL_PATH}/plugins/platforms/qwindows${DEBUG_SUFFIX}.dll"

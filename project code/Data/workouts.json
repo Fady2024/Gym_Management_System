@@ -1,0 +1,85 @@
+{
+  "workouts": [
+    {
+      "id": 1,
+      "name": "Full Body Strength",
+      "exercises": [
+        {
+          "name": "Push-ups",
+          "sets": 3,
+          "reps": "12-15",
+          "caloriesPerSet": 8
+        },
+        {
+          "name": "Dumbbell Rows",
+          "sets": 3,
+          "reps": "12",
+          "caloriesPerSet": 6
+        },
+        {
+          "name": "Squats",
+          "sets": 4,
+          "reps": "15",
+          "caloriesPerSet": 10
+        }
+      ],
+      "duration": 45,
+      "totalCalories": 300,
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 2,
+      "name": "HIIT Cardio",
+      "exercises": [
+        {
+          "name": "Burpees",
+          "sets": 4,
+          "reps": "10",
+          "caloriesPerSet": 10
+        },
+        {
+          "name": "Mountain Climbers",
+          "sets": 3,
+          "reps": "30 seconds",
+          "caloriesPerSet": 8
+        },
+        {
+          "name": "Jump Rope",
+          "sets": 4,
+          "reps": "1 minute",
+          "caloriesPerSet": 12
+        }
+      ],
+      "duration": 30,
+      "totalCalories": 250,
+      "difficulty": "advanced"
+    },
+    {
+      "id": 3,
+      "name": "Core Focus",
+      "exercises": [
+        {
+          "name": "Planks",
+          "sets": 3,
+          "reps": "45 seconds",
+          "caloriesPerSet": 6
+        },
+        {
+          "name": "Russian Twists",
+          "sets": 3,
+          "reps": "20 each side",
+          "caloriesPerSet": 7
+        },
+        {
+          "name": "Leg Raises",
+          "sets": 3,
+          "reps": "15",
+          "caloriesPerSet": 5
+        }
+      ],
+      "duration": 25,
+      "totalCalories": 200,
+      "difficulty": "beginner"
+    }
+  ]
+} 
