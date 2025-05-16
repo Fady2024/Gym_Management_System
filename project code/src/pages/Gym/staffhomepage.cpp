@@ -165,6 +165,7 @@ void StaffHomePage::setupUI()
     navButtonsLayout->addWidget(analyticsButton);
     navButtonsLayout->addWidget(retrieveButton);
     navButtonsLayout->addWidget(settingsButton);
+    navButtonsLayout->addSpacing(100);
     navButtonsLayout->addStretch(1);
     navButtonsLayout->addWidget(clockWidget);
 
