@@ -192,7 +192,7 @@ void AvailableClassesScreen::setupUI()
     //create and define sidebar buttons (also it's initial theme)
     leftSidebar = new LeftSidebar();
     leftSidebar->addButton(":/Images/whistle.png", "Gym Classes", "classes");
-    leftSidebar->addButton(":/Images/dumbbell.png", "Workouts", "workouts");
+    leftSidebar->addButton(":/Images/muscle.png", "Workouts", "workouts");
     leftSidebar->addButton(":/Images/team.png", "Add Class", "add-classes");
     leftSidebar->updateTheme(true);
     mainHLayout->addWidget(leftSidebar);
