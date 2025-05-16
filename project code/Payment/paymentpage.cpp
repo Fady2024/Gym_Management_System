@@ -1263,7 +1263,7 @@ bool PaymentPage::validatePaymentDetails()
             int month = expiry.left(2).toInt();
             int year = 2000 + expiry.right(2).toInt();
             QDate expiryDate(year, month, 1);
-            if (expiryDate <= QDate::currentDate()) {
+            if (expiryDate <= timeLogicInstance.getCurrentTime().date()) {
                 errorMessage += tr("Your saved card has expired. Please use a different card.\n");
                 isValid = false;
             }
@@ -1287,7 +1287,7 @@ bool PaymentPage::validatePaymentDetails()
             int month = expiry.left(2).toInt();
             int year = 2000 + expiry.right(2).toInt();
             QDate expiryDate(year, month, 1);
-            if (expiryDate <= QDate::currentDate()) {
+            if (expiryDate <= timeLogicInstance.getCurrentTime().date()) {
                 errorMessage += tr("Card has expired\n");
                 isValid = false;
             }
@@ -1609,7 +1609,7 @@ bool PaymentPage::createSubscription()
 
     try {
         // Create new subscription with a fixed current date to avoid system date issues
-        QDate currentYear = QDate::currentDate();
+        QDate currentYear = timeLogicInstance.getCurrentTime().date();
         // Check if the year is reasonable (between 2023 and 2026)
         if (currentYear.year() < 2023 || currentYear.year() > 2026) {
             qDebug() << "WARNING: System date appears incorrect: " << currentYear.toString() 
@@ -1927,7 +1927,7 @@ void PaymentPage::validateExpiryDate(const QString& text)
     // Validate the expiry date
     if (filtered.length() == 4) {
         int year = 2000 + filtered.right(2).toInt();
-        QDate currentDate = QDate::currentDate();
+        QDate currentDate = timeLogicInstance.getCurrentTime().date();
         QDate expiryDate(year, month, 1);
         
         if (expiryDate < currentDate) {

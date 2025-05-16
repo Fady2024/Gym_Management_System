@@ -225,9 +225,9 @@ void BookingWindow::setupUI()
     QLabel* dateLabel = new QLabel(tr("Select Date:"), m_section1);
     dateLabel->setStyleSheet(dateLabelStyle);
     dateLabel->setObjectName("labelHeading");   
-    m_dateSelector = new QDateEdit(QDate::currentDate(), m_section1);
+    m_dateSelector = new QDateEdit(timeLogicInstance.getCurrentTime().date(), m_section1);
     m_dateSelector->setCalendarPopup(true);
-    m_dateSelector->setMinimumDate(QDate::currentDate());
+    m_dateSelector->setMinimumDate(timeLogicInstance.getCurrentTime().date());
     m_dateSelector->setStyleSheet(dateSelectorStyle);
     dateLayout->addWidget(dateLabel);
     dateLayout->addWidget(m_dateSelector);
@@ -580,7 +580,7 @@ void BookingWindow::loadCourtsByFilter(const QString& nameQuery, const QString& 
         
         QDate selectedDate = m_dateSelector->date();
         if (!selectedDate.isValid()) {
-            selectedDate = QDate::currentDate();
+            selectedDate = timeLogicInstance.getCurrentTime().date();
         }
 
         QTime selectedTime;
@@ -714,7 +714,7 @@ void BookingWindow::onJoinWaitlistClicked()
         
     QDate selectedDate = m_dateSelector->date();
         if (!selectedDate.isValid()) {
-            selectedDate = QDate::currentDate();
+            selectedDate = timeLogicInstance.getCurrentTime().date();
         }
 
         QTime selectedTime;
@@ -1030,7 +1030,7 @@ void BookingWindow::onCheckWaitlistClicked()
         
         QDate selectedDate = m_dateSelector->date();
         if (!selectedDate.isValid()) {
-            selectedDate = QDate::currentDate();
+            selectedDate = timeLogicInstance.getCurrentTime().date();
         }
         
         QJsonObject waitlistInfo;
@@ -1188,7 +1188,7 @@ int BookingWindow::getMyWaitlistPosition(int courtId)
     try {
         QDate selectedDate = m_dateSelector->date();
         if (!selectedDate.isValid()) {
-            selectedDate = QDate::currentDate();
+            selectedDate = timeLogicInstance.getCurrentTime().date();
         }
         
         QTime defaultTime(12, 0);   
@@ -1239,7 +1239,7 @@ int BookingWindow::getMyWaitlistPosition(int courtId)
 
             QDate selectedDate = m_dateSelector->date();
             if (!selectedDate.isValid()) {
-                selectedDate = QDate::currentDate();
+                selectedDate = timeLogicInstance.getCurrentTime().date();
             }
             
         QJsonObject waitlistInfo;
@@ -2207,7 +2207,7 @@ void BookingWindow::onBookingItemSelected(int row)
 
 bool BookingWindow::canCancelOrReschedule(const Booking& booking)
 {
-    QDateTime now = QDateTime::currentDateTime();
+    QDateTime now = timeLogicInstance.getCurrentTime();
     return booking.getStartTime() > now.addSecs(3 * 3600);  
 }
 
@@ -2307,7 +2307,7 @@ void BookingWindow::rescheduleBooking() {
     }
 
     QString bookingText = item->text();
-    QDate bookingDate = QDate::currentDate();
+    QDate bookingDate = timeLogicInstance.getCurrentTime().date();
     
     QRegularExpression dateRegex("(\\d{4}-\\d{2}-\\d{2})");
     QRegularExpressionMatch match = dateRegex.match(bookingText);
@@ -2732,7 +2732,7 @@ void BookingWindow::updateAlternativeCourts()
         
         QDate selectedDate = m_dateSelector->date();
         if (!selectedDate.isValid()) {
-            selectedDate = QDate::currentDate();
+            selectedDate = timeLogicInstance.getCurrentTime().date();
         }
         
         QTime defaultTime(12, 0);

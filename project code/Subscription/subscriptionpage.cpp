@@ -1245,7 +1245,7 @@ void SubscriptionPage::createSubscription(int planId, bool isVip)
     }
 
     // Create new subscription
-    Subscription subscription(type, QDate::currentDate());
+    Subscription subscription(type, timeLogicInstance.getCurrentTime().date());
     
     QString errorMessage;
     if (!memberManager->addSubscription(currentMemberId, subscription, errorMessage)) {

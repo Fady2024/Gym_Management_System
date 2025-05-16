@@ -1806,8 +1806,9 @@ QJsonArray PadelDataManager::getAvailableTimeSlots(int courtId, const QDate& dat
         return availableSlots;
     }
 
-    QDate currentDate = QDate::currentDate();
-    QTime currentTime = QTime::currentTime();
+    QDateTime currentDateTime = timeLogicInstance.getCurrentTime();
+    QDate currentDate = currentDateTime.date();
+    QTime currentTime = currentDateTime.time();
     bool isToday = (date == currentDate);
 
     for (const QTime& time : timeSlotsCopy) {
@@ -2027,7 +2028,7 @@ bool PadelDataManager::validateBookingTime(const QDateTime& startTime, const QDa
         return false;
     }
 
-    QDateTime now = QDateTime::currentDateTime();
+    QDateTime now = timeLogicInstance.getCurrentTime();
 
     if (startTime < now) {
         errorMessage = "Booking time must be in the future";
@@ -2056,7 +2057,7 @@ bool PadelDataManager::validateBookingTime(const QDateTime& startTime, const QDa
 }
 
 void PadelDataManager::checkBookingStatus() {
-    QDateTime now = QDateTime::currentDateTime();
+    QDateTime now = timeLogicInstance.getCurrentTime();
     QDate today = now.date();
     QVector<int> processedCourts;
 
@@ -2086,7 +2087,7 @@ void PadelDataManager::processWaitlistForDate(int courtId, const QDate& date) {
         QDateTime startTime(date, time);
         QDateTime endTime = startTime.addSecs(3600);
 
-        if (startTime < QDateTime::currentDateTime()) {
+        if (startTime <  timeLogicInstance.getCurrentTime()) {
             continue;
         }
 

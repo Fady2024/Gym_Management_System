@@ -622,7 +622,7 @@ void SubscriptionStatusPage::loadMemberData()
     currentPlan = subscription.getType();
     startDate = subscription.getStartDate();
     endDate = subscription.getEndDate();
-    daysRemaining = QDate::currentDate().daysTo(endDate);
+    daysRemaining = timeLogicInstance.getCurrentTime().date().daysTo(endDate);
     isExpiringSoon = daysRemaining > 0 && daysRemaining <= 30;
 
     qDebug() << "Loaded active subscription: Days remaining:" << daysRemaining
@@ -656,7 +656,7 @@ void SubscriptionStatusPage::updateStatusCard()
             statusIconLabel->setPixmap(activeIcon.scaled(24, 24, Qt::KeepAspectRatio, Qt::SmoothTransformation));
         }
         
-        QDate currentDate = QDate::currentDate();
+        QDate currentDate = timeLogicInstance.getCurrentTime().date();
         int daysUntilExpiry = currentDate.daysTo(endDate);
         
         // Check if expiring soon (within 30 days)
@@ -823,7 +823,7 @@ void SubscriptionStatusPage::updateStatusColors()
 void SubscriptionStatusPage::updateRemainingDays()
 {
     // Calculate remaining days
-    QDate currentDate = QDate::currentDate();
+    QDate currentDate = timeLogicInstance.getCurrentTime().date();
     
     // Ensure we have valid dates
     if (!startDate.isValid() || !endDate.isValid()) {

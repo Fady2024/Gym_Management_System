@@ -239,7 +239,7 @@ bool MemberDataManager::cancelSubscription(int memberId, QString& errorMessage) 
 
 QVector<Member> MemberDataManager::getMembersNeedingRenewal(int daysThreshold) const {
     QVector<Member> result;
-    QDate currentDate = QDate::currentDate();
+    QDate currentDate = timeLogicInstance.getCurrentTime().date();
 
     for (const auto& pair : membersById) {
         const Member& member = pair.second;
@@ -310,7 +310,7 @@ QVector<QPair<int, QDate>> MemberDataManager::getRecentWorkouts(int memberId, in
 }
 
 void MemberDataManager::checkSubscriptionStatus() {
-    QDate currentDate = QDate::currentDate();
+    QDate currentDate = timeLogicInstance.getCurrentTime().date();
 
     for (const auto& pair : membersById) {
         int memberId = pair.first;
@@ -341,7 +341,7 @@ void MemberDataManager::setupRenewalTimer() {
 }
 
 void MemberDataManager::checkEarlyRenewalOffers() {
-    QDate currentDate = QDate::currentDate();
+    QDate currentDate = timeLogicInstance.getCurrentTime().date();
 
     for (const auto& pair : membersById) {
         int memberId = pair.first;
@@ -556,7 +556,7 @@ Member MemberDataManager::jsonToMember(const QJsonObject& json) {
         if (subscriptionJson.contains("startDate") && !subscriptionJson["startDate"].toString().isEmpty()) {
             startDate = QDate::fromString(subscriptionJson["startDate"].toString(), Qt::ISODate);
         } else {
-            startDate = QDate::currentDate();
+            startDate = timeLogicInstance.getCurrentTime().date();
         }
 
         Subscription subscription(type, startDate);
@@ -851,7 +851,7 @@ bool MemberDataManager::savePaymentData(int memberId, int planId, bool isVIP, do
 
     QJsonObject payment;
     payment["memberId"] = memberId;
-    payment["timestamp"] = QDateTime::currentDateTime().toString(Qt::ISODate);
+    payment["timestamp"] = timeLogicInstance.getFormattedTime();
     payment["planId"] = planId;
     payment["isVIP"] = isVIP;
     payment["amount"] = amount;

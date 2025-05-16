@@ -575,12 +575,12 @@ void AvailableClassesScreen::showAddClassDialog()
 
     QDateEdit *fromDateEdit = new QDateEdit;
     fromDateEdit->setCalendarPopup(true);
-    fromDateEdit->setDate(QDate::currentDate());
+    fromDateEdit->setDate(timeLogicInstance.getCurrentTime().date());
     fromDateEdit->setDisplayFormat("dd/MM/yyyy");
 
     QDateEdit *toDateEdit = new QDateEdit;
     toDateEdit->setCalendarPopup(true);
-    toDateEdit->setDate(QDate::currentDate().addDays(7));
+    toDateEdit->setDate(timeLogicInstance.getCurrentTime().date().addDays(7));
     toDateEdit->setDisplayFormat("dd/MM/yyyy");
 
     QSpinBox *capacitySpinBox = new QSpinBox;
@@ -847,7 +847,7 @@ QWidget* AvailableClassesScreen::WorkoutsContent() {
     qDebug() << "Found" << allWorkouts.size() << "workouts in the system";
 
     // Get date range (today to end of month)
-    QDate today = QDate::currentDate();
+    QDate today = timeLogicInstance.getCurrentTime().date();
     QDate endOfMonth = QDate(today.year(), today.month(), today.daysInMonth());
     
     // For each day from today to end of month

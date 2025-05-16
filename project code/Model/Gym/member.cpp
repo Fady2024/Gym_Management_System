@@ -8,7 +8,7 @@ Member::Member(int memberId, int userId, int classId)
     , classId(classId)
 {
     // Initialize with default subscription
-    subscription = Subscription(SubscriptionType::MONTHLY, QDate::currentDate());
+    subscription = Subscription(SubscriptionType::MONTHLY, timeLogicInstance.getCurrentTime().date());
 }
 
 Member::Member()
@@ -17,7 +17,7 @@ Member::Member()
     , classId(-1)
 {
     // Initialize with default subscription
-    subscription = Subscription(SubscriptionType::MONTHLY, QDate::currentDate());
+    subscription = Subscription(SubscriptionType::MONTHLY, timeLogicInstance.getCurrentTime().date());
 }
 
 void Member::addClassToHistory(const QDate& date) {

@@ -83,6 +83,48 @@
             "totalCaloriesBurnt": 300,
             "userId": 4,
             "workoutId": 1
+        },
+        {
+            "classId": -1,
+            "completedExercises": [
+                {
+                    "completed": true,
+                    "name": "Planks"
+                },
+                {
+                    "completed": true,
+                    "name": "Russian Twists"
+                },
+                {
+                    "completed": true,
+                    "name": "Leg Raises"
+                }
+            ],
+            "timestamp": "2025-06-10T23:41:29",
+            "totalCaloriesBurnt": 200,
+            "userId": 1,
+            "workoutId": 3
+        },
+        {
+            "classId": -1,
+            "completedExercises": [
+                {
+                    "completed": true,
+                    "name": "Burpees"
+                },
+                {
+                    "completed": true,
+                    "name": "Mountain Climbers"
+                },
+                {
+                    "completed": true,
+                    "name": "Jump Rope"
+                }
+            ],
+            "timestamp": "2025-06-13T23:42:07",
+            "totalCaloriesBurnt": 250,
+            "userId": 1,
+            "workoutId": 2
         }
     ]
 }
