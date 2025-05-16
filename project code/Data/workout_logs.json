@@ -62,6 +62,27 @@
             "totalCaloriesBurnt": 200,
             "userId": 4,
             "workoutId": 3
+        },
+        {
+            "classId": 4,
+            "completedExercises": [
+                {
+                    "completed": true,
+                    "name": "Push-ups"
+                },
+                {
+                    "completed": true,
+                    "name": "Dumbbell Rows"
+                },
+                {
+                    "completed": true,
+                    "name": "Squats"
+                }
+            ],
+            "timestamp": "2025-05-20T19:58:34",
+            "totalCaloriesBurnt": 300,
+            "userId": 4,
+            "workoutId": 1
         }
     ]
 }

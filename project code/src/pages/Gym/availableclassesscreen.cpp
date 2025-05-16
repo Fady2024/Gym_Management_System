@@ -25,9 +25,17 @@ AvailableClassesScreen::AvailableClassesScreen(ClassDataManager* dataManager, QW
     : QWidget(parent), classDataManager(dataManager), userDataManager(nullptr), memberDataManager(nullptr),
       workoutManager(nullptr), isDarkTheme(true)
 {
+    qDebug() << "Initializing AvailableClassesScreen";
     setupCoaches();
     setupUI();
-    refreshClasses();
+    
+    // Explicitly ensure we're showing the classes page
+    if (contentStack) {
+        qDebug() << "Setting initial page to Classes";
+        contentStack->setCurrentIndex(0);  // Force classes page
+        leftSidebar->setActiveButton("classes");
+        refreshClasses();
+    }
 }
 
 AvailableClassesScreen::~AvailableClassesScreen() = default;
@@ -174,6 +182,8 @@ void AvailableClassesScreen::setupCoaches()
 
 void AvailableClassesScreen::setupUI()
 {
+    qDebug() << "Setting up UI";
+    
     //main horizontal layout (leftsidebar + contentStack)
     mainHLayout = new QHBoxLayout(this);
     mainHLayout->setContentsMargins(0, 0, 0, 0);
@@ -184,23 +194,33 @@ void AvailableClassesScreen::setupUI()
     leftSidebar->addButton(":/Images/whistle.png", "Gym Classes", "classes");
     leftSidebar->addButton(":/Images/dumbbell.png", "Workouts", "workouts");
     leftSidebar->addButton(":/Images/team.png", "Add Class", "add-classes");
-    leftSidebar->updateTheme(true); //HAS TO BE RE-IMPLEMENTED WHEN ADDING DARK THEME TO THIS PAGE (ALWAYS SET TO TRUE FOR NOW)
+    leftSidebar->updateTheme(true);
     mainHLayout->addWidget(leftSidebar);
-    //page change handling
-    connect(leftSidebar, &LeftSidebar::pageChanged, this, &AvailableClassesScreen::handlePageChange);
-
-
-    //Content stack that holds pages
+    
+    // Create content stack and add pages in correct order
     contentStack = new QStackedWidget();
-    contentStack->addWidget(ClassesContent()); // Add Gym Classes page
-    contentStack->addWidget(WorkoutsContent()); // Add Workouts page
-    contentStack->addWidget(ExtraContent()); // Add Workouts page
+    
+    // Create and add pages in specific order
+    QWidget* classesPage = ClassesContent();
+    QWidget* workoutsPage = WorkoutsContent();
+    QWidget* historyPage = ExtraContent();
+    
+    contentStack->addWidget(classesPage);    // Index 0 - Classes
+    contentStack->addWidget(workoutsPage);   // Index 1 - Workouts
+    contentStack->addWidget(historyPage);    // Index 2 - History
+    
     mainHLayout->addWidget(contentStack);
 
-    //initialize the state of side bar to the first button
+    // Explicitly set to show classes page first
+    contentStack->setCurrentWidget(classesPage);
     leftSidebar->setActiveButton("classes");
 
+    // Connect signal after setting initial state
+    connect(leftSidebar, &LeftSidebar::pageChanged, this, &AvailableClassesScreen::handlePageChange);
+
     setLayout(mainHLayout);
+    
+    qDebug() << "UI Setup complete - Current page index:" << contentStack->currentIndex();
 }
 
 void AvailableClassesScreen::refreshClasses()
@@ -617,16 +637,49 @@ void AvailableClassesScreen::showAddClassDialog()
     }
 }
 QWidget* AvailableClassesScreen::ClassesContent() {
-    QWidget* classesContent = new QWidget(); //main widget that will be used in extrenal main layout
-    QVBoxLayout* classesLayout= new QVBoxLayout(classesContent); //VBOX that will contain contents (added to the above widget)
+    qDebug() << "Creating ClassesContent";
+    
+    QWidget* classesContent = new QWidget();
+    QVBoxLayout* classesLayout = new QVBoxLayout(classesContent);
     classesLayout->setContentsMargins(20,20,20,20);
     classesLayout->setSpacing(15);
 
-    userNameLabel = new QLabel(QString("Hello, %1!").arg(currentUser.getName()));
+    // Initialize labels with current user data
+    userNameLabel = new QLabel(currentUser.getId() > 0 
+        ? QString("Hello, %1!").arg(currentUser.getName())
+        : "Hello, Guest!");
     userNameLabel->setStyleSheet("font-size:20px; font-weight:bold;");
+    
     enrolledClassesLabel = new QLabel;
     enrolledClassesLabel->setWordWrap(true);
     enrolledClassesLabel->setStyleSheet("color:#555;");
+
+    // Update enrolled classes text
+    if (currentUser.getId() > 0) {
+        auto all = classDataManager->getAllClasses();
+        QStringList names;
+
+        if (currentMember.getClassId() > 0) {
+            Class enrolledClass = classDataManager->getClassById(currentMember.getClassId());
+            if (enrolledClass.getId() > 0) {
+                names << enrolledClass.getClassName();
+            }
+        }
+
+        for (const auto& gymClass : all) {
+            if (gymClass.isMemberEnrolled(currentUser.getId()) && !names.contains(gymClass.getClassName())) {
+                names << gymClass.getClassName();
+            }
+        }
+
+        if (names.isEmpty()) {
+            enrolledClassesLabel->setText("You're not enrolled in any classes yet.");
+        } else {
+            enrolledClassesLabel->setText(QString("Your classes: %1").arg(names.join(", ")));
+        }
+    } else {
+        enrolledClassesLabel->setText("Please log in to view your classes.");
+    }
 
     QVBoxLayout* headerLayout = new QVBoxLayout;
     headerLayout->addWidget(userNameLabel);
@@ -689,11 +742,51 @@ QWidget* AvailableClassesScreen::ClassesContent() {
         background: none;
     }
     )"));
+
     scrollWidget = new QWidget;
+    QVBoxLayout* scrollLayout = new QVBoxLayout(scrollWidget);
+    scrollLayout->setAlignment(Qt::AlignTop);
+    scrollLayout->setSpacing(30);
+
+    // Create class cards
+    auto all = classDataManager->getAllClasses();
+    QMap<QString,QVector<Class>> byCoach;
+    for (auto &c : all) byCoach[c.getCoachName()].append(c);
+
+    for (auto &coach : coaches) {
+        auto classesFor = byCoach.value(coach.getName());
+        if (classesFor.isEmpty()) continue;
+
+        QGroupBox* group = new QGroupBox(coach.getName());
+        QString groupBoxStyle = QString(
+            "QGroupBox { font-size:18px; font-weight:bold; border:none; margin-top:15px; }"
+            "QGroupBox::title { subcontrol-origin:margin; left:10px; padding:0 5px; color:%1; }"
+        ).arg(isDarkTheme ? "#A78CF6" : "#6647D8");
+        
+        group->setStyleSheet(groupBoxStyle);
+        QVBoxLayout* glay = new QVBoxLayout(group);
+        glay->setContentsMargins(10,25,10,10);
+        glay->setSpacing(20);
+
+        QGridLayout* grid = new QGridLayout;
+        grid->setSpacing(20);
+        glay->addLayout(grid);
+
+        int row=0, col=0;
+        for (auto &cls : classesFor) {
+            createClassCard(cls, grid, row, col);
+            if (++col >= 3) { col=0; ++row; }
+        }
+        for (int i=0;i<3;i++) grid->setColumnStretch(i,1);
+
+        scrollLayout->addWidget(group);
+    }
+
     scrollArea->setWidget(scrollWidget);
     classesLayout->addWidget(scrollArea);
 
-    return classesContent; //returns the widget (page) pointer to be added to stacked widgets
+    qDebug() << "ClassesContent created successfully";
+    return classesContent;
 }
 QWidget* AvailableClassesScreen::WorkoutsContent() {
     qDebug() << "Starting WorkoutsContent() function";
@@ -1051,11 +1144,18 @@ QWidget* AvailableClassesScreen::ExtraContent() {
     return historyContent;
 }
 void AvailableClassesScreen::handlePageChange(const QString& pageID) {
-    qDebug() << "Handling page change to:" << pageID;
+    qDebug() << "=== Page Change Requested ===";
+    qDebug() << "Current page index:" << contentStack->currentIndex();
+    qDebug() << "Requested page:" << pageID;
     qDebug() << "Current workoutManager:" << workoutManager;
 
+    // Refresh data before updating pages
+    refreshClasses(); // Ensure classes data is up to date
+
     // First, ensure all pages are up to date
-    if (contentStack->count() > 0) {
+    if (contentStack && contentStack->count() > 0) {
+        qDebug() << "Refreshing pages - Stack count:" << contentStack->count();
+        
         // Update Classes page (index 0)
         QWidget* classesWidget = ClassesContent();
         QWidget* oldClassesWidget = contentStack->widget(0);
@@ -1076,17 +1176,37 @@ void AvailableClassesScreen::handlePageChange(const QString& pageID) {
         contentStack->removeWidget(oldHistoryWidget);
         oldHistoryWidget->deleteLater();
         contentStack->insertWidget(2, historyWidget);
+
+        // Force an update of the scroll area for classes page
+        if (scrollArea && scrollArea->widget()) {
+            scrollArea->widget()->update();
+        }
     }
 
     // Then change to the requested page
     if (pageID == "classes") {
+        qDebug() << "Switching to Classes page";
         contentStack->setCurrentIndex(0);
+        // Additional refresh for classes page
+        if (scrollArea && scrollArea->widget()) {
+            scrollArea->widget()->update();
+            scrollArea->viewport()->update();
+        }
     }
     else if (pageID == "workouts") {
+        qDebug() << "Switching to Workouts page";
         contentStack->setCurrentIndex(1);
     }
     else if (pageID == "add-classes") {
+        qDebug() << "Switching to History page";
         contentStack->setCurrentIndex(2);
     }
+
+    // Force immediate update
+    contentStack->currentWidget()->update();
+    update();
+    
+    qDebug() << "=== Page Change Complete ===";
+    qDebug() << "New current index:" << contentStack->currentIndex();
 }
 

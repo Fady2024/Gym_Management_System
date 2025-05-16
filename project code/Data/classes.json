@@ -75,5 +75,16 @@
         "sessions": [
         ],
         "to": "Fri May 23 2025"
+    },
+    {
+        "capacity": 20,
+        "className": "class 70",
+        "coachName": "David Wilson",
+        "from": "Fri May 16 2025",
+        "id": 8,
+        "numOfEnrolled": 0,
+        "sessions": [
+        ],
+        "to": "Fri May 23 2025"
     }
 ]
