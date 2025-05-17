@@ -1,9 +1,11 @@
 #include "timeLogic.h"
 #include <QDebug>
 #include <QThread>
+#include "../../DataManager/memberdatamanager.h"
+#include "Widgets/Notifications/NotificationManager.h"
 
 TimeLogic::TimeLogic()
-    : multiplier(1.0f), paused(false), running(true) {
+    : multiplier(1.0f), paused(false), running(true), currentMemberId(-1), memberDataManager(nullptr) {
     currentTime = QDateTime::currentDateTime();
     start();  // Start the thread
 }
@@ -66,4 +68,28 @@ QString TimeLogic::getFormattedTime() {
     QMutexLocker locker(&mutex);
     return currentTime.toString("ddd MMM dd hh:mm:ss yyyy");
 }
+
+void TimeLogic::getRemindersSubEnd() {
+    if (!hasActiveSubscription()) {
+        NotificationManager::instance().showNotification(tr("Renew your subscription!"), 
+                                                        tr("Your subscription has ended click here to renew it."),
+                                                        [this]() -> void {
+                                                            // hadIeSubpage();
+                                                        }, NotificationType::Info);
+    }
+}
+
+bool TimeLogic::hasActiveSubscription() const {
+    if (!memberDataManager || currentMemberId <= 0) return false;
+    return memberDataManager->isSubscriptionActive(currentMemberId);
+}
+
+void TimeLogic::setCurrentMemberId(int memberId) {
+    currentMemberId = memberId;
+}
+
+void TimeLogic::setMemberDataManager(MemberDataManager* dataManager) {
+    memberDataManager = dataManager;
+}
+
 TimeLogic timeLogicInstance;

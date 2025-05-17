@@ -22,5 +22,17 @@
             "type": 0
         },
         "userId": 4
+    },
+    {
+        "classId": -1,
+        "id": 3,
+        "subscription": {
+            "active": true,
+            "endDate": "2026-05-17",
+            "isVIP": true,
+            "startDate": "2025-05-17",
+            "type": 3
+        },
+        "userId": 7
     }
 ]
