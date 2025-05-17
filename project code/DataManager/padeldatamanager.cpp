@@ -140,24 +140,70 @@ bool PadelDataManager::saveToFile() {
     }
 
     QJsonArray waitlistsArray = waitlistsToJson();
-    QString filePath = QDir(dataDir).filePath("waitlists.json");
-    QFile file(filePath);
+    QString waitlistsPath = QDir(dataDir).filePath("waitlists.json");
+    QFile waitlistsFile(waitlistsPath);
 
-    if (!file.open(QIODevice::WriteOnly)) {
+    if (!waitlistsFile.open(QIODevice::WriteOnly)) {
         return false;
     }
 
-    QJsonDocument doc(waitlistsArray);
-    QByteArray jsonData = doc.toJson(QJsonDocument::Indented);
+    QJsonDocument waitlistsDoc(waitlistsArray);
+    QByteArray waitlistsData = waitlistsDoc.toJson(QJsonDocument::Indented);
 
-    qint64 bytesWritten = file.write(jsonData);
-    if (bytesWritten == -1) {
-        file.close();
+    qint64 waitlistsBytesWritten = waitlistsFile.write(waitlistsData);
+    if (waitlistsBytesWritten == -1) {
+        waitlistsFile.close();
         return false;
     }
 
-    file.flush();
-    file.close();
+    waitlistsFile.flush();
+    waitlistsFile.close();
+    QJsonArray bookingsArray;
+    for (const auto& pair : bookingsById) {
+        bookingsArray.append(bookingToJson(pair.second));
+    }
+    
+    QString bookingsPath = QDir(dataDir).filePath("bookings.json");
+    QFile bookingsFile(bookingsPath);
+    
+    if (!bookingsFile.open(QIODevice::WriteOnly)) {
+        return false;
+    }
+    
+    QJsonDocument bookingsDoc(bookingsArray);
+    QByteArray bookingsData = bookingsDoc.toJson(QJsonDocument::Indented);
+    
+    qint64 bookingsBytesWritten = bookingsFile.write(bookingsData);
+    if (bookingsBytesWritten == -1) {
+        bookingsFile.close();
+        return false;
+    }
+    
+    bookingsFile.flush();
+    bookingsFile.close();
+    QJsonArray courtsArray;
+    for (const auto& pair : courtsById) {
+        courtsArray.append(courtToJson(pair.second));
+    }
+    
+    QString courtsPath = QDir(dataDir).filePath("courts.json");
+    QFile courtsFile(courtsPath);
+    
+    if (!courtsFile.open(QIODevice::WriteOnly)) {
+        return false;
+    }
+    
+    QJsonDocument courtsDoc(courtsArray);
+    QByteArray courtsData = courtsDoc.toJson(QJsonDocument::Indented);
+    
+    qint64 courtsBytesWritten = courtsFile.write(courtsData);
+    if (courtsBytesWritten == -1) {
+        courtsFile.close();
+        return false;
+    }
+    
+    courtsFile.flush();
+    courtsFile.close();
     
     dataModified = false;
     return true;
@@ -651,6 +697,7 @@ bool PadelDataManager::cancelBooking(int bookingId, QString& errorMessage) {
         }
     }
 
+    saveToFile();
     return result;
 }
 
@@ -733,6 +780,7 @@ bool PadelDataManager::rescheduleBooking(int bookingId, const QDateTime& newStar
         tryFillSlotFromWaitlist(courtId, oldStartTime, oldEndTime, waitlistError);
     }
 
+    saveToFile();
     return result;
 }
 

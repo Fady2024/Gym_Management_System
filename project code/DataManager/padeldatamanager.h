@@ -29,6 +29,12 @@ public:
     bool initializeFromFile();
     bool saveToFile();
     void handleApplicationClosing();
+    bool ensureDataSaved() {
+        if (dataModified) {
+            return saveToFile();
+        }
+        return true;
+    }
 
     // Court management
     bool addCourt(const Court& court, QString& errorMessage);

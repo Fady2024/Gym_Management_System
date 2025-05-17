@@ -1484,8 +1484,12 @@ void BookingWindow::refreshTimeSlots() {
             if (isBookedByUser) {
                 // User's own booking - show cancel option
                 cellButton->setBooked(true, bookingId);
-                m_selectedBookingId = bookingId;
-                connect(cellButton, &CalendarButton::clicked, this, &BookingWindow::cancelBooking);
+
+                connect(cellButton, &CalendarButton::clicked, [this, bookingId]() {
+                    m_selectedBookingId = bookingId;
+                    qDebug() << "Cancelling booking from calendar cell with ID:" << bookingId;
+                    this->cancelBooking();
+                });
             } else if (isFullyBooked) {
                 // Fully booked by others
                 cellButton->setSlotInfo(timeText, availabilityText, false);
@@ -1837,27 +1841,37 @@ void BookingWindow::onBookingItemSelected(int row)
     if (row >= 0 && row < m_bookingsList->count()) {
         QListWidgetItem* idItem = m_bookingsList->item(row);
         if (idItem) {
-            m_selectedBookingId = idItem->data(Qt::UserRole).toInt();
+            int bookingId = idItem->data(Qt::UserRole).toInt();
+            m_selectedBookingId = bookingId;
             m_cancelButton->setEnabled(true);
-
-        Booking booking;
-        for (const Booking& b : m_padelManager->getAllBookings()) {
-            if (b.getBookingId() == m_selectedBookingId) {
-                booking = b;
-                break;
+            Booking booking;
+            bool found = false;
+            
+            for (const Booking& b : m_padelManager->getAllBookings()) {
+                if (b.getBookingId() == bookingId) {
+                    booking = b;
+                    found = true;
+                    break;
+                }
             }
-        }
+
+            if (!found) {
+                qDebug() << "WARNING: Booking with ID" << bookingId << "not found in getAllBookings()";
+                m_cancelButton->setEnabled(false);
+                m_rescheduleButton->setEnabled(false);
+                m_rescheduleTimeSelector->setEnabled(false);
+                return;
+            }
 
             bool canReschedule = canCancelOrReschedule(booking);
             m_rescheduleButton->setEnabled(canReschedule);
             m_rescheduleTimeSelector->setEnabled(canReschedule);
             
             if (canReschedule) {
+                m_rescheduleTimeSelector->clear();
+                int courtId = booking.getCourtId();
+                QDate bookingDate = booking.getStartTime().date();
                 
-            m_rescheduleTimeSelector->clear();
-            int courtId = booking.getCourtId();
-            QDate bookingDate = booking.getStartTime().date();
-            
                 QJsonObject courtDetails = m_padelManager->getCourtDetails(courtId);
                 int maxAttendees = 2; 
                 if (courtDetails.contains("maxAttendees")) {

@@ -7,7 +7,7 @@
             "Water Dispenser"
         ],
         "id": 1,
-        "isIndoor": true,
+        "isIndoor": false,
         "location": "Main Building",
         "maxAttendees": 4,
         "name": "Center Court",
@@ -63,7 +63,7 @@
             "Private Changing Room"
         ],
         "id": 3,
-        "isIndoor": true,
+        "isIndoor": false,
         "location": "VIP Zone",
         "maxAttendees": 2,
         "name": "Professional Court",
@@ -92,7 +92,7 @@
             "Lighting"
         ],
         "id": 4,
-        "isIndoor": true,
+        "isIndoor": false,
         "location": "Cairo",
         "maxAttendees": 8,
         "name": "Room Court",
