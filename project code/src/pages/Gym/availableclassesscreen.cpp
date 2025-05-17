@@ -2,6 +2,7 @@
 //                                EACH PAGE SHOULD HAVE ITS OWN .CPP
 
 #include "availableclassesscreen.h"
+#include <QGraphicsDropShadowEffect>
 #include <QGridLayout>
 #include <QVBoxLayout>
 #include <QPushButton>
@@ -925,7 +926,7 @@ QWidget* AvailableClassesScreen::WorkoutsContent() {
     // For each day from today to end of month
     for (QDate date = today; date <= endOfMonth; date = date.addDays(1)) {
         qDebug() << "Processing date:" << date.toString();
-        
+
         // Create a flag to check if we should skip this date
         bool skipDate = false;
 
@@ -962,7 +963,7 @@ QWidget* AvailableClassesScreen::WorkoutsContent() {
         );
 
         QVBoxLayout* cardLayout = new QVBoxLayout(card);
-        
+
         // Add date header
         QLabel* dateLabel = new QLabel(date.toString("dddd, MMMM d"));
         dateLabel->setStyleSheet("font-size: 18px; font-weight: bold; color: #6647D8;");
@@ -991,7 +992,7 @@ QWidget* AvailableClassesScreen::WorkoutsContent() {
                 .arg(exercise.reps);
         }
         exerciseText += "</ul>";
-        
+
         QLabel* exercisesLabel = new QLabel(exerciseText);
         exercisesLabel->setTextFormat(Qt::RichText);
         cardLayout->addWidget(exercisesLabel);
@@ -1014,9 +1015,14 @@ QWidget* AvailableClassesScreen::WorkoutsContent() {
         );
 
         // Connect button to log workout
-        connect(trainButton, &QPushButton::clicked, [this, workout, card, date]() {
+        connect(trainButton, &QPushButton::clicked, [this, workout, card, date, today]() {
             qDebug() << "Logging workout:" << workout.name << "for date:" << date.toString();
-            
+
+            if (date > today) {
+                QMessageBox::warning(this, "Invalid Date", "You can't train at a future date.");
+                return;
+            }
+
             if (!workoutManager || currentUser.getId() <= 0) {
                 QMessageBox::warning(this, "Error", "Please log in to complete workouts.");
                 return;
@@ -1036,16 +1042,16 @@ QWidget* AvailableClassesScreen::WorkoutsContent() {
 
             QString errorMessage;
             if (workoutManager->logWorkout(log, errorMessage)) {
-                QMessageBox::information(this, "Success", 
+                QMessageBox::information(this, "Success",
                     QString("Completed workout: %1\nCalories burned: %2")
                     .arg(workout.name)
                     .arg(workout.totalCalories));
-                
+
                 // Remove the card
                 card->hide();
                 card->deleteLater();
             } else {
-                QMessageBox::warning(this, "Error", 
+                QMessageBox::warning(this, "Error",
                     QString("Failed to log workout: %1").arg(errorMessage));
             }
         });
@@ -1061,8 +1067,9 @@ QWidget* AvailableClassesScreen::WorkoutsContent() {
     qDebug() << "WorkoutsContent() function completed";
     return workoutsContent;
 }
+
+
 QWidget* AvailableClassesScreen::ExtraContent() {
-    std::cout << "\n=== Starting ExtraContent() function ===" << std::endl;
     qDebug() << "Starting ExtraContent() function";
 
     // Create main widget and layout
@@ -1070,151 +1077,278 @@ QWidget* AvailableClassesScreen::ExtraContent() {
     QVBoxLayout* mainLayout = new QVBoxLayout(historyContent);
     mainLayout->setContentsMargins(20, 20, 20, 20);
     mainLayout->setSpacing(20);
+    
+    // Set background based on theme
+    QString bgColor = isDarkTheme ? "#1A1A2E" : "#FAF5FF";
+    QString textColor = isDarkTheme ? "#E2E8F0" : "#1E293B";
+    QString mutedTextColor = isDarkTheme ? "#8B8B9E" : "#64748B";
+    QString accentColor = isDarkTheme ? "#A78CF6" : "#6647D8";
+    QString cardBgColor = isDarkTheme ? "rgba(167, 140, 246, 0.05)" : "#FFFFFF";
+    QString cardBorderColor = isDarkTheme ? "#2D2D44" : "#E2E8F0";
+    
+    historyContent->setStyleSheet(QString("background-color: %1;").arg(bgColor));
 
-    // Add title
+    // Title section
+    QWidget* titleWidget = new QWidget();
+    QVBoxLayout* titleLayout = new QVBoxLayout(titleWidget);
+    titleLayout->setContentsMargins(0, 0, 0, 20);
+    titleLayout->setSpacing(8);
+
     QLabel* titleLabel = new QLabel("Workout History");
-    titleLabel->setStyleSheet("font-size: 24px; font-weight: bold; color: #6647D8;");
-    mainLayout->addWidget(titleLabel);
+    titleLabel->setStyleSheet(QString("font-size: 32px; font-weight: bold; color: %1;").arg(accentColor));
+    titleLayout->addWidget(titleLabel);
 
-    // Check if workout manager exists
-    std::cout << "Checking workout manager..." << std::endl;
-    qDebug() << "Checking workout manager, pointer value:" << workoutManager;
+    QLabel* subtitleLabel = new QLabel("Track your fitness journey and progress");
+    subtitleLabel->setStyleSheet(QString("font-size: 16px; color: %1;").arg(mutedTextColor));
+    titleLayout->addWidget(subtitleLabel);
+    mainLayout->addWidget(titleWidget);
+
+    // Validations with theme-aware styling
     if (!workoutManager) {
-        std::cout << "ERROR: workoutManager is null!" << std::endl;
-        qDebug() << "ERROR: workoutManager is null!";
         QLabel* errorLabel = new QLabel("Workout system is currently unavailable.");
-        errorLabel->setStyleSheet("color: red;");
+        errorLabel->setStyleSheet("color: #FF6B6B; font-size: 16px; padding: 20px;");
         mainLayout->addWidget(errorLabel);
         return historyContent;
     }
-    std::cout << "Workout manager is valid" << std::endl;
-
-    // Check if user is logged in
-    std::cout << "Checking user login status... User ID:" << currentUser.getId() << std::endl;
-    qDebug() << "Current user ID:" << currentUser.getId();
     if (currentUser.getId() <= 0) {
-        std::cout << "ERROR: User not logged in!" << std::endl;
-        qDebug() << "ERROR: User not logged in!";
-        QLabel* loginLabel = new QLabel("Please log in to view your workout history.");
-        loginLabel->setStyleSheet("color: #666; font-size: 16px;");
-        mainLayout->addWidget(loginLabel);
+        QWidget* loginPrompt = new QWidget();
+        loginPrompt->setStyleSheet(QString(
+            "background-color: %1;"
+            "border: 1px solid %2;"
+            "border-radius: 12px;"
+            "padding: 20px;"
+        ).arg(cardBgColor, cardBorderColor));
+        QVBoxLayout* promptLayout = new QVBoxLayout(loginPrompt);
+        QLabel* loginLabel = new QLabel("Please log in to view your workout history");
+        loginLabel->setStyleSheet(QString("color: %1; font-size: 16px;").arg(textColor));
+        promptLayout->addWidget(loginLabel);
+        mainLayout->addWidget(loginPrompt);
         return historyContent;
     }
-    std::cout << "User is logged in with ID:" << currentUser.getId() << std::endl;
 
-    // Get user's workout logs
-    std::cout << "Fetching workout logs for user ID:" << currentUser.getId() << std::endl;
+    // Fetch logs
     QVector<WorkoutLog> userLogs = workoutManager->getUserWorkoutLogs(currentUser.getId());
-    qDebug() << "Found" << userLogs.size() << "workout logs for user";
-    std::cout << "Found " << userLogs.size() << " workout logs" << std::endl;
 
-    // Create scroll area
+    // Optimized scroll area
     QScrollArea* scrollArea = new QScrollArea();
     scrollArea->setWidgetResizable(true);
-    scrollArea->setStyleSheet(
+    scrollArea->setFrameShape(QFrame::NoFrame);
+    scrollArea->setStyleSheet(QString(
         "QScrollArea { border: none; background: transparent; }"
         "QScrollBar:vertical {"
-        "    background: rgba(220, 220, 255, 0.1);"
-        "    width: 12px;"
-        "    margin: 0px;"
-        "    border-radius: 6px;"
+        "   background: %1;"
+        "   width: 8px;"
+        "   border-radius: 4px;"
         "}"
         "QScrollBar::handle:vertical {"
-        "    background: rgba(139, 92, 246, 0.3);"
-        "    min-height: 20px;"
-        "    border-radius: 6px;"
+        "   background: %2;"
+        "   border-radius: 4px;"
         "}"
-    );
+        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {"
+        "   height: 0px;"
+        "}"
+    ).arg(cardBgColor, cardBorderColor));
 
-    // Create content widget for scroll area
     QWidget* scrollContent = new QWidget();
     QVBoxLayout* scrollLayout = new QVBoxLayout(scrollContent);
-    scrollLayout->setSpacing(15);
+    scrollLayout->setSpacing(20);
+    scrollLayout->setContentsMargins(0, 0, 8, 0);
 
     if (userLogs.isEmpty()) {
-        std::cout << "No workout logs found for user" << std::endl;
-        QLabel* noLogsLabel = new QLabel("No workout history found. Start training to see your progress!");
-        noLogsLabel->setStyleSheet("color: #666; font-size: 16px;");
-        noLogsLabel->setWordWrap(true);
-        mainLayout->addWidget(noLogsLabel);
+        QWidget* emptyState = new QWidget();
+        emptyState->setStyleSheet(QString(
+            "background-color: %1;"
+            "border: 1px solid %2;"
+            "border-radius: 12px;"
+            "padding: 30px;"
+        ).arg(cardBgColor, cardBorderColor));
+        QVBoxLayout* emptyLayout = new QVBoxLayout(emptyState);
+        QLabel* emptyLabel = new QLabel("No workout history found yet");
+        emptyLabel->setStyleSheet(QString("font-size: 18px; color: %1; font-weight: bold;").arg(textColor));
+        QLabel* emptySubLabel = new QLabel("Start training to begin tracking your fitness journey!");
+        emptySubLabel->setStyleSheet(QString("font-size: 14px; color: %1; margin-top: 8px;").arg(mutedTextColor));
+        emptyLayout->addWidget(emptyLabel, 0, Qt::AlignCenter);
+        emptyLayout->addWidget(emptySubLabel, 0, Qt::AlignCenter);
+        mainLayout->addWidget(emptyState);
     } else {
-        std::cout << "Creating statistics section..." << std::endl;
-        // Add statistics section
-        QWidget* statsCard = new QWidget();
-        statsCard->setStyleSheet(
-            "QWidget { background: rgba(102, 71, 216, 0.1); border-radius: 10px; padding: 15px; }"
-        );
-        QVBoxLayout* statsLayout = new QVBoxLayout(statsCard);
+        // Stats cards
+        QWidget* statsContainer = new QWidget();
+        QHBoxLayout* statsLayout = new QHBoxLayout(statsContainer);
+        statsLayout->setSpacing(20);
+
+        // Total Workouts Card
+        QWidget* workoutsCard = new QWidget();
+        workoutsCard->setStyleSheet(QString(
+            "background: %1;"
+            "border: 1px solid %2;"
+            "border-radius: 12px;"
+            "padding: 20px;"
+        ).arg(cardBgColor, cardBorderColor));
+        QVBoxLayout* workoutsLayout = new QVBoxLayout(workoutsCard);
+        workoutsLayout->setSpacing(4);
         
-        // Total workouts completed
         int totalWorkouts = workoutManager->getTotalWorkoutsCompleted(currentUser.getId());
-        std::cout << "Total workouts completed: " << totalWorkouts << std::endl;
-        QLabel* totalWorkoutsLabel = new QLabel(QString("Total Workouts Completed: %1").arg(totalWorkouts));
-        totalWorkoutsLabel->setStyleSheet("font-size: 16px; font-weight: bold; color: #6647D8;");
-        statsLayout->addWidget(totalWorkoutsLabel);
+        QLabel* workoutCount = new QLabel(QString::number(totalWorkouts));
+        workoutCount->setStyleSheet(QString("font-size: 28px; font-weight: bold; color: %1;").arg(accentColor));
+        QLabel* workoutLabel = new QLabel("Total Workouts");
+        workoutLabel->setStyleSheet(QString("font-size: 14px; color: %1;").arg(mutedTextColor));
+        workoutsLayout->addWidget(workoutCount);
+        workoutsLayout->addWidget(workoutLabel);
+        statsLayout->addWidget(workoutsCard);
+
+        // Total Calories Card
+        QWidget* caloriesCard = new QWidget();
+        caloriesCard->setStyleSheet(QString(
+            "background: %1;"
+            "border: 1px solid %2;"
+            "border-radius: 12px;"
+            "padding: 20px;"
+        ).arg(cardBgColor, cardBorderColor));
+        QVBoxLayout* caloriesLayout = new QVBoxLayout(caloriesCard);
+        caloriesLayout->setSpacing(4);
         
-        // Total calories burnt
         int totalCalories = workoutManager->getTotalCaloriesBurnt(currentUser.getId());
-        std::cout << "Total calories burnt: " << totalCalories << std::endl;
-        QLabel* totalCaloriesLabel = new QLabel(QString("Total Calories Burnt: %1").arg(totalCalories));
-        totalCaloriesLabel->setStyleSheet("font-size: 16px; font-weight: bold; color: #6647D8;");
-        statsLayout->addWidget(totalCaloriesLabel);
-        
-        scrollLayout->addWidget(statsCard);
+        QLabel* caloriesCount = new QLabel(QString::number(totalCalories));
+        caloriesCount->setStyleSheet(QString("font-size: 28px; font-weight: bold; color: %1;").arg(accentColor));
+        QLabel* caloriesLabel = new QLabel("Total Calories Burned");
+        caloriesLabel->setStyleSheet(QString("font-size: 14px; color: %1;").arg(mutedTextColor));
+        caloriesLayout->addWidget(caloriesCount);
+        caloriesLayout->addWidget(caloriesLabel);
+        statsLayout->addWidget(caloriesCard);
 
-        // Add workout history cards
-        std::cout << "Creating workout history cards..." << std::endl;
+        scrollLayout->addWidget(statsContainer);
+
+        // Grid layout for 3-column cards
+        QGridLayout* cardsGrid = new QGridLayout();
+        cardsGrid->setSpacing(20);
+        int row = 0, col = 0;
+
+        // Workout History Cards
         for (const WorkoutLog& log : userLogs) {
-            std::cout << "Creating card for workout ID: " << log.workoutId << std::endl;
             QWidget* card = new QWidget();
-            card->setStyleSheet(
-                "QWidget { background: white; border-radius: 10px; padding: 15px; }"
-                "QWidget:hover { background: #f8f8ff; }"
-            );
-            QVBoxLayout* cardLayout = new QVBoxLayout(card);
-
-            // Get workout details
-            Workout workout = workoutManager->getWorkoutById(log.workoutId);
-            std::cout << "Workout name: " << workout.name.toStdString() << std::endl;
+            card->setFixedWidth(300);
             
-            // Workout name and date
-            QLabel* workoutLabel = new QLabel(QString("<b>%1</b>").arg(workout.name));
-            workoutLabel->setStyleSheet("font-size: 18px; color: #333;");
-            cardLayout->addWidget(workoutLabel);
+            // Add shadow effect
+            QGraphicsDropShadowEffect* shadow = new QGraphicsDropShadowEffect(card);
+            shadow->setBlurRadius(15);
+            shadow->setXOffset(0);
+            shadow->setYOffset(4);
+            shadow->setColor(QColor(0, 0, 0, 40));
+            card->setGraphicsEffect(shadow);
+            
+            card->setStyleSheet(QString(
+                "background: %1;"
+                "border: 1px solid %2;"
+                "border-radius: 12px;"
+                "padding: 16px;"
+            ).arg(cardBgColor, cardBorderColor));
+            
+            QVBoxLayout* cardLayout = new QVBoxLayout(card);
+            cardLayout->setSpacing(12);
 
-            QLabel* dateLabel = new QLabel(log.timestamp.toString("MMMM d, yyyy 'at' h:mm ap"));
-            dateLabel->setStyleSheet("color: #666; margin-bottom: 10px;");
-            cardLayout->addWidget(dateLabel);
+            Workout workout = workoutManager->getWorkoutById(log.workoutId);
+            
+            // Workout name
+            QLabel* workoutName = new QLabel(workout.name);
+            workoutName->setStyleSheet(QString("font-size: 16px; font-weight: bold; color: %1;").arg(textColor));
+            workoutName->setWordWrap(true);
+            cardLayout->addWidget(workoutName);
 
-            // Calories burnt
-            QLabel* caloriesLabel = new QLabel(QString("Calories Burnt: %1").arg(log.totalCaloriesBurnt));
-            caloriesLabel->setStyleSheet("color: #6647D8; font-weight: bold;");
-            cardLayout->addWidget(caloriesLabel);
+            // Date and calories
+            QWidget* infoWidget = new QWidget();
+            QHBoxLayout* infoLayout = new QHBoxLayout(infoWidget);
+            infoLayout->setContentsMargins(0, 0, 0, 0);
 
-            // Completed exercises
-            QLabel* exercisesLabel = new QLabel("Completed Exercises:");
-            exercisesLabel->setStyleSheet("color: #333; margin-top: 10px;");
-            cardLayout->addWidget(exercisesLabel);
+            QLabel* workoutDate = new QLabel(log.timestamp.toString("MMM d, h:mm ap"));
+            workoutDate->setStyleSheet(QString("font-size: 12px; color: %1;").arg(mutedTextColor));
+            infoLayout->addWidget(workoutDate);
 
+            QLabel* calories = new QLabel(QString("%1 cal").arg(log.totalCaloriesBurnt));
+            calories->setStyleSheet(QString(
+                "color: %1;"
+                "background: %2;"
+                "border-radius: 10px;"
+                "padding: 4px 8px;"
+                "font-size: 12px;"
+            ).arg(accentColor, cardBgColor));
+            infoLayout->addWidget(calories);
+            cardLayout->addWidget(infoWidget);
+
+            // Divider
+            QFrame* divider = new QFrame();
+            divider->setFrameShape(QFrame::HLine);
+            divider->setStyleSheet(QString("background-color: %1;").arg(cardBorderColor));
+            cardLayout->addWidget(divider);
+
+            // Exercises
+            QWidget* exercisesWidget = new QWidget();
+            QVBoxLayout* exercisesLayout = new QVBoxLayout(exercisesWidget);
+            exercisesLayout->setSpacing(8);
+            exercisesLayout->setContentsMargins(0, 0, 0, 0);
+
+            int displayCount = 0;
             for (const auto& exercise : log.completedExercises) {
-                QString status = exercise.second ? "✅" : "❌";
-                QLabel* exerciseLabel = new QLabel(QString("%1 %2").arg(status, exercise.first));
-                exerciseLabel->setStyleSheet("color: #555; margin-left: 20px;");
-                cardLayout->addWidget(exerciseLabel);
+                if (displayCount >= 3) break;
+                
+                QWidget* exerciseItem = new QWidget();
+                QHBoxLayout* exerciseLayout = new QHBoxLayout(exerciseItem);
+                exerciseLayout->setContentsMargins(0, 0, 0, 0);
+
+                QString statusColor = exercise.second ? "#10B981" : "#EF4444";
+                QString statusBg = exercise.second ? 
+                    (isDarkTheme ? "rgba(16, 185, 129, 0.2)" : "rgba(16, 185, 129, 0.1)") :
+                    (isDarkTheme ? "rgba(239, 68, 68, 0.2)" : "rgba(239, 68, 68, 0.1)");
+
+                QLabel* status = new QLabel(exercise.second ? "✓" : "×");
+                status->setStyleSheet(QString(
+                    "color: %1;"
+                    "background: %2;"
+                    "border-radius: 8px;"
+                    "padding: 2px 6px;"
+                    "font-size: 12px;"
+                ).arg(statusColor, statusBg));
+                exerciseLayout->addWidget(status);
+
+                QLabel* exerciseName = new QLabel(exercise.first);
+                exerciseName->setStyleSheet(QString("font-size: 12px; color: %1;").arg(mutedTextColor));
+                exerciseName->setWordWrap(true);
+                exerciseLayout->addWidget(exerciseName);
+
+                exercisesLayout->addWidget(exerciseItem);
+                displayCount++;
             }
 
-            scrollLayout->addWidget(card);
+            if (log.completedExercises.size() > 3) {
+                QLabel* moreExercises = new QLabel(
+                    QString("+ %1 more").arg(log.completedExercises.size() - 3)
+                );
+                moreExercises->setStyleSheet(QString(
+                    "color: %1;"
+                    "font-size: 12px;"
+                    "margin-top: 4px;"
+                ).arg(mutedTextColor));
+                moreExercises->setAlignment(Qt::AlignRight);
+                exercisesLayout->addWidget(moreExercises);
+            }
+
+            cardLayout->addWidget(exercisesWidget);
+            cardsGrid->addWidget(card, row, col);
+
+            if (++col >= 3) {
+                col = 0;
+                row++;
+            }
         }
+
+        scrollLayout->addLayout(cardsGrid);
     }
 
-    // Add scroll area to main layout
     scrollArea->setWidget(scrollContent);
     mainLayout->addWidget(scrollArea);
 
-    std::cout << "=== ExtraContent() function completed ===" << std::endl;
-    qDebug() << "ExtraContent() function completed";
     return historyContent;
 }
+
 void AvailableClassesScreen::handlePageChange(const QString& pageID) {
     std::cout << "\n=== Page Change Requested ===" << std::endl;
     qDebug() << "Current page index:" << contentStack->currentIndex();
