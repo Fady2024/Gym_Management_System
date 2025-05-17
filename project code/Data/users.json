@@ -54,5 +54,13 @@
         "name": "Fadygerges2030@gmail.com",
         "password": "Fadygerges2030@gmail.com",
         "photoPath": "project code/UsersPhoto/7495404-removebg-preview (1).png"
+    },
+    {
+        "age": 20,
+        "email": "Fadygerges2030@gmail.com\n",
+        "id": 8,
+        "name": "fady gerges",
+        "password": "Fadygerges2030@gmail.com\n",
+        "photoPath": "project code/UsersPhoto/frame.png"
     }
 ]
