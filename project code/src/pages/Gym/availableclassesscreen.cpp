@@ -1,5 +1,3 @@
-// AvailableClassesScreen.cpp, CHANGE THIS LATER TO BE THE MAIN GYM SCREEN
-//                                EACH PAGE SHOULD HAVE ITS OWN .CPP
 
 #include "availableclassesscreen.h"
 #include <QGridLayout>
@@ -234,20 +232,25 @@ void AvailableClassesScreen::refreshClasses()
     auto all = classDataManager->getAllClasses();
     QStringList names;
 
-    // Check if member is enrolled in any class
-    if (currentMember.getClassId() > 0) {
+    int memberId = -1;
+    if (memberDataManager) {
+        memberId = memberDataManager->getMemberIdByUserId(currentUser.getId());
+    }
+
+    if (memberId > 0 && currentMember.getClassId() > 0) {
         Class enrolledClass = classDataManager->getClassById(currentMember.getClassId());
-        if (enrolledClass.getId() > 0) { // Check if class exists
+        if (enrolledClass.getId() > 0) {
             names << enrolledClass.getClassName();
             qDebug() << "Found enrolled class:" << enrolledClass.getClassName() << "with ID:" << enrolledClass.getId();
         }
     }
 
-    // Also check class's enrolled members list
-    for (const auto& gymClass : all) {
-        if (gymClass.isMemberEnrolled(currentUser.getId()) && !names.contains(gymClass.getClassName())) {
-            names << gymClass.getClassName();
-            qDebug() << "Found additional enrollment in class:" << gymClass.getClassName() << "with ID:" << gymClass.getId();
+    if (memberId > 0) {
+        for (const auto& gymClass : all) {
+            if (gymClass.isMemberEnrolled(memberId) && !names.contains(gymClass.getClassName())) {
+                names << gymClass.getClassName();
+                qDebug() << "Found additional enrollment in class:" << gymClass.getClassName() << "with ID:" << gymClass.getId();
+            }
         }
     }
 
@@ -262,7 +265,7 @@ void AvailableClassesScreen::refreshClasses()
     if (scrollArea && scrollArea->widget()) {
         delete scrollArea->widget();
     }
-    
+
     scrollWidget = new QWidget;
     QVBoxLayout* scrollLayout = new QVBoxLayout(scrollWidget);
     scrollLayout->setAlignment(Qt::AlignTop);
@@ -280,7 +283,7 @@ void AvailableClassesScreen::refreshClasses()
             "QGroupBox { font-size:18px; font-weight:bold; border:none; margin-top:15px; }"
             "QGroupBox::title { subcontrol-origin:margin; left:10px; padding:0 5px; color:%1; }"
         ).arg(isDarkTheme ? "#A78CF6" : "#6647D8");
-        
+
         group->setStyleSheet(groupBoxStyle);
         QVBoxLayout* glay = new QVBoxLayout(group);
         glay->setContentsMargins(10,25,10,10);
@@ -312,19 +315,19 @@ void AvailableClassesScreen::createClassCard(const Class &gymClass,
     card->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
     const QString cardStyle = QString(R"(
     QWidget {
-        background-color: rgba(139, 92, 246, 0.05); /* Soft lavender */
+        background-color: rgba(139, 92, 246, 0.05);
         border-radius: 12px;
         padding: 16px;
-        border: 1px solid #BFAEF5; /* Muted lavender */
+        border: 1px solid #BFAEF5;
     }
     QLabel {
         font-size: 14px;
-        color: #978ADD; /* Dark neutral gray - readable on white & lavender */
+        color: #978ADD;
     }
     QLabel#title {
         font-size: 18px;
         font-weight: bold;
-        color: #4B3C9C; /* Deep violet-blue - readable on all */
+        color: #4B3C9C;
     }
     )");
     card->setStyleSheet(cardStyle);
@@ -363,21 +366,19 @@ void AvailableClassesScreen::createClassCard(const Class &gymClass,
     cardLayout->addWidget(progressBar);
 
     bool isFull = classDataManager->isClassFull(gymClass.getId());
-    
-    // Get member ID from user ID
+
     int memberId = -1;
     if (memberDataManager && currentUser.getId() > 0) {
         memberId = memberDataManager->getMemberIdByUserId(currentUser.getId());
     }
-    
-    // Check if this class is the member's enrolled class
-    bool isEnrolled = (memberId > 0 && 
-                      ((currentMember.getClassId() == gymClass.getId()) || 
+
+    bool isEnrolled = (memberId > 0 &&
+                      ((currentMember.getClassId() == gymClass.getId()) ||
                        gymClass.isMemberEnrolled(memberId)));
 
-    qDebug() << "Class:" << gymClass.getClassName() << "ID:" << gymClass.getId() 
-             << "Member ID:" << memberId 
-             << "Current Member Class ID:" << currentMember.getClassId() 
+    qDebug() << "Class:" << gymClass.getClassName() << "ID:" << gymClass.getId()
+             << "Member ID:" << memberId
+             << "Current Member Class ID:" << currentMember.getClassId()
              << "Is Enrolled:" << isEnrolled;
 
     QPushButton *actionBtn = new QPushButton;
@@ -415,7 +416,6 @@ void AvailableClassesScreen::createClassCard(const Class &gymClass,
         "}"
         ).arg(isFull ? "#B0BEC5" : "#81C784", isFull ? "#839AA5" : "#56AB59"));
 
-
         connect(actionBtn, &QPushButton::clicked, [=]() {
             if (isFull) {
                 if (QMessageBox::question(
@@ -442,7 +442,7 @@ void AvailableClassesScreen::createClassCard(const Class &gymClass,
 
 void AvailableClassesScreen::handleEnrollment(int classId)
 {
-    // Get member ID from user ID
+
     int memberId = -1;
     if (memberDataManager && currentUser.getId() > 0) {
         memberId = memberDataManager->getMemberIdByUserId(currentUser.getId());
@@ -458,7 +458,6 @@ void AvailableClassesScreen::handleEnrollment(int classId)
         return;
     }
 
-    // Check if member is already enrolled in any class
     if (currentMember.getClassId() > 0) {
         Class currentClass = classDataManager->getClassById(currentMember.getClassId());
         if (currentClass.getId() > 0) {
@@ -481,7 +480,7 @@ void AvailableClassesScreen::handleEnrollment(int classId)
             NotificationType::Error
         );
     } else {
-        // Update current member data after successful enrollment
+
         currentMember = memberDataManager->getMemberById(memberId);
 
         QString className = classDataManager->getClassById(classId).getClassName();
@@ -497,7 +496,7 @@ void AvailableClassesScreen::handleEnrollment(int classId)
 
 void AvailableClassesScreen::handleUnenroll(int classId)
 {
-    // Get member ID from user ID
+
     int memberId = -1;
     if (memberDataManager && currentUser.getId() > 0) {
         memberId = memberDataManager->getMemberIdByUserId(currentUser.getId());
@@ -522,7 +521,7 @@ void AvailableClassesScreen::handleUnenroll(int classId)
             NotificationType::Error
         );
     } else {
-        // Update current member data after successful unenrollment
+
         currentMember = memberDataManager->getMemberById(memberId);
 
         QString className = classDataManager->getClassById(classId).getClassName();
@@ -539,7 +538,28 @@ void AvailableClassesScreen::handleUnenroll(int classId)
 void AvailableClassesScreen::handleWaitlist(int classId)
 {
     QString error;
-    if (!classDataManager->addToWaitlist(classId, currentUser.getId(), false, error)) {
+
+    int memberId = -1;
+    bool isVIP = false;
+
+    if (memberDataManager && currentUser.getId() > 0) {
+        memberId = memberDataManager->getMemberIdByUserId(currentUser.getId());
+        if (memberId > 0) {
+            isVIP = memberDataManager->isVIPMember(memberId);
+        }
+    }
+
+    if (memberId <= 0) {
+        NotificationManager::instance().showNotification(
+            tr("Waitlist Failed"),
+            "You must be a member to join the waitlist",
+            nullptr,
+            NotificationType::Error
+        );
+        return;
+    }
+
+    if (!classDataManager->addToWaitlist(classId, memberId, isVIP, error)) {
         NotificationManager::instance().showNotification(
             tr("Waitlist Failed"),
             error.toUtf8().constData(),
@@ -565,7 +585,6 @@ void AvailableClassesScreen::showAddClassDialog()
 
     QFormLayout form(&dialog);
     QLineEdit *classNameEdit = new QLineEdit;
-
 
     QComboBox *coachComboBox = new QComboBox;
     for (const Staff &coach : coaches) {
@@ -613,7 +632,7 @@ void AvailableClassesScreen::showAddClassDialog()
         Class newClass;
 
         newClass.setClassName(classNameEdit->text().trimmed());
-        newClass.setCoachName(coachComboBox->currentText());  // Use selected coach name
+        newClass.setCoachName(coachComboBox->currentText());
         newClass.setFromDate(fromDateEdit->date());
         newClass.setToDate(toDateEdit->date());
         newClass.setCapacity(capacitySpinBox->value());
@@ -637,37 +656,42 @@ void AvailableClassesScreen::showAddClassDialog()
 }
 QWidget* AvailableClassesScreen::ClassesContent() {
     qDebug() << "Creating ClassesContent";
-    
+
     QWidget* classesContent = new QWidget();
     QVBoxLayout* classesLayout = new QVBoxLayout(classesContent);
     classesLayout->setContentsMargins(20,20,20,20);
     classesLayout->setSpacing(15);
 
-    // Initialize labels with current user data
-    userNameLabel = new QLabel(currentUser.getId() > 0 
+    userNameLabel = new QLabel(currentUser.getId() > 0
         ? QString("Hello, %1!").arg(currentUser.getName())
         : "Hello, Guest!");
     userNameLabel->setStyleSheet("font-size:20px; font-weight:bold;");
-    
+
     enrolledClassesLabel = new QLabel;
     enrolledClassesLabel->setWordWrap(true);
     enrolledClassesLabel->setStyleSheet("color:#555;");
 
-    // Update enrolled classes text
     if (currentUser.getId() > 0) {
         auto all = classDataManager->getAllClasses();
         QStringList names;
 
-        if (currentMember.getClassId() > 0) {
+        int memberId = -1;
+        if (memberDataManager) {
+            memberId = memberDataManager->getMemberIdByUserId(currentUser.getId());
+        }
+
+        if (memberId > 0 && currentMember.getClassId() > 0) {
             Class enrolledClass = classDataManager->getClassById(currentMember.getClassId());
             if (enrolledClass.getId() > 0) {
                 names << enrolledClass.getClassName();
             }
         }
 
-        for (const auto& gymClass : all) {
-            if (gymClass.isMemberEnrolled(currentUser.getId()) && !names.contains(gymClass.getClassName())) {
-                names << gymClass.getClassName();
+        if (memberId > 0) {
+            for (const auto& gymClass : all) {
+                if (gymClass.isMemberEnrolled(memberId) && !names.contains(gymClass.getClassName())) {
+                    names << gymClass.getClassName();
+                }
             }
         }
 
@@ -747,7 +771,6 @@ QWidget* AvailableClassesScreen::ClassesContent() {
     scrollLayout->setAlignment(Qt::AlignTop);
     scrollLayout->setSpacing(30);
 
-    // Create class cards
     auto all = classDataManager->getAllClasses();
     QMap<QString,QVector<Class>> byCoach;
     for (auto &c : all) byCoach[c.getCoachName()].append(c);
@@ -761,7 +784,7 @@ QWidget* AvailableClassesScreen::ClassesContent() {
             "QGroupBox { font-size:18px; font-weight:bold; border:none; margin-top:15px; }"
             "QGroupBox::title { subcontrol-origin:margin; left:10px; padding:0 5px; color:%1; }"
         ).arg(isDarkTheme ? "#A78CF6" : "#6647D8");
-        
+
         group->setStyleSheet(groupBoxStyle);
         QVBoxLayout* glay = new QVBoxLayout(group);
         glay->setContentsMargins(10,25,10,10);
@@ -789,19 +812,16 @@ QWidget* AvailableClassesScreen::ClassesContent() {
 }
 QWidget* AvailableClassesScreen::WorkoutsContent() {
     qDebug() << "Starting WorkoutsContent() function";
-    
-    // Create main widget and layout
+
     QWidget* workoutsContent = new QWidget();
     QVBoxLayout* mainLayout = new QVBoxLayout(workoutsContent);
     mainLayout->setContentsMargins(20, 20, 20, 20);
     mainLayout->setSpacing(20);
 
-    // Add title
     QLabel* titleLabel = new QLabel("Monthly Workout Schedule");
     titleLabel->setStyleSheet("font-size: 24px; font-weight: bold; color: #6647D8;");
     mainLayout->addWidget(titleLabel);
 
-    // Create scroll area
     QScrollArea* scrollArea = new QScrollArea();
     scrollArea->setWidgetResizable(true);
     scrollArea->setStyleSheet(
@@ -819,12 +839,10 @@ QWidget* AvailableClassesScreen::WorkoutsContent() {
         "}"
     );
 
-    // Create content widget for scroll area
     QWidget* scrollContent = new QWidget();
     QVBoxLayout* scrollLayout = new QVBoxLayout(scrollContent);
     scrollLayout->setSpacing(15);
 
-    // Check if workout manager exists
     if (!workoutManager) {
         qDebug() << "ERROR: workoutManager is null!";
         QLabel* errorLabel = new QLabel("Workout system is currently unavailable.");
@@ -833,7 +851,6 @@ QWidget* AvailableClassesScreen::WorkoutsContent() {
         return workoutsContent;
     }
 
-    // Get all available workouts
     QVector<Workout> allWorkouts = workoutManager->getAllWorkouts();
     if (allWorkouts.isEmpty()) {
         qDebug() << "ERROR: No workouts found in the system!";
@@ -845,18 +862,14 @@ QWidget* AvailableClassesScreen::WorkoutsContent() {
 
     qDebug() << "Found" << allWorkouts.size() << "workouts in the system";
 
-    // Get date range (today to end of month)
     QDate today = timeLogicInstance.getCurrentTime().date();
     QDate endOfMonth = QDate(today.year(), today.month(), today.daysInMonth());
-    
-    // For each day from today to end of month
+
     for (QDate date = today; date <= endOfMonth; date = date.addDays(1)) {
         qDebug() << "Processing date:" << date.toString();
-        
-        // Create a flag to check if we should skip this date
+
         bool skipDate = false;
 
-        // Skip if workout is already completed for this date (only if user is logged in)
         if (currentUser.getId() > 0) {
             QVector<WorkoutLog> logs = workoutManager->getUserWorkoutLogsByDateRange(
                 currentUser.getId(), date, date);
@@ -866,17 +879,14 @@ QWidget* AvailableClassesScreen::WorkoutsContent() {
             }
         }
 
-        // Continue to next date if we should skip this one
         if (skipDate) {
             continue;
         }
 
-        // Select random workout for this day
         int randomIndex = QRandomGenerator::global()->bounded(allWorkouts.size());
         const Workout& workout = allWorkouts[randomIndex];
         qDebug() << "Selected workout:" << workout.name << "for date:" << date.toString();
 
-        // Create workout card
         QWidget* card = new QWidget();
         card->setObjectName("workoutCard");
         card->setStyleSheet(
@@ -889,13 +899,11 @@ QWidget* AvailableClassesScreen::WorkoutsContent() {
         );
 
         QVBoxLayout* cardLayout = new QVBoxLayout(card);
-        
-        // Add date header
+
         QLabel* dateLabel = new QLabel(date.toString("dddd, MMMM d"));
         dateLabel->setStyleSheet("font-size: 18px; font-weight: bold; color: #6647D8;");
         cardLayout->addWidget(dateLabel);
 
-        // Add workout details
         QLabel* workoutLabel = new QLabel(QString("<b>%1</b>").arg(workout.name));
         workoutLabel->setStyleSheet("font-size: 16px; color: #4B3C9C;");
         cardLayout->addWidget(workoutLabel);
@@ -909,7 +917,6 @@ QWidget* AvailableClassesScreen::WorkoutsContent() {
         detailsLabel->setStyleSheet("color: #666666;");
         cardLayout->addWidget(detailsLabel);
 
-        // Add exercise list
         QString exerciseText = "<ul style='margin: 5px 0; color: #666666;'>";
         for (const Exercise& exercise : workout.exercises) {
             exerciseText += QString("<li>%1 - %2 sets x %3</li>")
@@ -918,12 +925,11 @@ QWidget* AvailableClassesScreen::WorkoutsContent() {
                 .arg(exercise.reps);
         }
         exerciseText += "</ul>";
-        
+
         QLabel* exercisesLabel = new QLabel(exerciseText);
         exercisesLabel->setTextFormat(Qt::RichText);
         cardLayout->addWidget(exercisesLabel);
 
-        // Add train button (only if user is logged in)
         QPushButton* trainButton = new QPushButton(currentUser.getId() > 0 ? "Complete Workout" : "Log in to Train");
         trainButton->setCursor(Qt::PointingHandCursor);
         trainButton->setStyleSheet(
@@ -940,10 +946,9 @@ QWidget* AvailableClassesScreen::WorkoutsContent() {
             "}"
         );
 
-        // Connect button to log workout
         connect(trainButton, &QPushButton::clicked, [this, workout, card, date]() {
             qDebug() << "Logging workout:" << workout.name << "for date:" << date.toString();
-            
+
             if (!workoutManager || currentUser.getId() <= 0) {
                 QMessageBox::warning(this, "Error", "Please log in to complete workouts.");
                 return;
@@ -956,23 +961,21 @@ QWidget* AvailableClassesScreen::WorkoutsContent() {
             log.totalCaloriesBurnt = workout.totalCalories;
             log.classId = currentMember.getClassId();
 
-            // Mark all exercises as completed
             for (const Exercise& exercise : workout.exercises) {
                 log.completedExercises.append(qMakePair(exercise.name, true));
             }
 
             QString errorMessage;
             if (workoutManager->logWorkout(log, errorMessage)) {
-                QMessageBox::information(this, "Success", 
+                QMessageBox::information(this, "Success",
                     QString("Completed workout: %1\nCalories burned: %2")
                     .arg(workout.name)
                     .arg(workout.totalCalories));
-                
-                // Remove the card
+
                 card->hide();
                 card->deleteLater();
             } else {
-                QMessageBox::warning(this, "Error", 
+                QMessageBox::warning(this, "Error",
                     QString("Failed to log workout: %1").arg(errorMessage));
             }
         });
@@ -981,7 +984,6 @@ QWidget* AvailableClassesScreen::WorkoutsContent() {
         scrollLayout->addWidget(card);
     }
 
-    // Add scroll area to main layout
     scrollArea->setWidget(scrollContent);
     mainLayout->addWidget(scrollArea);
 
@@ -992,18 +994,15 @@ QWidget* AvailableClassesScreen::ExtraContent() {
     std::cout << "\n=== Starting ExtraContent() function ===" << std::endl;
     qDebug() << "Starting ExtraContent() function";
 
-    // Create main widget and layout
     QWidget* historyContent = new QWidget();
     QVBoxLayout* mainLayout = new QVBoxLayout(historyContent);
     mainLayout->setContentsMargins(20, 20, 20, 20);
     mainLayout->setSpacing(20);
 
-    // Add title
     QLabel* titleLabel = new QLabel("Workout History");
     titleLabel->setStyleSheet("font-size: 24px; font-weight: bold; color: #6647D8;");
     mainLayout->addWidget(titleLabel);
 
-    // Check if workout manager exists
     std::cout << "Checking workout manager..." << std::endl;
     qDebug() << "Checking workout manager, pointer value:" << workoutManager;
     if (!workoutManager) {
@@ -1016,7 +1015,6 @@ QWidget* AvailableClassesScreen::ExtraContent() {
     }
     std::cout << "Workout manager is valid" << std::endl;
 
-    // Check if user is logged in
     std::cout << "Checking user login status... User ID:" << currentUser.getId() << std::endl;
     qDebug() << "Current user ID:" << currentUser.getId();
     if (currentUser.getId() <= 0) {
@@ -1029,13 +1027,11 @@ QWidget* AvailableClassesScreen::ExtraContent() {
     }
     std::cout << "User is logged in with ID:" << currentUser.getId() << std::endl;
 
-    // Get user's workout logs
     std::cout << "Fetching workout logs for user ID:" << currentUser.getId() << std::endl;
     QVector<WorkoutLog> userLogs = workoutManager->getUserWorkoutLogs(currentUser.getId());
     qDebug() << "Found" << userLogs.size() << "workout logs for user";
     std::cout << "Found " << userLogs.size() << " workout logs" << std::endl;
 
-    // Create scroll area
     QScrollArea* scrollArea = new QScrollArea();
     scrollArea->setWidgetResizable(true);
     scrollArea->setStyleSheet(
@@ -1053,7 +1049,6 @@ QWidget* AvailableClassesScreen::ExtraContent() {
         "}"
     );
 
-    // Create content widget for scroll area
     QWidget* scrollContent = new QWidget();
     QVBoxLayout* scrollLayout = new QVBoxLayout(scrollContent);
     scrollLayout->setSpacing(15);
@@ -1066,30 +1061,27 @@ QWidget* AvailableClassesScreen::ExtraContent() {
         mainLayout->addWidget(noLogsLabel);
     } else {
         std::cout << "Creating statistics section..." << std::endl;
-        // Add statistics section
+
         QWidget* statsCard = new QWidget();
         statsCard->setStyleSheet(
             "QWidget { background: rgba(102, 71, 216, 0.1); border-radius: 10px; padding: 15px; }"
         );
         QVBoxLayout* statsLayout = new QVBoxLayout(statsCard);
-        
-        // Total workouts completed
+
         int totalWorkouts = workoutManager->getTotalWorkoutsCompleted(currentUser.getId());
         std::cout << "Total workouts completed: " << totalWorkouts << std::endl;
         QLabel* totalWorkoutsLabel = new QLabel(QString("Total Workouts Completed: %1").arg(totalWorkouts));
         totalWorkoutsLabel->setStyleSheet("font-size: 16px; font-weight: bold; color: #6647D8;");
         statsLayout->addWidget(totalWorkoutsLabel);
-        
-        // Total calories burnt
+
         int totalCalories = workoutManager->getTotalCaloriesBurnt(currentUser.getId());
         std::cout << "Total calories burnt: " << totalCalories << std::endl;
         QLabel* totalCaloriesLabel = new QLabel(QString("Total Calories Burnt: %1").arg(totalCalories));
         totalCaloriesLabel->setStyleSheet("font-size: 16px; font-weight: bold; color: #6647D8;");
         statsLayout->addWidget(totalCaloriesLabel);
-        
+
         scrollLayout->addWidget(statsCard);
 
-        // Add workout history cards
         std::cout << "Creating workout history cards..." << std::endl;
         for (const WorkoutLog& log : userLogs) {
             std::cout << "Creating card for workout ID: " << log.workoutId << std::endl;
@@ -1100,11 +1092,9 @@ QWidget* AvailableClassesScreen::ExtraContent() {
             );
             QVBoxLayout* cardLayout = new QVBoxLayout(card);
 
-            // Get workout details
             Workout workout = workoutManager->getWorkoutById(log.workoutId);
             std::cout << "Workout name: " << workout.name.toStdString() << std::endl;
-            
-            // Workout name and date
+
             QLabel* workoutLabel = new QLabel(QString("<b>%1</b>").arg(workout.name));
             workoutLabel->setStyleSheet("font-size: 18px; color: #333;");
             cardLayout->addWidget(workoutLabel);
@@ -1113,12 +1103,10 @@ QWidget* AvailableClassesScreen::ExtraContent() {
             dateLabel->setStyleSheet("color: #666; margin-bottom: 10px;");
             cardLayout->addWidget(dateLabel);
 
-            // Calories burnt
             QLabel* caloriesLabel = new QLabel(QString("Calories Burnt: %1").arg(log.totalCaloriesBurnt));
             caloriesLabel->setStyleSheet("color: #6647D8; font-weight: bold;");
             cardLayout->addWidget(caloriesLabel);
 
-            // Completed exercises
             QLabel* exercisesLabel = new QLabel("Completed Exercises:");
             exercisesLabel->setStyleSheet("color: #333; margin-top: 10px;");
             cardLayout->addWidget(exercisesLabel);
@@ -1134,7 +1122,6 @@ QWidget* AvailableClassesScreen::ExtraContent() {
         }
     }
 
-    // Add scroll area to main layout
     scrollArea->setWidget(scrollContent);
     mainLayout->addWidget(scrollArea);
 
@@ -1148,21 +1135,18 @@ void AvailableClassesScreen::handlePageChange(const QString& pageID) {
     qDebug() << "Requested page:" << pageID;
     qDebug() << "Current workoutManager:" << workoutManager;
 
-    // Refresh data before updating pages
-    refreshClasses(); // Ensure classes data is up to date
+    refreshClasses();
 
-    // First, ensure all pages are up to date
     if (contentStack && contentStack->count() > 0) {
         qDebug() << "Refreshing pages - Stack count:" << contentStack->count();
-        // Force an update of the scroll area for classes page
+
         if (scrollArea && scrollArea->widget()) {
             scrollArea->widget()->update();
         }
     }
 
-    // Then change to the requested page
     if (pageID == "classes") {
-        // Update Classes page (index 0)
+
         QWidget* classesWidget = ClassesContent();
         QWidget* oldClassesWidget = contentStack->widget(0);
         contentStack->removeWidget(oldClassesWidget);
@@ -1171,14 +1155,14 @@ void AvailableClassesScreen::handlePageChange(const QString& pageID) {
 
         qDebug() << "Switching to Classes page";
         contentStack->setCurrentIndex(0);
-        // Additional refresh for classes page
+
         if (scrollArea && scrollArea->widget()) {
             scrollArea->widget()->update();
             scrollArea->viewport()->update();
         }
     }
     else if (pageID == "workouts") {
-        // Update Workouts page (index 1)
+
         QWidget* workoutsWidget = WorkoutsContent();
         QWidget* oldWorkoutsWidget = contentStack->widget(1);
         contentStack->removeWidget(oldWorkoutsWidget);
@@ -1189,7 +1173,7 @@ void AvailableClassesScreen::handlePageChange(const QString& pageID) {
     }
     else if (pageID == "add-classes") {
         qDebug() << "Switching to History page";
-        // Update History page (index 2)
+
         QWidget* historyWidget = ExtraContent();
         QWidget* oldHistoryWidget = contentStack->widget(2);
         contentStack->removeWidget(oldHistoryWidget);
@@ -1198,11 +1182,9 @@ void AvailableClassesScreen::handlePageChange(const QString& pageID) {
         contentStack->setCurrentIndex(2);
     }
 
-    // Force immediate update
     contentStack->currentWidget()->update();
     update();
-    
+
     qDebug() << "=== Page Change Complete ===";
     qDebug() << "New current index:" << contentStack->currentIndex();
 }
-
