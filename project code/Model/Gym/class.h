@@ -5,10 +5,10 @@
 #include <QDate>
 #include <QTime>
 #include <QVector>
-#include <deque>
 #include <queue>
 #include <QJsonObject>
 #include <set>
+#include "prioritywaitlist.h"
 
 class Class
 {
@@ -39,11 +39,14 @@ public:
 
 	[[nodiscard]] bool isFull() const;
 
-	void addToWaitlist(int memberId);
-	void removeFromWaitlist(int memberId);
+	void addToWaitlist(int memberId, bool isVIP);
+	void addToWaitlistWithTime(int memberId, bool isVIP, const QDateTime& joinTime);
+	bool removeFromWaitlist(int memberId);
 	[[nodiscard]] int getNextWaitlistMember() const;
-	[[nodiscard]] std::deque<int> getWaitlist() const;
+	[[nodiscard]] std::vector<int> getWaitlist() const;
+	[[nodiscard]] std::vector<GymWaitlistEntry> getWaitlistEntries() const;
 	[[nodiscard]] bool isInWaitlist(int memberId) const;
+	[[nodiscard]] size_t getWaitlistSize() const;
 
 	void addMember(int memberId) { enrolled_members.insert(memberId); }
 	void removeMember(int memberId) { enrolled_members.erase(memberId); }
@@ -59,7 +62,7 @@ private:
 	QDate toDate;
 	int capacity;
 	int numOfEnrolled;
-	std::deque<int> waiting_users_ids;
+	PriorityWaitlist waitlist;
 	std::set<int> enrolled_members;
 };
 #endif

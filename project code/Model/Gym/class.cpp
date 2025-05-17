@@ -8,11 +8,7 @@ void Class::setCapacity(int capacity)
 
 void Class::setNumOfEnrolled(int numOfEnrolled) 
 { 
-    if (numOfEnrolled < static_cast<int>(enrolled_members.size())) {
-        this->numOfEnrolled = static_cast<int>(enrolled_members.size());
-    } else {
-        this->numOfEnrolled = numOfEnrolled;
-    }
+    this->numOfEnrolled = static_cast<int>(enrolled_members.size());
 }
 
 void Class::setFromDate(const QDate& fromDate) {
@@ -44,7 +40,7 @@ QDate Class::getToDate() const {
     return toDate;
 }
 int Class::getCapacity() const { return capacity; }
-int Class::getNumOfEnrolled() const { return numOfEnrolled; }
+int Class::getNumOfEnrolled() const { return static_cast<int>(enrolled_members.size()); }
 int Class::getId() const {return id;}
 
 // Session management
@@ -86,35 +82,37 @@ bool Class::hasSessionOnDate(const QDate& date) const {
 
 // Capacity management
 bool Class::isFull() const {
-    return numOfEnrolled >= capacity;
+    return getNumOfEnrolled() >= capacity;
 }
 
-// Waitlist management
-void Class::addToWaitlist(int memberId) {
-    // Check if the member is already in the waitlist
-    if (!isInWaitlist(memberId)) {
-        waiting_users_ids.push_back(memberId);
-    }
+void Class::addToWaitlist(int memberId, bool isVIP) {
+    waitlist.addMember(memberId, isVIP);
 }
 
-void Class::removeFromWaitlist(int memberId) {
-    auto it = std::find(waiting_users_ids.begin(), waiting_users_ids.end(), memberId);
-    if (it != waiting_users_ids.end()) {
-        waiting_users_ids.erase(it);
-    }
+void Class::addToWaitlistWithTime(int memberId, bool isVIP, const QDateTime& joinTime) {
+    waitlist.addMemberWithTime(memberId, isVIP, joinTime);
+}
+
+bool Class::removeFromWaitlist(int memberId) {
+    return waitlist.removeMember(memberId);
 }
 
 int Class::getNextWaitlistMember() const {
-    if (waiting_users_ids.empty()) {
-        return -1; // Return -1 if no one is in the waitlist
-    }
-    return waiting_users_ids.front();
+    return waitlist.getNextMember();
 }
 
-std::deque<int> Class::getWaitlist() const {
-    return waiting_users_ids;
+std::vector<int> Class::getWaitlist() const {
+    return waitlist.getAllMembers();
+}
+
+std::vector<GymWaitlistEntry> Class::getWaitlistEntries() const {
+    return waitlist.getAllEntries();
 }
 
 bool Class::isInWaitlist(int memberId) const {
-    return std::find(waiting_users_ids.begin(), waiting_users_ids.end(), memberId) != waiting_users_ids.end();
+    return waitlist.contains(memberId);
+}
+
+size_t Class::getWaitlistSize() const {
+    return waitlist.size();
 }

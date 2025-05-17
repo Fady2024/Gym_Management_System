@@ -54,6 +54,8 @@ public:
     bool removeFromWaitlist(int classId, int memberId, QString& errorMessage);
     int getNextWaitlistMember(int classId) const;
     QVector<int> getWaitlist(int classId) const;
+    size_t getWaitlistSize(int classId) const;
+    bool promoteNextWaitlistMember(int classId, QString& errorMessage);
 
     // Session management
     bool addSession(int classId, const QDate& date, QString& errorMessage);

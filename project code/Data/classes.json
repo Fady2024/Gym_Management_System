@@ -1,90 +1,123 @@
 [
     {
-        "capacity": 20,
+        "capacity": 1,
         "className": "class 1",
         "coachName": "John Smith",
+        "enrolledMembers": [
+            1
+        ],
         "from": "Wed May 7 2025",
         "id": 1,
         "numOfEnrolled": 1,
         "sessions": [
         ],
-        "to": "Wed May 14 2025"
+        "to": "Wed May 14 2025",
+        "waitlist": [
+        ]
     },
     {
         "capacity": 20,
         "className": "class 3",
         "coachName": "Michael Brown",
+        "enrolledMembers": [
+        ],
         "from": "Wed May 7 2025",
         "id": 2,
-        "numOfEnrolled": 20,
+        "numOfEnrolled": 0,
         "sessions": [
         ],
-        "to": "Wed May 14 2025"
+        "to": "Wed May 14 2025",
+        "waitlist": [
+        ]
     },
     {
         "capacity": 20,
         "className": "Class 4",
         "coachName": "Emily Davis",
+        "enrolledMembers": [
+        ],
         "from": "Wed May 7 2025",
         "id": 3,
-        "numOfEnrolled": 20,
+        "numOfEnrolled": 0,
         "sessions": [
         ],
-        "to": "Wed May 14 2025"
+        "to": "Wed May 14 2025",
+        "waitlist": [
+        ]
     },
     {
         "capacity": 20,
         "className": "Class 360",
         "coachName": "John Smith",
+        "enrolledMembers": [
+        ],
         "from": "Wed May 7 2025",
         "id": 4,
-        "numOfEnrolled": 2,
+        "numOfEnrolled": 0,
         "sessions": [
         ],
-        "to": "Wed May 14 2025"
+        "to": "Wed May 14 2025",
+        "waitlist": [
+        ]
     },
     {
         "capacity": 20,
         "className": "class 11",
         "coachName": "Michael Brown",
+        "enrolledMembers": [
+        ],
         "from": "Wed May 7 2025",
         "id": 5,
-        "numOfEnrolled": 3,
+        "numOfEnrolled": 0,
         "sessions": [
         ],
-        "to": "Wed May 14 2025"
+        "to": "Wed May 14 2025",
+        "waitlist": [
+        ]
     },
     {
         "capacity": 100,
         "className": "class 5",
         "coachName": "Sarah Johnson",
+        "enrolledMembers": [
+        ],
         "from": "Wed May 7 2025",
         "id": 6,
-        "numOfEnrolled": 1,
+        "numOfEnrolled": 0,
         "sessions": [
         ],
-        "to": "Wed May 14 2025"
+        "to": "Wed May 14 2025",
+        "waitlist": [
+        ]
     },
     {
         "capacity": 20,
         "className": "Class end",
         "coachName": "Sarah Johnson",
+        "enrolledMembers": [
+        ],
         "from": "Fri May 16 2025",
         "id": 7,
-        "numOfEnrolled": 1,
+        "numOfEnrolled": 0,
         "sessions": [
         ],
-        "to": "Fri May 23 2025"
+        "to": "Fri May 23 2025",
+        "waitlist": [
+        ]
     },
     {
         "capacity": 20,
         "className": "class 70",
         "coachName": "David Wilson",
+        "enrolledMembers": [
+        ],
         "from": "Fri May 16 2025",
         "id": 8,
         "numOfEnrolled": 0,
         "sessions": [
         ],
-        "to": "Fri May 23 2025"
+        "to": "Fri May 23 2025",
+        "waitlist": [
+        ]
     }
 ]
