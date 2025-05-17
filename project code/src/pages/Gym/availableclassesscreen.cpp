@@ -217,6 +217,39 @@ void AvailableClassesScreen::updateTheme(bool isDark)
     for (QGroupBox* box : groupBoxes) {
         box->setStyleSheet(groupBoxStyle);
     }
+
+    // Force refresh the current page to update all colors
+    if (contentStack) {
+        int currentIndex = contentStack->currentIndex();
+        QWidget* newWidget = nullptr;
+
+        switch (currentIndex) {
+            case 0:
+                newWidget = ClassesContent();
+                break;
+            case 1:
+                newWidget = WorkoutsContent();
+                break;
+            case 2:
+                newWidget = ExtraContent();
+                break;
+        }
+
+        if (newWidget) {
+            QWidget* oldWidget = contentStack->widget(currentIndex);
+            contentStack->removeWidget(oldWidget);
+            oldWidget->deleteLater();
+            contentStack->insertWidget(currentIndex, newWidget);
+            contentStack->setCurrentIndex(currentIndex);
+        }
+    }
+
+    // Update the sidebar theme
+    if (leftSidebar) {
+        leftSidebar->updateTheme(isDark);
+    }
+
+    update();
 }
 
 void AvailableClassesScreen::setupCoaches()
