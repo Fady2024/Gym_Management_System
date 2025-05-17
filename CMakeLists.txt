@@ -134,6 +134,8 @@ set(MODEL_SOURCES
         "project code/Model/Gym/class.h"
         "project code/Model/Gym/subscription.cpp"
         "project code/Model/Gym/subscription.h"
+        "project code/Model/Gym/prioritywaitlist.cpp"
+        "project code/Model/Gym/prioritywaitlist.h"
         "project code/Model/Padel/Court.cpp"
         "project code/Model/Padel/Court.h"
         "project code/Model/Padel/Booking.cpp"
