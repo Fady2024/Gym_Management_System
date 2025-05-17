@@ -344,6 +344,17 @@ bool ClassDataManager::enrollMember(int classId, int memberId, QString& errorMes
         return false;
     }
 
+    //handle workout
+    auto it2 = MemberClassesbyUserId.find(memberId);
+    if (it2 == MemberClassesbyUserId.end()) {
+        vector<Class> classes;
+        classes.push_back(gymClass);
+        MemberClassesbyUserId.insert({ memberId ,classes });
+    }
+    else {
+        it2->second.push_back(gymClass); // If member already exists, just add the class
+    }
+
     gymClass.addMember(memberId);
     gymClass.setNumOfEnrolled(gymClass.getNumOfEnrolled() + 1);
     dataModified = true;
@@ -379,6 +390,16 @@ bool ClassDataManager::unenrollMember(int classId, int memberId, QString& errorM
             qDebug() << "Failed to promote next waitlist member: " << promoteError;
 
         }
+    }
+    // delete the class from the vector
+    auto it2 = MemberClassesbyUserId.find(memberId);
+    if (it2 != MemberClassesbyUserId.end()) {
+        auto& classList = it2->second;
+        classList.erase(
+            std::remove_if(classList.begin(), classList.end(),
+                [&](const Class& c) { return c.getId() == classId; }),
+            classList.end()
+        );
     }
 
     return true;

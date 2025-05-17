@@ -47,7 +47,6 @@ public:
 	[[nodiscard]] std::vector<GymWaitlistEntry> getWaitlistEntries() const;
 	[[nodiscard]] bool isInWaitlist(int memberId) const;
 	[[nodiscard]] size_t getWaitlistSize() const;
-
 	void addMember(int memberId) { enrolled_members.insert(memberId); }
 	void removeMember(int memberId) { enrolled_members.erase(memberId); }
 	bool isMemberEnrolled(int memberId) const { return enrolled_members.find(memberId) != enrolled_members.end(); }

@@ -85,6 +85,7 @@ public:
 private:
     QString dataDir;
     std::unordered_map<int, Class> classesById;
+    std::unordered_map<int, vector<Class>> MemberClassesbyUserId;
     bool dataModified = false;
     std::vector<AttendanceRecord> attendanceRecords;
     std::vector<MonthlyReport> monthlyReports;

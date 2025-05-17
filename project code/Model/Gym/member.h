@@ -5,6 +5,7 @@
 #include <QList>
 #include <QPair>
 #include "subscription.h"
+#include "Widgets/Notifications/NotificationManager.h"
 
 class Member {
 public:
@@ -25,7 +26,8 @@ public:
   void setClassId(int id) { classId = id; }
   void setSubscription(const Subscription& sub) { subscription = sub; }
   bool hasActiveSubscription() const { return subscription.isActive(); }
-  
+  void getRemindersSubEnd();
+ // void hadlesubpage();
   // History management
   void addClassToHistory(const QDate &date);
   
