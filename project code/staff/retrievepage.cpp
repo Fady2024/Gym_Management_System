@@ -322,11 +322,14 @@ void RetrievePage::handleCellClick(int row, int column)
 
     if (msgBox.clickedButton() == renewButton) {
         qDebug() << "Renew subscription for member ID:" << memberId;
-        // TODO: Call your renewal logic here
+        QString error2 = "renew error";
+        memberManager->renewSubscription(memberId,m.getSubscription().getType(),m.getSubscription().isVIP(),error2);
     }
     else if (msgBox.clickedButton() == cancelButton) {
         qDebug() << "Cancel subscription for member ID:" << memberId;
-        // TODO: Call your cancellation logic here
+        QString error = "cancelling error";
+        memberManager->cancelSubscription(memberId,error);
     }
 }
+
 
