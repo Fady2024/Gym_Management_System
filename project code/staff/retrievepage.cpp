@@ -11,7 +11,9 @@
 #include <QDebug>
 #include <QLineEdit>
 #include <QFormLayout>
-
+#include <QTableWidget>
+#include <QMessageBox>
+#include <QPushButton>
 RetrievePage::RetrievePage(UserDataManager *userDataManager, MemberDataManager *memberManager, QWidget *parent)
     : QWidget(parent), userDataManager(userDataManager), memberManager(memberManager), mainLayout(nullptr), leftSidebar(nullptr), contentStack(nullptr), customContent(nullptr), isDarkTheme(false), currentUserId(0), searchEdit(nullptr), tableWidget(nullptr)
 {
@@ -75,8 +77,8 @@ void RetrievePage::setupUI()
     tableWidget->setObjectName("dataTable");
     tableWidget->setMinimumSize(400, 200);
     tableWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-    tableWidget->setColumnCount(4);
-    tableWidget->setHorizontalHeaderLabels({tr("ID"), tr("Name"), tr("Email"), tr("ClassId")});
+    tableWidget->setColumnCount(3);
+    tableWidget->setHorizontalHeaderLabels({tr("ID"), tr("Name"), tr("Email")});
     tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     tableWidget->verticalHeader()->setVisible(false);
     tableWidget->setShowGrid(true);
@@ -96,6 +98,7 @@ void RetrievePage::setupUI()
     // Connect search
     connect(searchEdit, &QLineEdit::textChanged, this, &RetrievePage::populateTable);
     populateTable(); // Populate initially with all members
+    connect(tableWidget, &QTableWidget::cellClicked, this, &RetrievePage::handleCellClick);
 }
 
 void RetrievePage::populateTable(const QString &filter)
@@ -128,7 +131,6 @@ void RetrievePage::populateTable(const QString &filter)
         tableWidget->setItem(0, 0, new QTableWidgetItem("-"));
         tableWidget->setItem(0, 1, new QTableWidgetItem("No data"));
         tableWidget->setItem(0, 2, new QTableWidgetItem("-"));
-        tableWidget->setItem(0, 3, new QTableWidgetItem("-"));
         return;
     }
 
@@ -140,17 +142,15 @@ void RetrievePage::populateTable(const QString &filter)
         QTableWidgetItem *idItem = new QTableWidgetItem(QString::number(m.getId()));
         QTableWidgetItem *nameItem = new QTableWidgetItem(u.getName());
         QTableWidgetItem *emailItem = new QTableWidgetItem(u.getEmail());
-        QTableWidgetItem *classIdItem = new QTableWidgetItem(QString::number(m.getClassId()));
 
         idItem->setTextAlignment(Qt::AlignCenter);
         nameItem->setTextAlignment(Qt::AlignCenter);
         emailItem->setTextAlignment(Qt::AlignCenter);
-        classIdItem->setTextAlignment(Qt::AlignCenter);
 
         tableWidget->setItem(i, 0, idItem);
         tableWidget->setItem(i, 1, nameItem);
         tableWidget->setItem(i, 2, emailItem);
-        tableWidget->setItem(i, 3, classIdItem);
+
     }
 }
 
@@ -293,3 +293,40 @@ void RetrievePage::handlePageChange(const QString &pageId)
         contentStack->setCurrentWidget(addMemberPage);
     }
 }
+void RetrievePage::handleCellClick(int row, int column)
+{
+    QTableWidgetItem* idItem = tableWidget->item(row, 0);
+    if (!idItem) return;
+
+    int memberId = idItem->text().toInt();
+
+    const Member& m = memberManager->getMemberById(memberId);
+    const User& u = userDataManager->getUserDataById(m.getUserId());
+
+    QString details = QString("Name: %1\nEmail: %2\nClassId: %3\n\nWhat would you like to do?")
+        .arg(u.getName())
+        .arg(u.getEmail())
+        .arg(m.getClassId());
+
+    // Create a QMessageBox with custom buttons
+    QMessageBox msgBox;
+    msgBox.setWindowTitle("Member Options");
+    msgBox.setText(details);
+    msgBox.setIcon(QMessageBox::Question);
+
+    QPushButton* renewButton = msgBox.addButton("Renew Subscription", QMessageBox::AcceptRole);
+    QPushButton* cancelButton = msgBox.addButton("Cancel Subscription", QMessageBox::DestructiveRole);
+    msgBox.addButton(QMessageBox::Close); // optional close button
+
+    msgBox.exec();
+
+    if (msgBox.clickedButton() == renewButton) {
+        qDebug() << "Renew subscription for member ID:" << memberId;
+        // TODO: Call your renewal logic here
+    }
+    else if (msgBox.clickedButton() == cancelButton) {
+        qDebug() << "Cancel subscription for member ID:" << memberId;
+        // TODO: Call your cancellation logic here
+    }
+}
+
