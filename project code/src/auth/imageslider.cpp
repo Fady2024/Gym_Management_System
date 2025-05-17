@@ -33,9 +33,9 @@ ImageSlider::ImageSlider(QWidget* parent)
 
     // Initialize slides with empty content - will be populated in retranslateUI
     slides.clear();
-    addSlide(":/Images/fitness1.png", "", "");
-    addSlide(":/Images/fitness2.png", "", "");
-    addSlide(":/Images/fitness3.png", "", "");
+    addSlide(":/Images/PC-003-3.jpg", "", "");
+    addSlide(":/Images/pexels-willpicturethis-1954524.jpg", "", "");
+    addSlide(":/Images/8d443aec-2090-4e9e-8793-6b95d830d89f.sized-1000x1000.jpeg", "", "");
 
     // Update texts
     retranslateUI();
@@ -47,15 +47,15 @@ void ImageSlider::retranslateUI()
     slides.clear();
 
     // Add slides with translated text
-    addSlide(":/Images/fitness1.png", 
+    addSlide(":/Images/PC-003-3.jpg", 
         tr("Transform Your Body"),
         tr("Start your fitness journey today with our personalized workout plans"));
     
-    addSlide(":/Images/fitness2.png",
+    addSlide(":/Images/pexels-willpicturethis-1954524.jpg",
         tr("Find Your Balance"),
         tr("Achieve the perfect balance between strength and flexibility"));
     
-    addSlide(":/Images/fitness3.png",
+    addSlide(":/Images/8d443aec-2090-4e9e-8793-6b95d830d89f.sized-1000x1000.jpeg",
         tr("Join Our Community"),
         tr("Connect with like-minded fitness enthusiasts and reach your goals together"));
 
