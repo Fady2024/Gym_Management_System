@@ -10,6 +10,7 @@
 #include "../DataManager/classdatamanager.h"
 #include "../DataManager/padeldatamanager.h"
 #include "../Language/LanguageManager.h"
+#include "../Model/System/timeLogic.h"
 #include <QSettings>
 #include <QStackedWidget>
 #include "../Core/AppInitializer.h"
@@ -54,6 +55,7 @@ int main(int argc, char* argv[])
     memberDataManager->setUserDataManager(userDataManager);
     classDataManager->setMemberDataManager(memberDataManager);
     padelDataManager->setMemberDataManager(memberDataManager);
+    timeLogicInstance.setMemberDataManager(memberDataManager);
 
     // Create main window with all data managers
     MainWindow mainWindow(userDataManager, memberDataManager, classDataManager, padelDataManager);
@@ -156,6 +158,7 @@ int main(int argc, char* argv[])
                                 if (isMember) {
                                     int memberId = memberDataManager->getMemberIdByUserId(user.getId());
                                     qDebug() << "Found member ID during account switch: " << memberId;
+                                    timeLogicInstance.setCurrentMemberId(memberId);
                                 }
                             } catch (const std::exception& e) {
                                 qDebug() << "Exception checking member status during account switch: " << e.what();
@@ -216,6 +219,10 @@ int main(int argc, char* argv[])
                         try {
                             isMember = memberDataManager->userIsMember(user.getId());
                             qDebug() << "User is member: " << isMember;
+                            if (isMember) {
+                                int memberId = memberDataManager->getMemberIdByUserId(user.getId());
+                                timeLogicInstance.setCurrentMemberId(memberId);
+                            }
                         } catch (const std::exception& e) {
                             qDebug() << "Exception checking member status: " << e.what();
                         } catch (...) {
