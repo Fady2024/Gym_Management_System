@@ -695,7 +695,7 @@ bool PadelDataManager::rescheduleBooking(int bookingId, const QDateTime& newStar
         mutex.unlock();
         return false;
     }
-
+    //------------------------------------
     bool available = true;
     for (const auto& pair : bookingsById) {
         const Booking& existingBooking = pair.second;
@@ -718,6 +718,12 @@ bool PadelDataManager::rescheduleBooking(int bookingId, const QDateTime& newStar
         mutex.unlock();
         return false;
     }
+    //---------------------------------------------------
+  /*  if (!isCourtAvailable(courtId, newStartTime, newEndTime)) {
+        errorMessage = "Court is not available at the requested time";
+        mutex.unlock();
+        return false;
+    }*/
 
     booking.setStartTime(newStartTime);
     booking.setEndTime(newEndTime);
