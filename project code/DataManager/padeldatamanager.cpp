@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <QDateTime>
 #include <QMetaObject>
+#include <set>
 
 PadelDataManager::PadelDataManager(QObject* parent)
     : QObject(parent), memberDataManager(nullptr) {
@@ -209,58 +210,6 @@ bool PadelDataManager::saveToFile() {
     return true;
 }
 
-bool PadelDataManager::writeBookingsToFile(const QJsonArray& bookings, QString& errorMessage) const {
-    QString filePath = QDir(dataDir).filePath("bookings.json");
-    QFile file(filePath);
-    QFileInfo fileInfo(filePath);
-    QDir().mkpath(fileInfo.absolutePath());
-
-    if (!file.open(QIODevice::WriteOnly)) {
-        errorMessage = "Could not open bookings file for writing: " + file.errorString();
-        return false;
-    }
-
-    QJsonDocument doc(bookings);
-    QByteArray jsonData = doc.toJson(QJsonDocument::Indented);
-
-    qint64 bytesWritten = file.write(jsonData);
-    if (bytesWritten == -1) {
-        errorMessage = "Failed to write to bookings file: " + file.errorString();
-        file.close();
-        return false;
-    }
-
-    file.flush();
-    file.close();
-    return true;
-}
-
-bool PadelDataManager::writeCourtsToFile(const QJsonArray& courts, QString& errorMessage) const {
-    QString filePath = QDir(dataDir).filePath("courts.json");
-    QFile file(filePath);
-    QFileInfo fileInfo(filePath);
-    QDir().mkpath(fileInfo.absolutePath());
-
-    if (!file.open(QIODevice::WriteOnly)) {
-        errorMessage = "Could not open courts file for writing: " + file.errorString();
-        return false;
-    }
-
-    QJsonDocument doc(courts);
-    QByteArray jsonData = doc.toJson(QJsonDocument::Indented);
-
-    qint64 bytesWritten = file.write(jsonData);
-    if (bytesWritten == -1) {
-        errorMessage = "Failed to write to courts file: " + file.errorString();
-        file.close();
-        return false;
-    }
-
-    file.flush();
-    file.close();
-    return true;
-}
-
 QJsonObject PadelDataManager::courtToJson(const Court& court) const {
     QJsonObject json;
     json["id"] = court.getId();
@@ -341,50 +290,6 @@ bool PadelDataManager::addCourt(const Court& court, QString& errorMessage) {
     dataModified = true;
 
     emit courtAdded(newId);
-    return true;
-}
-
-bool PadelDataManager::updateCourt(const Court& court, QString& errorMessage) {
-    QMutexLocker locker(&mutex);
-
-    if (court.getId() <= 0) {
-        errorMessage = "Invalid court ID";
-        return false;
-    }
-
-    auto it = courtsById.find(court.getId());
-    if (it == courtsById.end()) {
-        errorMessage = "Court not found";
-        return false;
-    }
-
-    courtsById[court.getId()] = court;
-    dataModified = true;
-
-    emit courtUpdated(court.getId());
-    return true;
-}
-
-bool PadelDataManager::deleteCourt(int courtId, QString& errorMessage) {
-    QMutexLocker locker(&mutex);
-
-    auto it = courtsById.find(courtId);
-    if (it == courtsById.end()) {
-        errorMessage = "Court not found";
-        return false;
-    }
-
-    for (const auto& pair : bookingsById) {
-        if (pair.second.getCourt().getId() == courtId) {
-            errorMessage = "Cannot delete court with existing bookings";
-            return false;
-        }
-    }
-
-    courtsById.erase(it);
-    dataModified = true;
-
-    emit courtDeleted(courtId);
     return true;
 }
 
@@ -623,20 +528,6 @@ double PadelDataManager::calculateBookingPrice(int courtId, const QDateTime& sta
     return finalPrice;
 }
 
-bool PadelDataManager::deleteBooking(int bookingId, QString& errorMessage) {
-    QMutexLocker locker(&mutex);
-
-    auto it = bookingsById.find(bookingId);
-    if (it == bookingsById.end()) {
-        errorMessage = "Booking not found";
-        return false;
-    }
-
-    bookingsById.erase(it);
-    dataModified = true;
-    return true;
-}
-
 bool PadelDataManager::cancelBooking(int bookingId, QString& errorMessage) {
     bool locked = mutex.tryLock(200);
 
@@ -796,31 +687,6 @@ QVector<Booking> PadelDataManager::getBookingsByMember(int memberId) const {
     return result;
 }
 
-QVector<Booking> PadelDataManager::getBookingsByCourt(int courtId) const {
-    QMutexLocker locker(&mutex);
-
-    QVector<Booking> result;
-    for (const auto& pair : bookingsById) {
-        if (pair.second.getCourt().getId() == courtId) {
-            result.append(pair.second);
-        }
-    }
-    return result;
-}
-
-QVector<Booking> PadelDataManager::getBookingsByDate(const QDate& date) const {
-    QMutexLocker locker(&mutex);
-
-    QVector<Booking> result;
-    for (const auto& pair : bookingsById) {
-        const Booking& booking = pair.second;
-        if (booking.getStartTime().date() == date) {
-            result.append(booking);
-        }
-    }
-    return result;
-}
-
 QVector<Booking> PadelDataManager::getBookingsForTimeSlot(int courtId, const QDateTime& startTime, const QDateTime& endTime) {
     QMutexLocker locker(&mutex);
     QVector<Booking> results;
@@ -873,11 +739,6 @@ bool PadelDataManager::isCourtAvailable(int courtId, const QDateTime& startTime,
     }
 
     return (currentBookings < maxAttendees);
-}
-
-bool PadelDataManager::validateCourtAvailability(int courtId, const QDateTime& startTime,
-                                              const QDateTime& endTime) const {
-    return isCourtAvailable(courtId, startTime, endTime);
 }
 
 bool PadelDataManager::addToWaitlist(int userId, int courtId, const QDateTime& requestedTime,
@@ -971,167 +832,6 @@ bool PadelDataManager::removeFromWaitlist(int userId, int courtId, QString& erro
     return true;
 }
 
-QVector<WaitlistEntry> PadelDataManager::getWaitlistForCourt(int courtId) const {
-
-    auto it = courtWaitlists.find(courtId);
-    if (it == courtWaitlists.end()) {
-        return QVector<WaitlistEntry>();
-    }
-
-    QVector<WaitlistEntry> result;
-    std::queue<WaitlistEntry> tempQueue = it->second;
-
-    while (!tempQueue.empty()) {
-        result.append(tempQueue.front());
-        tempQueue.pop();
-    }
-
-    return result;
-}
-
-bool PadelDataManager::processWaitlist(int courtId, QString& errorMessage) {
-    auto it = courtWaitlists.find(courtId);
-    if (it == courtWaitlists.end() || it->second.empty()) {
-        errorMessage = "No waitlist entries for this court";
-        return false;
-    }
-
-    WaitlistEntry entry = it->second.front();
-    it->second.pop();
-
-    int userId = entry.memberId;
-
-    if (isCourtAvailable(courtId, entry.requestedTime, entry.requestedTime.addSecs(3600))) {
-        QString bookingError;
-        bool success = createBooking(userId, courtId,
-                               entry.requestedTime,
-                               entry.requestedTime.addSecs(3600),
-                                   bookingError,
-                                   true);
-
-        if (success) {
-            if (it->second.empty()) {
-                courtWaitlists.erase(it);
-            }
-
-            dataModified = true;
-            saveToFile();
-
-            return true;
-        } else {
-            errorMessage = "Failed to create booking: " + bookingError;
-            it->second.push(entry);
-            return false;
-        }
-    }
-
-    it->second.push(entry);
-    errorMessage = "Court not available at the requested time";
-    return false;
-}
-
-void PadelDataManager::setVIPPriority(int memberId, bool isVIP) {
-    vipMembers[memberId] = isVIP;
-    dataModified = true;
-    emit vipStatusChanged(memberId, isVIP);
-}
-
-bool PadelDataManager::isVIPMember(int memberId) const {
-    if (memberId <= 0) {
-        return false;
-    }
-
-    auto it = vipMembers.find(memberId);
-    bool isVip = (it != vipMembers.end() && it->second);
-    return isVip;
-}
-
-int PadelDataManager::calculatePriority(int memberId) const {
-    int priority = 0;
-    if (isVIPMember(memberId)) {
-        priority += 100;
-    }
-
-    return priority;
-}
-
-bool PadelDataManager::addTimeSlot(int courtId, const QTime& timeSlot, QString& errorMessage) {
-
-    auto it = courtsById.find(courtId);
-    if (it == courtsById.end()) {
-        errorMessage = "Invalid court ID";
-        return false;
-    }
-
-    Court& court = it->second;
-    const std::vector<QTime>& timeSlots = court.getAllTimeSlots();
-
-    for (const QTime& slot : timeSlots) {
-        if (slot == timeSlot) {
-            errorMessage = "Time slot already exists";
-            return false;
-        }
-    }
-
-    court.getAllTimeSlots().push_back(timeSlot);
-    dataModified = true;
-    return true;
-}
-
-bool PadelDataManager::removeTimeSlot(int courtId, const QTime& timeSlot, QString& errorMessage) {
-
-    auto it = courtsById.find(courtId);
-    if (it == courtsById.end()) {
-        errorMessage = "Invalid court ID";
-        return false;
-    }
-
-    Court& court = it->second;
-    std::vector<QTime>& timeSlots = court.getAllTimeSlots();
-
-    auto slotIt = std::find(timeSlots.begin(), timeSlots.end(), timeSlot);
-    if (slotIt == timeSlots.end()) {
-        errorMessage = "Time slot not found";
-        return false;
-    }
-
-    for (const auto& pair : bookingsById) {
-        const Booking& booking = pair.second;
-        if (booking.getCourt().getId() == courtId &&
-            booking.getStartTime().time() == timeSlot) {
-            errorMessage = "Cannot remove time slot with existing bookings";
-            return false;
-        }
-    }
-
-    timeSlots.erase(slotIt);
-    dataModified = true;
-    return true;
-}
-
-QVector<WaitlistEntry> PadelDataManager::getWaitlistForMember(int memberId) const {
-
-    QVector<WaitlistEntry> result;
-
-    for (const auto& pair : courtWaitlists) {
-        int courtId = pair.first;
-        std::queue<WaitlistEntry> tempQueue = pair.second;
-
-        while (!tempQueue.empty()) {
-            WaitlistEntry entry = tempQueue.front();
-            tempQueue.pop();
-
-            if (entry.memberId == memberId) {
-
-                entry.courtId = courtId;
-                result.append(entry);
-            }
-        }
-    }
-
-    return result;
-}
-
 int PadelDataManager::getWaitlistPosition(int userId, int courtId) const {
     if (userId <= 0 || courtId <= 0) {
         return -1;
@@ -1180,47 +880,6 @@ int PadelDataManager::getWaitlistPosition(int userId, int courtId) const {
     return -1;
 }
 
-void PadelDataManager::removeUserFromAllWaitlists(int userId, int courtId, const QDate& date) {
-    if (userId <= 0 || courtId <= 0 || !date.isValid()) {
-        return;
-    }
-
-    auto courtIt = courtsById.find(courtId);
-    if (courtIt == courtsById.end()) {
-        return;
-    }
-
-    auto it = courtWaitlists.find(courtId);
-    if (it == courtWaitlists.end() || it->second.empty()) {
-        return;
-    }
-
-    std::queue<WaitlistEntry> newQueue;
-    std::queue<WaitlistEntry> tempQueue = it->second;
-
-    if (tempQueue.empty()) {
-        return;
-    }
-
-    while (!tempQueue.empty()) {
-        WaitlistEntry entry = tempQueue.front();
-        tempQueue.pop();
-
-        if (entry.memberId != userId || entry.courtId != courtId || entry.requestedTime.date() != date) {
-            newQueue.push(entry);
-        }
-    }
-
-    if (newQueue.empty()) {
-        courtWaitlists.erase(courtId);
-    } else {
-        courtWaitlists[courtId] = newQueue;
-    }
-
-    emit waitlistUpdated(courtId);
-    dataModified = true;
-}
-
 void PadelDataManager::updateWaitlistPositionsAndNotify(int courtId) {
     if (courtId <= 0) {
         return;
@@ -1267,33 +926,6 @@ void PadelDataManager::updateWaitlistPositionsAndNotify(int courtId) {
     }
 }
 
-bool PadelDataManager::userHasBookingAtTime(int userId, int courtId, const QDate& date, const QTime& timeSlot) const {
-    if (userId <= 0 || courtId <= 0 || !date.isValid() || !timeSlot.isValid()) {
-        return false;
-    }
-
-    QMutexLocker locker(&mutex);
-
-    for (const auto& pair : bookingsById) {
-        const Booking& booking = pair.second;
-
-        if (booking.isCancelled()) {
-            continue;
-        }
-
-        if (booking.getUserId() == userId &&
-            booking.getCourtId() == courtId &&
-            booking.getStartTime().date() == date) {
-
-            if (booking.getStartTime().time() == timeSlot) {
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
-
 bool PadelDataManager::userHasBookingOnDate(int userId, int courtId, const QDate& date) const {
     if (userId <= 0 || !date.isValid()) {
         return false;
@@ -1316,25 +948,6 @@ bool PadelDataManager::userHasBookingOnDate(int userId, int courtId, const QDate
     }
 
     return false;
-}
-
-QVector<Booking> PadelDataManager::getUserAutoBookings(int userId) const {
-    QVector<Booking> result;
-    QMutexLocker locker(&mutex);
-
-    for (const auto& pair : bookingsById) {
-        const Booking& booking = pair.second;
-
-        if (booking.isCancelled()) {
-            continue;
-        }
-
-        if (booking.getUserId() == userId && booking.isFromWaitlist()) {
-            result.append(booking);
-        }
-    }
-
-    return result;
 }
 
 bool PadelDataManager::isUserInWaitlist(int userId, int courtId, const QDateTime& requestedTime) const {
@@ -1492,30 +1105,6 @@ QJsonObject PadelDataManager::getDetailedWaitlistInfo(int courtId, const QDate& 
     return result;
 }
 
-QVector<WaitlistEntry> PadelDataManager::getWaitlistForUser(int userId) const {
-    QMutexLocker locker(&mutex);
-
-    QVector<WaitlistEntry> result;
-
-    for (const auto& pair : courtWaitlists) {
-        int courtId = pair.first;
-        std::queue<WaitlistEntry> tempQueue = pair.second;
-
-        while (!tempQueue.empty()) {
-            WaitlistEntry entry = tempQueue.front();
-            tempQueue.pop();
-
-            if (entry.memberId == userId) {
-
-                entry.courtId = courtId;
-                result.append(entry);
-            }
-        }
-    }
-
-    return result;
-}
-
 QVector<QTime> PadelDataManager::getAllTimeSlots(int courtId) const {
     QMutexLocker locker(&mutex);
 
@@ -1541,35 +1130,6 @@ QVector<QTime> PadelDataManager::getAllTimeSlots(int courtId) const {
     }
 
     return result;
-}
-
-QJsonArray PadelDataManager::getAllTimeSlotsJson(int courtId) const {
-    QJsonArray timeSlotsArray;
-
-    if (courtId <= 0) {
-        return timeSlotsArray;
-    }
-
-    Court court = getCourtById(courtId);
-    if (court.getId() <= 0) {
-        return timeSlotsArray;
-    }
-
-    const std::vector<QTime>& timeSlots = court.getAllTimeSlots();
-
-    for (const QTime& time : timeSlots) {
-        if (time.isValid()) {
-            QJsonObject slotObject;
-            slotObject["startTime"] = time.toString("HH:mm");
-
-            QTime endTime = time.addSecs(3600);
-            slotObject["endTime"] = endTime.toString("HH:mm");
-
-            timeSlotsArray.append(slotObject);
-        }
-    }
-
-    return timeSlotsArray;
 }
 
 QJsonArray PadelDataManager::waitlistsToJson() const {
@@ -1620,32 +1180,6 @@ QJsonArray PadelDataManager::readWaitlistsFromFile(QString& errorMessage) const 
     }
 
     return doc.array();
-}
-
-bool PadelDataManager::writeWaitlistsToFile(const QJsonArray& waitlists, QString& errorMessage) const {
-    QString filePath = QDir(dataDir).filePath("waitlists.json");
-    QFile file(filePath);
-    QFileInfo fileInfo(filePath);
-    QDir().mkpath(fileInfo.absolutePath());
-
-    if (!file.open(QIODevice::WriteOnly)) {
-        errorMessage = "Could not open waitlists file for writing: " + file.errorString();
-        return false;
-    }
-
-    QJsonDocument doc(waitlists);
-    QByteArray jsonData = doc.toJson(QJsonDocument::Indented);
-
-    qint64 bytesWritten = file.write(jsonData);
-    if (bytesWritten == -1) {
-        errorMessage = "Failed to write to waitlists file: " + file.errorString();
-        file.close();
-        return false;
-    }
-
-    file.flush();
-    file.close();
-    return true;
 }
 
 bool PadelDataManager::tryFillSlotFromWaitlist(int courtId, const QDateTime& startTime, const QDateTime& endTime, QString& errorMessage) {
@@ -2175,7 +1709,7 @@ int PadelDataManager::getBookedCourtsCount() const {
     QMutexLocker locker(&mutex);
     int bookedCount = 0;
 
-    std::set<int> courtsWithBookings;
+    set<int> courtsWithBookings;
     for (const auto& pair : bookingsById) {
         const Booking& booking = pair.second;
         if (!booking.isCancelled()) {

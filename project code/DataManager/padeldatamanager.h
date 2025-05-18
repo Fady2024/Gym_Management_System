@@ -38,8 +38,6 @@ public:
 
     // Court management
     bool addCourt(const Court& court, QString& errorMessage);
-    bool updateCourt(const Court& court, QString& errorMessage);
-    bool deleteCourt(int courtId, QString& errorMessage);
     int getBookedCourtsCount() const;
     Court getCourtById(int courtId) const;
     QVector<Court> getAllCourts() const;
@@ -60,10 +58,7 @@ public:
                          const QDateTime& newEndTime, QString& errorMessage);
     QVector<Booking> getAllBookings() const;
     QVector<Booking> getBookingsByMember(int memberId) const;
-    QVector<Booking> getBookingsByCourt(int courtId) const;
-    QVector<Booking> getBookingsByDate(const QDate& date) const;
     QVector<Booking> getBookingsForTimeSlot(int courtId, const QDateTime& startTime, const QDateTime& endTime);
-    QVector<Booking> getUserAutoBookings(int userId) const;
     bool isCourtAvailable(int courtId, const QDateTime& startTime, 
                          const QDateTime& endTime) const;
 

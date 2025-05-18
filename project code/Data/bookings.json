@@ -86,5 +86,16 @@
         "price": 100,
         "startTime": "2025-05-19T18:00:00",
         "userId": 4
+    },
+    {
+        "courtId": 3,
+        "endTime": "2025-05-19T15:00:00",
+        "id": 9,
+        "isCancelled": true,
+        "isFromWaitlist": false,
+        "isVip": false,
+        "price": 100,
+        "startTime": "2025-05-19T14:00:00",
+        "userId": 4
     }
 ]
