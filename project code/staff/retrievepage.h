@@ -32,11 +32,13 @@ public:
 
 private slots:
     void handlePageChange(const QString& pageId);
-
+    void handleCellClick(int row, int column);
 private:
     void setupUI();
     void showMessageDialog(const QString& message, bool isError = false);
     void populateTable(const QString& filter = QString());
+
+    
 
     QLineEdit* searchEdit;
     QTableWidget* tableWidget;

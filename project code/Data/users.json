@@ -62,5 +62,13 @@
         "name": "fady gerges",
         "password": "Fadygerges2030@gmail.com\n",
         "photoPath": "project code/UsersPhoto/frame.png"
+    },
+    {
+        "age": 22,
+        "email": "x@admin.com",
+        "id": 9,
+        "name": "x",
+        "password": "XXXXxxxx",
+        "photoPath": ""
     }
 ]
