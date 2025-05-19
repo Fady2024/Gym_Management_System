@@ -4,15 +4,15 @@
         "id": 1,
         "subscription": {
             "active": true,
-            "endDate": "2026-02-23",
+            "endDate": "2026-05-19",
             "isVIP": true,
-            "startDate": "2025-02-23",
+            "startDate": "2025-05-19",
             "type": 3
         },
         "userId": 2
     },
     {
-        "classId": 4,
+        "classId": 1,
         "id": 2,
         "subscription": {
             "active": true,
@@ -22,5 +22,17 @@
             "type": 0
         },
         "userId": 4
+    },
+    {
+        "classId": -1,
+        "id": 3,
+        "subscription": {
+            "active": true,
+            "endDate": "2025-06-25",
+            "isVIP": false,
+            "startDate": "2025-05-25",
+            "type": 0
+        },
+        "userId": 10
     }
 ]

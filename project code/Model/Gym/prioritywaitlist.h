@@ -35,8 +35,6 @@ public:
 
     int getNextMember() const;
 
-    int popNextMember();
-
     bool contains(int memberId) const;
 
     std::vector<int> getAllMembers() const;

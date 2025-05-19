@@ -4,7 +4,7 @@
         "className": "class 1",
         "coachName": "John Smith",
         "enrolledMembers": [
-            1
+            2
         ],
         "from": "Wed May 7 2025",
         "id": 1,
@@ -117,6 +117,36 @@
         "sessions": [
         ],
         "to": "Fri May 23 2025",
+        "waitlist": [
+        ]
+    },
+    {
+        "capacity": 25,
+        "className": "disc",
+        "coachName": "John Smith",
+        "enrolledMembers": [
+        ],
+        "from": "Sun May 18 2025",
+        "id": 9,
+        "numOfEnrolled": 0,
+        "sessions": [
+        ],
+        "to": "Sun May 25 2025",
+        "waitlist": [
+        ]
+    },
+    {
+        "capacity": 1,
+        "className": "dis2",
+        "coachName": "Sarah Johnson",
+        "enrolledMembers": [
+        ],
+        "from": "Sun May 18 2025",
+        "id": 10,
+        "numOfEnrolled": 0,
+        "sessions": [
+        ],
+        "to": "Sun May 25 2025",
         "waitlist": [
         ]
     }

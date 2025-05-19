@@ -43,18 +43,18 @@ public:
     bool initializeFromFile();
     bool saveToFile();
 
-    // Workout management
+    // Workout edary
     QVector<Workout> getAllWorkouts() const;
     Workout getWorkoutById(int workoutId) const;
     QVector<Workout> getWorkoutsByDifficulty(const QString& difficulty) const;
 
-    // Logging management
+    // Logging tazbeta
     bool logWorkout(const WorkoutLog& log, QString& errorMessage);
     QVector<WorkoutLog> getUserWorkoutLogs(int userId) const;
     QVector<WorkoutLog> getUserWorkoutLogsByClass(int userId, int classId) const;
     QVector<WorkoutLog> getUserWorkoutLogsByDateRange(int userId, const QDate& startDate, const QDate& endDate) const;
     
-    // Statistics
+    // clc
     int getTotalCaloriesBurnt(int userId) const;
     int getTotalWorkoutsCompleted(int userId) const;
     QMap<QString, int> getMostFrequentExercises(int userId) const;

@@ -188,6 +188,48 @@
             "totalCaloriesBurnt": 300,
             "userId": 4,
             "workoutId": 1
+        },
+        {
+            "classId": -1,
+            "completedExercises": [
+                {
+                    "completed": true,
+                    "name": "Planks"
+                },
+                {
+                    "completed": true,
+                    "name": "Russian Twists"
+                },
+                {
+                    "completed": true,
+                    "name": "Leg Raises"
+                }
+            ],
+            "timestamp": "2025-05-18T11:27:07",
+            "totalCaloriesBurnt": 200,
+            "userId": 2,
+            "workoutId": 3
+        },
+        {
+            "classId": -1,
+            "completedExercises": [
+                {
+                    "completed": true,
+                    "name": "Push-ups"
+                },
+                {
+                    "completed": true,
+                    "name": "Dumbbell Rows"
+                },
+                {
+                    "completed": true,
+                    "name": "Squats"
+                }
+            ],
+            "timestamp": "2025-05-19T11:27:28",
+            "totalCaloriesBurnt": 300,
+            "userId": 2,
+            "workoutId": 1
         }
     ]
 }

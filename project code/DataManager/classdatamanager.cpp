@@ -29,6 +29,7 @@ ClassDataManager::ClassDataManager(QObject* parent)
     }
 
     initializeFromFile();
+    scheduleMonthlySessions();
 }
 
 ClassDataManager::~ClassDataManager() {
@@ -516,7 +517,6 @@ Class ClassDataManager::jsonToClass(const QJsonObject& json) {
             }
         }
     }
-
     return gymClass;
 }
 
@@ -837,4 +837,58 @@ bool ClassDataManager::saveAttendanceRecords() const {
     file.write(QJsonDocument(recordsArray).toJson());
     file.close();
     return true;
+}
+
+bool ClassDataManager::scheduleClassesForMonth(const QDate& month, QString& errorMessage) {
+    QDate firstDay(month.year(), month.month(), 1);
+    QDate lastDay = firstDay.addMonths(1).addDays(-1);
+    
+    bool anyClassScheduled = false;
+
+    for (const auto& classPair : classesById) {
+        const Class& gymClass = classPair.second;
+        if (gymClass.getToDate() < firstDay || gymClass.getFromDate() > lastDay) {
+            continue;
+        }
+        
+        QDate scheduleStart = qMax(firstDay, gymClass.getFromDate());
+        QDate scheduleEnd = qMin(lastDay, gymClass.getToDate());
+        
+        QDate currentDate = scheduleStart;
+        while (currentDate <= scheduleEnd) {
+            QString sessionError;
+            bool added = addSession(gymClass.getId(), currentDate, sessionError);
+            if (!added) {
+                qDebug() << "Failed to schedule session for class " << gymClass.getClassName() 
+                         << " on " << currentDate.toString() << ": " << sessionError;
+            } else {
+                anyClassScheduled = true;
+            }
+            
+            currentDate = currentDate.addDays(7);
+        }
+    }
+    
+    if (!anyClassScheduled) {
+        errorMessage = "No classes were scheduled for the month";
+        return false;
+    }
+    
+    dataModified = true;
+    return true;
+}
+
+void ClassDataManager::scheduleMonthlySessions() {
+    QDate today = QDate::currentDate();
+    QDate firstOfMonth(today.year(), today.month(), 1);
+    for (auto& pair : classesById) {
+        Class& gymClass = pair.second;
+        if (gymClass.getFromDate() <= firstOfMonth && gymClass.getToDate() >= firstOfMonth) {
+            if (!gymClass.hasSessionOnDate(firstOfMonth)) {
+                QString err;
+                addSession(gymClass.getId(), firstOfMonth, err);
+            }
+        }
+    }
+    dataModified = true;
 }

@@ -53,36 +53,6 @@ int PriorityWaitlist::getNextMember() const {
     return -1;
 }
 
-int PriorityWaitlist::popNextMember() {
-    if (priorityQueue.empty()) {
-        return -1;
-    }
-
-    std::priority_queue<GymWaitlistEntry> newQueue;
-    int nextMemberId = -1;
-    bool foundNext = false;
-
-    while (!priorityQueue.empty()) {
-        GymWaitlistEntry entry = priorityQueue.top();
-        priorityQueue.pop();
-
-        if (!foundNext && memberMap.find(entry.memberId) != memberMap.end()) {
-            nextMemberId = entry.memberId;
-            memberMap.erase(entry.memberId);
-            foundNext = true;
-            continue;
-        }
-
-        if (memberMap.find(entry.memberId) != memberMap.end()) {
-            newQueue.push(entry);
-        }
-    }
-
-    priorityQueue = newQueue;
-
-    return nextMemberId;
-}
-
 bool PriorityWaitlist::contains(int memberId) const {
     return memberMap.find(memberId) != memberMap.end();
 }

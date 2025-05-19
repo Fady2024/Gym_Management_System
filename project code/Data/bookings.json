@@ -80,11 +80,44 @@
         "courtId": 1,
         "endTime": "2025-05-19T19:00:00",
         "id": 8,
-        "isCancelled": false,
+        "isCancelled": true,
         "isFromWaitlist": false,
         "isVip": false,
         "price": 100,
         "startTime": "2025-05-19T18:00:00",
+        "userId": 4
+    },
+    {
+        "courtId": 1,
+        "endTime": "2025-05-18T08:00:00",
+        "id": 9,
+        "isCancelled": false,
+        "isFromWaitlist": false,
+        "isVip": false,
+        "price": 100,
+        "startTime": "2025-05-18T07:00:00",
+        "userId": 4
+    },
+    {
+        "courtId": 3,
+        "endTime": "2025-05-26T16:00:00",
+        "id": 10,
+        "isCancelled": false,
+        "isFromWaitlist": false,
+        "isVip": true,
+        "price": 85,
+        "startTime": "2025-05-26T15:00:00",
+        "userId": 2
+    },
+    {
+        "courtId": 3,
+        "endTime": "2025-05-26T16:00:00",
+        "id": 11,
+        "isCancelled": false,
+        "isFromWaitlist": false,
+        "isVip": false,
+        "price": 100,
+        "startTime": "2025-05-26T15:00:00",
         "userId": 4
     }
 ]

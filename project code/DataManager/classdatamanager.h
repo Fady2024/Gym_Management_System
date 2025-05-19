@@ -61,6 +61,8 @@ public:
     bool addSession(int classId, const QDate& date, QString& errorMessage);
     bool removeSession(int classId, const QDate& date, QString& errorMessage);
     QVector<QDate> getClassSessions(int classId) const;
+    
+    void scheduleMonthlySessions();
 
     // Enrollment management
     bool enrollMember(int classId, int memberId, QString& errorMessage);
@@ -101,6 +103,7 @@ private:
     static MonthlyReport jsonToMonthlyReport(const QJsonObject& json);
     bool loadAttendanceRecords();
     bool saveAttendanceRecords() const;
+    bool scheduleClassesForMonth(const QDate& month, QString& errorMessage);
     bool loadMonthlyReports();
     bool saveMonthlyReports() const;
 };

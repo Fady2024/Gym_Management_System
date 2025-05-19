@@ -11,7 +11,7 @@
         "age": 20,
         "email": "Fadygerges2024@gmail.com",
         "id": 2,
-        "name": "Fadygerges2024@gmail.com",
+        "name": "Fadygerges",
         "password": "Fadygerges2024@gmail.com",
         "photoPath": "project code/UsersPhoto/github (1).png"
     },
@@ -70,5 +70,13 @@
         "name": "x",
         "password": "XXXXxxxx",
         "photoPath": ""
+    },
+    {
+        "age": 20,
+        "email": "Fadygerges2001@gmail.com",
+        "id": 10,
+        "name": "fady",
+        "password": "Fadygerges2001@gmail.com",
+        "photoPath": "project code/UsersPhoto/writing.png"
     }
 ]

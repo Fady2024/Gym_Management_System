@@ -203,12 +203,9 @@ bool UserDataManager::deleteAccountById(int id, QString& errorMessage)
         errorMessage = "User not found";
         return false;
     }
-
-    // Remove from all data structures
     const User& user = it->second;
     emailToIdMap.erase(user.getEmail());
     usersById.erase(id);
-
     dataModified = true;
     qDebug() << "User deleted and data marked for saving at application exit";
     return true;
@@ -226,7 +223,7 @@ int UserDataManager::generateUserId() const {
             maxId = pair.first;
         }
     }
-    return maxId + 1;  // Return the next available ID
+    return maxId + 1;
 }
 
 bool UserDataManager::saveRememberedCredentials(const QString& email, const QString& password)
@@ -234,7 +231,7 @@ bool UserDataManager::saveRememberedCredentials(const QString& email, const QStr
     rememberedEmail = email;
     rememberedPassword = password;
     hasRememberedCredentials = true;
-    dataModified = true;  // Mark data as modified
+    dataModified = true;
     qDebug() << "Remembered credentials updated and marked for saving at application exit";
     return true;
 }
@@ -244,7 +241,7 @@ bool UserDataManager::clearRememberedCredentials()
     rememberedEmail.clear();
     rememberedPassword.clear();
     hasRememberedCredentials = false;
-    dataModified = true;  // Mark data as modified
+    dataModified = true;
     qDebug() << "Remembered credentials cleared and marked for saving at application exit";
     return true;
 }

@@ -1869,7 +1869,6 @@ void AuthPage::updateLayout() const
 
 bool AuthPage::eventFilter(QObject* obj, QEvent* event)
 {
-    // Handle clicks on toggle password icons
     if (event->type() == QEvent::MouseButtonPress) {
         const auto toggleIcon = qobject_cast<QLabel*>(obj);
         if (toggleIcon) {
@@ -1894,7 +1893,6 @@ bool AuthPage::eventFilter(QObject* obj, QEvent* event)
             }
         }
     }
-    // Handle resize events for password inputs
     else if (event->type() == QEvent::Resize) {
         const auto input = qobject_cast<QLineEdit*>(obj);
         if (input) {
@@ -2066,8 +2064,6 @@ void AuthPage::showEvent(QShowEvent* event)
 {
     QMainWindow::showEvent(event);
     clearFields();
-    
-    // Load remembered credentials if they exist
     QString rememberedEmail, rememberedPassword;
     if (userDataManager->getRememberedCredentials(rememberedEmail, rememberedPassword)) {
         loginEmailInput->setText(rememberedEmail);
